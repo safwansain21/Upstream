@@ -1,0 +1,42 @@
+[
+  {
+    "file": "references/01-hybrid-landing.png",
+    "role": "Primary visual authority: landing, brand, curves",
+    "original_file": "hybrid-landing.png",
+    "sha256": "e6c9f079bc4aa8afa64c18d36d23fea0a91eedf71954702f2dd2e2a7616722b4",
+    "width": 1586,
+    "height": 992
+  },
+  {
+    "file": "references/02-hybrid-investigation.png",
+    "role": "Primary visual authority: signed-in desktop application",
+    "original_file": "hybrid-investigation.png",
+    "sha256": "53a2fa95a8dfdf09f4b721f53bc9bbb9ca74334513925777eb7a48b9762e6ae1",
+    "width": 1586,
+    "height": 992
+  },
+  {
+    "file": "references/03-directory-layout.png",
+    "role": "Secondary layout only; apply hybrid styling",
+    "original_file": "03-fieldwork-directory.png",
+    "sha256": "70769722c8f137f3d0eed992abefd65b77ed9f02a32bc8ead084f7c1bcd31f35",
+    "width": 1586,
+    "height": 992
+  },
+  {
+    "file": "references/04-evidence-layout.png",
+    "role": "Secondary layout only; apply hybrid styling",
+    "original_file": "03-fieldwork-evidence.png",
+    "sha256": "184ecc924d66a1440c310a9c0e10f43958451d3b93c9c11dca2cde5bbdea4739",
+    "width": 1586,
+    "height": 992
+  },
+  {
+    "file": "references/05-report-layout.png",
+    "role": "Secondary layout only; apply hybrid styling",
+    "original_file": "03-fieldwork-observation.png",
+    "sha256": "d7b16314d028a765357dce658a0990c80e84948f111bbd984a570acaa5cffd35",
+    "width": 1586,
+    "height": 992
+  }
+]

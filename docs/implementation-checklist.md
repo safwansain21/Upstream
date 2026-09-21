@@ -1,0 +1,153 @@
+# Persistent implementation checklist
+
+Authority: docs/specification/START-HERE.md, UPSTREAM-PRD.md, SCIENTIFIC-ENGINE.md and ACCEPTANCE.md.
+Unchecked means not yet demonstrated. See release-results.md for actual test evidence.
+
+## Acceptance gates
+
+- [ ] A01 Fresh checkout + documented commands starts web/API/worker/database/auth/storage, applies migrations and shows seed example.
+- [ ] A02 No paid map/AI/email API key is needed for the example workspace and complete deterministic core workflow.
+- [ ] A03 Refreshing each required route retains server records and correct case/org identity.
+- [ ] A04 Worker/API restart during a job does not lose data, duplicate a case, or approve a partial result.
+- [ ] A05 Production build/typecheck and secret scanning pass; source maps/assets contain no privileged key.
+- [ ] A06 First production admin/intake organization setup is documented and does not reuse example credentials.
+- [ ] A07 All required routes have loading, empty, error and permission states; zero dead-end navigation items.
+- [ ] A08 Fresh migrations and upgrade migrations pass against isolated databases.
+- [ ] B01 Guest starts text/photo draft, signs in, returns with all data preserved.
+- [ ] B02 Submit a report without waterway, station or case selection; one durable case opens.
+- [ ] B03 Submit with landmark only and unknown coordinate; case says location verification needed, not fake map precision.
+- [ ] B04 "This stream is not on the map" preserves pin/accuracy/local name and creates a provisional association.
+- [ ] B05 Geo-permission denial leaves manual location/landmark submission functional.
+- [ ] B06 Text-only report works; malformed/oversize media fails locally/server-side without losing text.
+- [ ] B07 Public derivatives have location EXIF removed; private original access remains authorized.
+- [ ] B08 Duplicate submit with same idempotency key/body returns same report/case; altered body returns conflict.
+- [ ] B09 Nearby duplicate suggestion can be rejected; merge preserves both reports and immutable attribution.
+- [ ] B10 AI suggestions require acceptance/edit; refusal or provider failure does not block report.
+- [ ] B11 Submission receipt distinguishes device-saved, uploading and server-received.
+- [ ] B12 Contributor can see actual effect or no-effect message and the assessment version used.
+- [ ] B13 Superseded assessment marks its contribution receipt revised; original receipt history remains readable.
+- [ ] B14 Publication defaults private; a report's visibility choice does not expose other case records.
+- [ ] B15 Field access guidance never blocks a legitimate report with a forced assertion of permitted land.
+- [ ] C01 Import GeoJSON preserves license/source and defaults connectivity to unverified.
+- [ ] C02 Proposed network cannot drive source exclusion until reviewed within a documented domain.
+- [ ] C03 Unknown relevant tributary/culvert does not become disconnected/no signal.
+- [ ] C04 A map crossing without a junction is not automatically a confluence.
+- [ ] C05 Flow reversal, cycle or split/rejoin is detected; case usable while localization unsupported.
+- [ ] C06 Station insertion splits reach; signatures recompute; row subdivision alone preserves results.
+- [ ] C07 Network publish records reviewer/evidence and creates a new version; old assessments retain their original version.
+- [ ] C08 Existing case on an unnamed waterway can later link to an external ID without changing report IDs.
+- [ ] C09 Readiness shows missing background, calibration, transport and persistence independently.
+- [ ] C10 Unknown boundary inflow remains explicit and prevents finite whole-source-area claims.
+- [ ] C11 A valid local domain can be investigated without claiming completeness of the whole watershed.
+- [ ] C12 Coordinate precision appears on map/list and does not silently snap to a nearby stream.
+- [ ] D01 Assignment checks capability, access, time window and instrument; client override is rejected.
+- [ ] D02 Two users claiming one task yield one assignment and one clear conflict.
+- [ ] D03 Concurrent exclusive instrument bookings are rejected atomically.
+- [ ] D04 Monitor declines/blocks a task with reason; case remains useful and replanning respects it.
+- [ ] D05 General contributor cannot submit a protocol-qualified reading without qualification.
+- [ ] D06 Raw conductivity vs meter-SC25 vs true-SC25 enclosure are explicit; unit conversion round-trips correctly.
+- [ ] D07 Required temperature/compensation metadata absent makes reading history-only/ineligible.
+- [ ] D08 Rapid repeats do not shrink systematic bounds; individual readings and visit ID survive.
+- [ ] D09 Instrument expiry after a valid reading leaves it valid.
+- [ ] D10 Instrument invalid at measurement time is handled by protocol and logged.
+- [ ] D11 Later verification failure creates suspect/review states, not automatic universal deletion.
+- [ ] D12 Revised task/protocol while offline preserves reading as submitted under its actual version.
+- [ ] D13 Access closure blocks affected tasks; no assignment to inaccessible station just because its score is best.
+- [ ] D14 Future sampling task includes purpose and limitations, not promised source discovery.
+- [ ] E01 Network 1 has 8.50km, eight signature classes and .60km confluence group.
+- [ ] E02 Network 2 totals 5.00km and produces the documented merged groups.
+- [ ] E03 Network 3 is unsupported for localization without being rejected as a report.
+- [ ] E04 Fraction oracle yields anchor [9.52,31.28], A3 L_hi=5.75 and retained 5.30km.
+- [ ] E05 A3 alone preserves weak-source possibilities.
+- [ ] E06 Alternative B2=600 and B2=452 fixtures yield 2.30km and 3.00km respectively.
+- [ ] E07 Removing reviewed B2 evidence expands retained area back to 5.30km.
+- [ ] E08 Simple planner threshold is 105/23; equality ambiguous; U=5 cannot promise one-step narrowing.
+- [ ] E09 Compensation range and independent-scale behavior match the exact equations.
+- [ ] E10 All in-bounds generated truths are retained across property tests; unknown is retained.
+- [ ] E11 Widening bounds/removing readings cannot shrink mathematical feasible set; eligibility assessed separately.
+- [ ] E12 Shared offsets, visit effects and water-condition scopes are actual shared variables.
+- [ ] E13 Unknown/timeout/out-of-memory never means incompatible.
+- [ ] E14 No fitted source likelihood, pollution probability or health score appears.
+- [ ] E15 Every exclusion has versioned constraints and a reproducible problem hash.
+- [ ] E16 Planner contains ambiguous outcomes and counts channel length, not reach rows.
+- [ ] E17 McCormick outer relaxation contains generated exact configurations.
+- [ ] E18 Witness-based oracle lower bound never exceeds planner upper bound.
+- [ ] E19 Time-limited planner returns conservative bound/unscored; it does not quietly omit hard subsets.
+- [ ] E20 Future solver unresolved results cannot be dropped to make observed area match prediction.
+- [ ] E21 AI and simulator truth fields cannot enter scientific snapshots.
+- [ ] E22 One Health context toggles do not change compatibility.
+- [ ] E23 Claimed comparable readings have actual persistence/path/transport justification; timestamps alone insufficient.
+- [ ] E24 Below-background events/negative load are outside the one-positive-input model, not mislocalized.
+- [ ] E25 Background empirical coverage label is honest; chronological validation is separate from fitting.
+- [ ] E26 Multi-source/transient/misconnected cases report limitations without guaranteed fault-detection claims.
+- [ ] E27 No live protocol is automatically populated with synthetic bounds.
+- [ ] F01 Approved assessment is immutable; change creates draft and preserves predecessor.
+- [ ] F02 Concurrent evidence change makes approval fail with dependency conflict.
+- [ ] F03 Admin without expert capability cannot approve from API or UI.
+- [ ] F04 Suspect relevant reading marks approved assessment under review and dependent tasks needing review.
+- [ ] F05 Reviewer exclusion recomputes actual retained geometry and produces superseding review draft.
+- [ ] F06 Approval supersedes prior publication; previous recipients get distinct revision notices.
+- [ ] F07 Transport delivered != human acknowledged; verify independent fields.
+- [ ] F08 Retry delivery preserves package bytes/logical ID, no duplicate notice.
+- [ ] F09 Recipient link is scoped, expires/revokes, cannot enumerate other packages.
+- [ ] F10 Expert inspection decision can coexist with structural resolution limit.
+- [ ] F11 Context layers influence recipient suggestions/priority only with source and no health claim.
+- [ ] F12 Export JSON/GeoJSON/PDF contains matching assessment version, geometry, origins and assumptions.
+- [ ] F13 FHIR validator reports zero errors; no Patient/RelatedPerson/Practitioner fiction; DocumentReference subject is not Location.
+- [ ] F14 Adapter retains quality/attribution semantics and resolves references.
+- [ ] F15 Detached signature verifies; changed artifact/wrong key/broken predecessor fails. Unsigned package explicitly unsigned.
+- [ ] F16 Exporting does not require sending. Configured delivery requires explicit action.
+- [ ] F17 Original signed package is never rewritten when latest metadata becomes superseded.
+- [ ] G01 Every cross-organization direct object/API/storage request is denied.
+- [ ] G02 Contributors cannot read private other-person media or internal evidence just by knowing an ID.
+- [ ] G03 Revoked membership immediately blocks new privileged operations and offline sync.
+- [ ] G04 Public snapshot exposes only sanitized approved fields and generalized coordinates.
+- [ ] G05 RLS tests cover reads and writes, RPCs and direct REST; no service-role key in browser.
+- [ ] G06 Role/capability self-upgrade is rejected.
+- [ ] G07 CSRF/origin/unsafe HTML/prompt-injection input cannot execute actions.
+- [ ] G08 Media MIME mismatch/decompression bomb/oversize import is rejected.
+- [ ] G09 Arbitrary URLs in reports/AI/imports cannot trigger server-side network access.
+- [ ] G10 Recipient webhook private-address/redirect abuse is rejected outside local test mode.
+- [ ] G11 Logs omit secrets, photos, precise location and free-text report content.
+- [ ] G12 Personal-data export/visibility withdrawal/deletion-request workflow works without corrupting scientific references.
+- [ ] H01 Offline draft survives tab close/reopen on same device/account.
+- [ ] H02 Queued photo+report synchronize in dependency order and create one submission.
+- [ ] H03 Sign-out/account switch does not submit another user's queued draft.
+- [ ] H04 Storage quota and failed individual uploads leave recoverable draft/error state.
+- [ ] H05 Offline approve/assign/network-publish controls explain unavailability.
+- [ ] H06 Protocol/task/server-version conflicts show review path, not last-write-wins scientific overwrite.
+- [ ] H07 Map-provider failure yields labelled schematic/list, no blank critical workspace.
+- [ ] H08 AI unavailable uses manual workflow and labelled state, not fake "AI" text.
+- [ ] H09 Expired session preserves form and resumes after sign-in.
+- [ ] H10 Service-worker update does not discard unsent work.
+- [ ] H11 Streaming failure uses polling; duplicate/reordered events do not revert to older state.
+- [ ] H12 Failed submission button offers retry; it never shows server-success toast before server acceptance.
+- [ ] I01 Side-by-side inspect 1440×900 landing/workspace against the two primary hybrid references.
+- [ ] I02 Palette orange/ice-blue, organic river curves, expressive display type and normal-width body text are consistent across every page.
+- [ ] I03 No screenshot flattened into application background with overlaid pretend controls.
+- [ ] I04 Curves do not clip focus, text, map controls, attribution, dialogs or popovers.
+- [ ] I05 All required pages work at 1920,1440,1280,1024,768,390 and 320px.
+- [ ] I06 Keyboard-only: report, task, measurement, map alternative, evidence review and recipient acknowledgment.
+- [ ] I07 Screen-reader labels, heading order, error summary, route focus and revision announcement verified.
+- [ ] I08 AA contrast, 200% zoom, reflow and no color-only status verified; automated axe zero serious/critical findings.
+- [ ] I09 Reduced-motion OS + application setting suppress movement/shimmer/camera flight and preserve all information.
+- [ ] I10 Route transitions interrupted/repeated remain correct; no stuck overlay or inaccessible outgoing page.
+- [ ] I11 Hover/focus/button/list/detail/form/drawer animations follow durations and distances in PRD.
+- [ ] I12 Map overlay transition waits for actual result; expansions and reductions equally clear.
+- [ ] I13 No numeric count-up through fabricated intermediate measurements.
+- [ ] I14 Upload percentage reflects actual progress or clearly indeterminate stage.
+- [ ] I15 No perpetual decorative movement, custom cursor, scroll hijacking or celebration of environmental damage.
+- [ ] I16 Browser back/forward and direct links preserve sensible focus, selection and case identity.
+- [ ] I17 Functional app screenshots are desktop web layouts, not phone mockups.
+- [ ] J01 Public LCP/CLS and JS budget measured using documented browser/network profile.
+- [ ] J02 Long scientific jobs run off request path; UI remains navigable/cancellable.
+- [ ] J03 Test directory with 10k records and map with 500 visible features; no unbounded browser render.
+- [ ] J04 Actual origin labels appear in maps, exports, observations, examples and receipts.
+- [ ] J05 Evaluation compares policies using same inference/eligibility/stopping and exogenous paired episodes.
+- [ ] J06 Independent-event count is separate from sample/replicate count.
+- [ ] J07 Report containment, incorrect exclusions, unresolved rate and effort together.
+- [ ] J08 Local test receiver demonstrates delivery and supersession acknowledgment without sending to real organizations.
+- [ ] J09 Database/object backup and isolated restore procedure exercised.
+- [ ] J10 Deployment guide, environment classification, key rotation and rollback procedures complete.
+- [ ] J11 No unwired button, temporary screen, lorem ipsum, fake partner claim or "coming soon" route inside required scope.
+- [ ] J12 Final handoff reports actual tests, externally unavailable integrations and empirical limits without claiming field validation.
