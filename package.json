@@ -1,0 +1,27 @@
+{
+  "name": "upstream",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "setup:local": "python scripts/local.py setup",
+    "seed:example": "python scripts/local.py seed",
+    "dev": "python scripts/local.py dev",
+    "test": "python scripts/local.py test",
+    "test:engine": "python scripts/local.py engine",
+    "test:e2e": "pnpm exec playwright test",
+    "test:security": "python scripts/local.py security",
+    "verify:fhir": "python scripts/local.py fhir",
+    "build": "pnpm --filter @upstream/web build",
+    "verify:release": "python scripts/local.py release",
+    "reset:example": "python scripts/local.py reset"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
+    "supabase": "2.117.0"
+  }
+}

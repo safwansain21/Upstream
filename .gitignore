@@ -1,4 +1,16 @@
 # Logs
+work/
+.venv/
+__pycache__/
+.pytest_cache/
+pytest-cache-files-*/
+.hypothesis/
+.ruff_cache/
+.superpowers/
+supabase/.temp/
+supabase/.branches/
+test-results/
+playwright-report/
 logs
 *.log
 npm-debug.log*
