@@ -48,7 +48,7 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] D06 Raw conductivity vs meter-SC25 vs true-SC25 enclosure are explicit; unit conversion round-trips correctly.
 - [x] D07 Required temperature/compensation metadata absent makes reading history-only/ineligible.
 - [x] D08 Rapid repeats do not shrink systematic bounds; individual readings and visit ID survive.
-- [ ] D09 Instrument expiry after a valid reading leaves it valid.
+- [x] D09 Instrument expiry after a valid reading leaves it valid.
 - [ ] D10 Instrument invalid at measurement time is handled by protocol and logged.
 - [ ] D11 Later verification failure creates suspect/review states, not automatic universal deletion.
 - [x] D12 Revised task/protocol while offline preserves reading as submitted under its actual version.

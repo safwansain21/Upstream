@@ -95,6 +95,7 @@ class TaskCreate(StrictModel):
                        'repeat_imagery', 'baseline_reading', 'anchor_reading', 'conductance_reading',
                        'coordinated_pair', 'instrument_check', 'expert_review']
     purpose: str = Field(min_length=10, max_length=2000)
+    limitations: str = Field(default='', max_length=2000)
     station_id: UUID | None = None
     protocol_id: UUID | None = None
     window_start: datetime

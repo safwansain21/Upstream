@@ -98,4 +98,31 @@ Step 6 backend DONE (tasks/field work), UI pending:
   instrument verification failure -> suspect -> under_review -> recompute).
 
 Release evidence: after each step rerun the full suite and `python scripts/update_release_results.py` (edit its PASSES/PARTIAL maps). PASS only with command + passing test IDs. Session 2 end state: 40 PASS, 106 FAIL; 96 tests passed.
-In progress (uncommitted UI may be partial): task board `/app/[org]/tasks` + `src/components/tasks.tsx`; task detail, assignment dialog and capture UI still to do.
+
+Step 6 DONE (tasks, instruments, readings, task board):
+- UI: `/app/[org]/tasks` (My tasks / Available to me / Coordinating), `/app/[org]/tasks/[task]` (claim/accept/start/decline/
+  block/submit/complete/cancel with reasons, report access closed / coordinator resolve, assignment panel from
+  `GET tasks/{task}/candidates`, replicate capture form, readings table with expert/coordinator QC),
+  `/app/[org]/investigations/[case]/tasks` (case board + propose form; recommendations link "Propose as task" with
+  conservative-bound limitation text), case tab nav, `/app/[org]/settings/instruments` (registry + append-only
+  calibration events; expert only; optional bounds validated with the engine Instrument model).
+- Migration 202609210005: members read protocols and instruments.
+- Tests: tests/e2e/test_task_flow.py (propose -> assign -> monitor accept + 2 replicates -> expert accept) and D09 tests.
+  Full suite 99 passed; release-results 41 PASS.
+- Known shortcut: QC rationale uses window.prompt (native, keyboard accessible); replace with inline form in step 6 below.
+
+## Priority order from 2026-09-21 (user instruction; supersedes the earlier order above)
+1. Map setup: network mapping and review flow (map-setup page, import/draft/validate/publish, diff), plus the map pin in
+   the report form and the directory map view deferred from step 3.
+2. Evidence review and approval: expert review of readings and assessments, approve/publish (dependency-hash check),
+   request more evidence/reject, revisions (instrument failure -> suspect -> under_review -> recompute -> supersede).
+3. Exports and delivery: at least one complete, polished export end to end (package build -> storage -> recipient view/ack).
+4. Tighten gates: B01 guest test must include a photo that survives sign-in; D12 note in release-results that only the
+   server side is verified until the offline client exists.
+5. Remaining B gates: B09 duplicate suggestions, B12 contribution effect, B13 revised receipts.
+6. Remaining routes, end-to-end tests, accessibility, release docs (old step 11). Header links Evidence/Community are
+   currently dead routes - fix here at the latest.
+7. Offline sync and AI adapter last (optional if time runs short).
+Rules: commit+push build/upstream after every working chunk (never main, no Claude attribution); update release-results
+after each step with command + passing test IDs (scripts/update_release_results.py); every new page needs loading, empty
+and error states.

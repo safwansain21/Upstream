@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from scripts.seed_example import sid
+from scripts.seed_example import sid, synthetic
 from tests.api.test_analysis import case_id
 from tests.api.test_http import ORG, as_, client
 
@@ -184,3 +184,34 @@ def test_conductivity_modes_are_explicit_and_units_round_trip():  # D06
     raw = readings(accepted_task(), [rep('1.4135')], unit='mS/cm').json()['data']['readings'][0]
     detail = client.get(f"/api/v1/orgs/{ORG}/tasks/{task['id']}", headers=as_('monitor'))
     assert raw['eligible'] and detail.status_code == 200
+
+
+def test_calibration_events_are_append_only_and_expert_recorded():  # D09 support
+    meter = sid('instrument:SC-014')
+    body = {'status': 'pass', 'effective_from': '2026-09-01T00:00:00+00:00', 'effective_until': '2027-09-01T00:00:00+00:00',
+            'checked_at': NOW.isoformat(), 'reason': 'Example verification against a standard'}
+    url = f'/api/v1/orgs/{ORG}/instruments/{meter}/calibrations'
+    assert client.post(url, json=body, headers=as_('coordinator')).status_code == 403
+    assert client.post(url, json=body | {'reason': 'short'}, headers=as_('expert')).status_code == 422
+    assert client.post(url, json=body | {'bounds': {'gain': synthetic('0', '1', '1')}}, headers=as_('expert')).status_code == 422
+    r = client.post(url, json=body, headers=as_('expert'))
+    assert r.status_code == 201, r.text
+    items = client.get(f'/api/v1/orgs/{ORG}/instruments', headers=as_('expert')).json()['data']
+    history = next(i for i in items if i['id'] == meter)['calibrations']
+    assert len(history) >= 2 and any(c['id'] == r.json()['data']['id'] for c in history)
+
+
+def test_reading_stays_valid_after_calibration_expires():  # D09
+    task = accepted_task()
+    rid = readings(task, [rep()]).json()['data']['readings'][0]['id']
+    # a later event whose window ended does not touch the stored calibration of the earlier reading
+    body = {'status': 'pass', 'effective_from': '2026-01-01T00:00:00+00:00', 'effective_until': (NOW - timedelta(minutes=5)).isoformat(),
+            'checked_at': NOW.isoformat(), 'reason': 'Example: certificate period that ended after the reading',
+            'bounds': {'gain': synthetic('.99', '1.01', '1'), 'offset': synthetic('-1', '1', 'uS/cm'),
+                       'temperature_bias': synthetic('-.1', '.1', 'degC'), 'accounting': 'decomposed'}}
+    assert client.post(f"/api/v1/orgs/{ORG}/instruments/{sid('instrument:SC-009')}/calibrations", json=body, headers=as_('expert')).status_code == 201
+    detail = client.get(f"/api/v1/orgs/{ORG}/tasks/{task['id']}", headers=as_('monitor')).json()['data']
+    assert next(x for x in detail['readings'] if x['id'] == rid)['eligible']
+    q = client.post(f'/api/v1/orgs/{ORG}/readings/{rid}/quality', headers=as_('expert'),
+                    json={'disposition': 'accepted', 'reason': 'Valid calibration at measurement time'})
+    assert q.status_code == 200

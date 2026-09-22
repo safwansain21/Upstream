@@ -527,3 +527,53 @@ def record_quality(org: UUID, reading: UUID, body: QualityCommand, request: Requ
 def protocols(org: UUID, request: Request, user: Identity = Depends(identity)):
     return envelope(rows(user, '''select id,entity_id,version,name,status,data_origin,source,configuration->'instructions' instructions,
         configuration->'replicates' replicates from protocol_versions where org_id=%s order by name,version desc''', (org,)), request)
+
+
+# ---- instrument registry ----
+
+class CalibrationEvent(StrictModel):
+    status: str
+    effective_from: str
+    effective_until: str | None = None
+    checked_at: str
+    reason: str
+    certificate: str | None = None
+    bounds: dict | None = None  # {gain, offset, temperature_bias: engine Interval, accounting}; required for raw readings to be modelled
+
+
+@app.get('/api/v1/orgs/{org}/instruments')
+def instruments(org: UUID, request: Request, user: Identity = Depends(identity)):
+    items = rows(user, 'select id,serial,model,capabilities,available,specifications from instruments where org_id=%s order by serial', (org,))
+    with transaction(user.user_id) as db:  # calibration history is evidence: visible to coordinators/experts under RLS
+        for i in items:
+            i['calibrations'] = db.execute('''select id,status,effective_from,effective_until,checked_at,reason,certificate,created_at
+                from calibration_events where instrument_id=%s order by checked_at desc''', (i['id'],)).fetchall()
+    return envelope(items, request)
+
+
+@app.post('/api/v1/orgs/{org}/instruments/{instrument}/calibrations', status_code=201)
+def add_calibration(org: UUID, instrument: UUID, body: CalibrationEvent, request: Request, user: Identity = Depends(identity)):
+    """Append-only calibration/verification event. It is never backdated silently: created_at records entry time."""
+    if body.status not in ('pass', 'fail', 'indeterminate') or len(body.reason) < 10:
+        raise DomainError('VALIDATION_FAILED', 'Choose pass, fail or indeterminate and give a reason of at least 10 characters.')
+    if body.bounds is not None:
+        from datetime import datetime
+        from upstream_engine import Instrument
+        try:  # same strict validation the engine applies, so stored bounds are always modellable
+            Instrument(id='check', calibration_version='check', valid_from=datetime.fromisoformat(body.effective_from),
+                       valid_until=datetime.fromisoformat(body.effective_until or '9999-12-31T00:00:00+00:00'), **body.bounds)
+        except Exception as exc:  # noqa: BLE001
+            raise DomainError('VALIDATION_FAILED', f'Calibration bounds are invalid: {str(exc).splitlines()[-1][:200]}')
+    with transaction(user.user_id) as db:
+        if not db.execute("select private.has_capability(%s,'expert') ok", (org,)).fetchone()['ok']:
+            raise DomainError('FORBIDDEN', 'Recording calibration evidence requires expert capability.', 403)
+    with transaction(worker=True) as db:
+        if not db.execute('select 1 from instruments where org_id=%s and id=%s', (org, instrument)).fetchone():
+            raise DomainError('NOT_FOUND', 'Record not found.', 404)
+        row = db.execute('''insert into calibration_events(org_id,instrument_id,status,effective_from,effective_until,checked_at,reason,certificate,reviewer_id,bounds)
+            values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) returning id,status,effective_from,effective_until,checked_at,created_at''',
+                         (org, instrument, body.status, body.effective_from, body.effective_until, body.checked_at, body.reason,
+                          body.certificate, user.user_id, json.dumps(body.bounds) if body.bounds else None)).fetchone()
+        db.execute("insert into audit_log(org_id,actor_id,action,object_id,outcome) values(%s,%s,'calibration.recorded',%s,%s)",
+                   (org, user.user_id, row['id'], body.status))
+    return envelope(row, request, 201)

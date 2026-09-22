@@ -107,7 +107,8 @@ export function CaseAnalysis({ org, caseId, canAnalyse, canReview }: { org: stri
 
     {canReview && a?.recommendations.length ? <section className="surface stack" aria-labelledby="next-heading"><h2 id="next-heading">Next useful observation</h2>
       <ol>{a.recommendations.slice(0, 3).map(r => <li key={r.id}><strong>{r.action_id.replace("visit-", "Measure at ")}</strong>{" · "}
-        {r.score_bound_m === null ? `Not scored: ${r.rationale}` : Number(r.score_bound_m) >= Number(r.retained_length_m) ? `No guaranteed narrowing under current bounds (${r.label.toLowerCase()} ${km(r.score_bound_m)})` : `${r.label}: at most ${km(r.score_bound_m)} would remain`}</li>)}</ol>
+        {r.score_bound_m === null ? `Not scored: ${r.rationale}` : Number(r.score_bound_m) >= Number(r.retained_length_m) ? `No guaranteed narrowing under current bounds (${r.label.toLowerCase()} ${km(r.score_bound_m)})` : `${r.label}: at most ${km(r.score_bound_m)} would remain`}
+        {canAnalyse ? <> · <a className="text-link" href={`/app/${org}/investigations/${caseId}/tasks?from=${r.action_id}${r.score_bound_m ? `&bound=${r.score_bound_m}` : ""}`}>Propose as task</a></> : null}</li>)}</ol>
       <p className="muted">Proposals are not assignments. A coordinator reviews feasibility, access and qualification before assigning a task.</p>
     </section> : null}
 
