@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { CaseTabs } from "../../../../../../components/case-tabs";
-import { EmptyState, InlineError, LoadingState, PageIntro } from "../../../../../../components/ui";
+import { EmptyState, InlineError, PageIntro, PageState } from "../../../../../../components/ui";
 import { api } from "../../../../../../lib/api";
 import { WORKFLOW } from "../../../../../../lib/labels";
 import { useOrg } from "../../../../../../lib/session";
@@ -25,8 +25,8 @@ export default function Decision() {
       setDone("Decision recorded in the case history."); setReason(""); client.invalidateQueries({ queryKey: ["case", org, caseId] }); }
     catch (err) { setError((err as Error).message); client.invalidateQueries({ queryKey: ["case", org, caseId] }); }
   }
-  if (c.error) return <main id="main-content" className="page-shell"><InlineError>{c.error.message}</InlineError></main>;
-  if (!c.data) return <main id="main-content" className="page-shell"><LoadingState/></main>;
+  if (c.error) return <PageState title="Decision" error={c.error} retry={() => c.refetch()}/>;
+  if (!c.data) return <PageState title="Decision"/>;
   const retained = a.data?.classes.filter(x => x.status !== "incompatible") ?? [];
   return <main id="main-content" className="page-shell">
     <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href={`/app/${org}/investigations/${caseId}`}>{c.data.title}</Link> / <span aria-current="page">Decision</span></nav>

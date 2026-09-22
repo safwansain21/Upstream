@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { CaseTabs } from "../../../../../../components/case-tabs";
-import { CaseStatus, EmptyState, InlineError, LoadingState, OriginBadge, PageIntro } from "../../../../../../components/ui";
+import { CaseStatus, EmptyState, InlineError, LoadingState, OriginBadge, PageIntro, PageState } from "../../../../../../components/ui";
 import { api } from "../../../../../../lib/api";
 import { useOrg } from "../../../../../../lib/session";
 
@@ -18,8 +18,8 @@ export default function Observations() {
   const detail = useQuery({ queryKey: ["case", org, caseId], queryFn: () => api<{ title: string; reports: Report[] }>(`/orgs/${org}/cases/${caseId}`) });
   const readings = useQuery({ queryKey: ["readings", org, caseId], enabled: review, queryFn: () => api<Reading[]>(`/orgs/${org}/cases/${caseId}/readings`) });
   const [quality, setQuality] = useState(""); const [station, setStation] = useState("");
-  if (detail.error) return <main id="main-content" className="page-shell"><InlineError>{detail.error.message}</InlineError></main>;
-  if (!detail.data) return <main id="main-content" className="page-shell"><LoadingState/></main>;
+  if (detail.error) return <PageState title="Observations" error={detail.error} retry={() => detail.refetch()}/>;
+  if (!detail.data) return <PageState title="Observations"/>;
   const rows = (readings.data ?? []).filter(r => (!quality || (r.quality ?? "pending") === quality) && (!station || r.station_code === station));
   return <main id="main-content" className="page-shell">
     <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href={`/app/${org}/investigations/${caseId}`}>{detail.data.title}</Link> / <span aria-current="page">Observations</span></nav>

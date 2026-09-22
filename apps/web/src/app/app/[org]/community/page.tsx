@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { ReceiptHistory } from "../../../../components/receipts";
-import { EmptyState, InlineError, LoadingState, OriginBadge, PageIntro } from "../../../../components/ui";
+import { EmptyState, OriginBadge, PageIntro, PageState } from "../../../../components/ui";
 import { api } from "../../../../lib/api";
 import { WORKFLOW } from "../../../../lib/labels";
 import { useOrg } from "../../../../lib/session";
@@ -13,8 +13,8 @@ type Community = { organization: { name: string; contact: string | null; example
 export default function CommunityPage() {
   const { org } = useOrg();
   const q = useQuery({ queryKey: ["community", org], queryFn: () => api<Community>(`/orgs/${org}/community`) });
-  if (q.error) return <main id="main-content" className="page-shell"><InlineError>{q.error.message}</InlineError></main>;
-  if (!q.data) return <main id="main-content" className="page-shell"><LoadingState/></main>;
+  if (q.error) return <PageState title="Community" error={q.error} retry={() => q.refetch()}/>;
+  if (!q.data) return <PageState title="Community"/>;
   const c = q.data;
   return <main id="main-content" className="page-shell"><PageIntro title={c.organization.name}><p>{c.organization.example ? <OriginBadge origin="synthetic"/> : null} {c.organization.contact || "No public contact is listed."}</p></PageIntro>
     <div className="case-grid">

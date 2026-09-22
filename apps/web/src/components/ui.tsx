@@ -16,6 +16,10 @@ export function EmptyState({ title, children, action }: { title: string; childre
 }
 export function InlineError({ children }: { children: ReactNode }) { return <div className="inline-error" role="alert"><strong>Unable to continue.</strong> {children}</div>; }
 export function LoadingState({ label = "Loading the latest records…" }: { label?: string }) { return <div className="loading-state" role="status"><span className="loading-indicator" aria-hidden="true"/><p>{label}</p></div>; }
+/** Whole-page loading or failure that keeps the page heading, a retry and the shared header: never a blank or dead-end page. */
+export function PageState({ title, error, retry, children }: { title: string; error?: Error | null; retry?: () => void; children?: ReactNode }) {
+  return <main id="main-content" className="page-shell"><PageIntro title={title}/>{children ?? (error ? <InlineError>{error.message}{retry ? <> <button type="button" className="button button-quiet" onClick={retry}>Retry</button></> : null}</InlineError> : <LoadingState/>)}</main>;
+}
 export function ReadinessChecklist({ items }: { items: { label: string; ready: boolean; reason?: string }[] }) {
   return <ul className="readiness-list">{items.map(item => <li key={item.label}><span className={item.ready ? "check-ready" : "check-missing"} aria-hidden="true">{item.ready ? "✓" : "○"}</span><div><strong>{item.label}</strong><p>{item.reason || (item.ready ? "Ready" : "Review needed")}</p></div></li>)}</ul>;
 }

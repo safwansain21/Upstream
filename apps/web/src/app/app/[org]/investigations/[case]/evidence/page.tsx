@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { NetworkDiagram, ReachLegend } from "../../../../../../components/network-diagram";
-import { CaseStatus, EmptyState, InlineError, LoadingState, PageIntro } from "../../../../../../components/ui";
+import { CaseStatus, EmptyState, InlineError, LoadingState, PageIntro, PageState } from "../../../../../../components/ui";
 import { api } from "../../../../../../lib/api";
 import { schematic } from "../../../../../../lib/geo";
 import { CaseTabs } from "../../../../../../components/case-tabs";
@@ -54,10 +54,11 @@ export default function EvidenceReview() {
   }
 
   const failure = hist.error ?? caseQ.error;
-  if (failure) return <main id="main-content" className="page-shell">{(failure as { status?: number }).status === 404 || (failure as { status?: number }).status === 403
+  const denied = !(can("expert") || can("coordinate") || can("evidence_view")); // the API returns nothing to others; say so instead of "no assessments"
+  if (failure || denied) return <PageState title="Evidence">{denied || (failure as { status?: number }).status === 404 || (failure as { status?: number }).status === 403
     ? <EmptyState title="Evidence is not available to you" action={<Link className="button button-outline" href={`/app/${org}/investigations`}>All investigations</Link>}><p>This investigation may not exist, or its evidence is limited to the review team.</p></EmptyState>
-    : <InlineError>{failure.message}</InlineError>}</main>;
-  if (!hist.data || !caseQ.data) return <main id="main-content" className="page-shell"><LoadingState/></main>;
+    : <InlineError>{failure!.message}</InlineError>}</PageState>;
+  if (!hist.data || !caseQ.data) return <PageState title="Evidence"/>;
   const L = latest.data; const A = approved.data;
   const latestHist = hist.data[0];
   const delta = L && A && L.eligible && A.eligible ? Number(L.retained_length_m) - Number(A.retained_length_m) : null;

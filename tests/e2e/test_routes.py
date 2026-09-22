@@ -23,6 +23,7 @@ def rendered(p, path):
     p.goto(BASE + path)
     expect(p.locator('#main-content h1').first).to_be_visible(timeout=15000)
     expect(p.get_by_text('This page could not load')).to_have_count(0)
+    assert not re.search(r'lorem|ipsum|coming soon|under construction', p.inner_text('body'), re.I), path  # J11 rendered copy
     return {h for h in p.eval_on_selector_all('a[href^="/"]', 'els => els.map(e => e.getAttribute("href"))') if not h.startswith('/api/')}
 
 

@@ -2,7 +2,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { MotionSettings } from "../../../../../components/motion-settings";
-import { InlineError, LoadingState, PageIntro } from "../../../../../components/ui";
+import { InlineError, LoadingState, PageIntro, PageState } from "../../../../../components/ui";
 import { api, supabase } from "../../../../../lib/api";
 import { db, type Draft } from "../../../../../lib/drafts";
 import { useMe } from "../../../../../lib/session";
@@ -38,8 +38,8 @@ export default function Profile() {
     try { await api("/me/deletion-request", { method: "POST", json: { confirm: true } }); await supabase.auth.signOut(); location.href = "/"; }
     catch (err) { setError((err as Error).message); }
   }
-  if (me.error) return <main id="main-content" className="page-shell"><InlineError>{me.error.message}</InlineError></main>;
-  if (!me.data) return <main id="main-content" className="page-shell"><LoadingState/></main>;
+  if (me.error) return <PageState title="Profile" error={me.error} retry={() => me.refetch()}/>;
+  if (!me.data) return <PageState title="Profile"/>;
   const unsent = (drafts ?? []).filter(d => d.status !== "server_received");
   return <main id="main-content" className="page-shell"><PageIntro title="Profile and preferences"/>
     <form className="surface stack" onSubmit={save}><h2>Profile</h2>{error ? <InlineError>{error}</InlineError> : null}

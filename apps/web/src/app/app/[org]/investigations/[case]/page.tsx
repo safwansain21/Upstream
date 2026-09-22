@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { CaseAnalysis } from "../../../../../components/case-analysis";
 import { DocumentTitle } from "../../../../../components/document-title";
 import { CaseTabs } from "../../../../../components/case-tabs";
-import { CaseStatus, EmptyState, InlineError, LoadingState, OriginBadge } from "../../../../../components/ui";
+import { CaseStatus, EmptyState, InlineError, OriginBadge, PageState } from "../../../../../components/ui";
 import { api } from "../../../../../lib/api";
 import { WORKFLOW } from "../../../../../lib/labels";
 import { useOrg } from "../../../../../lib/session";
@@ -17,10 +17,10 @@ type CaseDetail = { merged_into: string | null; id: string; title: string; local
 export default function CaseOverview() {
   const { org, can } = useOrg(); const { case: id } = useParams<{ case: string }>();
   const detail = useQuery({ queryKey: ["case", org, id], queryFn: () => api<CaseDetail>(`/orgs/${org}/cases/${id}`) });
-  if (detail.error) return <main id="main-content" className="page-shell">{(detail.error as any).status === 404
+  if (detail.error) return <PageState title="Investigation">{(detail.error as any).status === 404
     ? <EmptyState title="Investigation not found" action={<Link className="button button-outline" href={`/app/${org}/investigations`}>All investigations</Link>}><p>It may not exist, or it is not shared with you.</p></EmptyState>
-    : <InlineError>{detail.error.message}</InlineError>}</main>;
-  if (!detail.data) return <main id="main-content" className="page-shell"><LoadingState/></main>;
+    : <InlineError>{detail.error.message} <button type="button" className="button button-quiet" onClick={() => detail.refetch()}>Retry</button></InlineError>}</PageState>;
+  if (!detail.data) return <PageState title="Investigation"/>;
   const c = detail.data;
   return <main id="main-content" className="page-shell">
     <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href={`/app/${org}/investigations`}>Investigations</Link> / <span aria-current="page">{c.title}</span></nav>
