@@ -42,3 +42,29 @@ def test_import_station_verify_and_publish(page, tmp_path):  # C01 C04 C06 C07 (
     page.get_by_role('button', name='Publish version').click()
     expect(page.get_by_text('Published. Earlier assessments keep the version they used.')).to_be_visible()
     expect(page.get_by_role('heading', name='Published version 1')).to_be_visible()
+
+
+def test_report_pin_is_placed_by_map_click_without_snapping(page):  # B04 C12 (browser path)
+    from tests.api.test_http import fresh_contributor
+    open_as(page, fresh_contributor())
+    page.goto(BASE + '/report/new')
+    page.get_by_label('Unusual foam').check()
+    page.get_by_role('button', name='Continue to location').click()
+    canvas = page.locator('[data-map-ready="true"]')
+    expect(canvas).to_be_visible(timeout=20000)
+    canvas.click(position={'x': 200, 'y': 140})
+    expect(page.get_by_text(re.compile('Pin placed at'))).to_be_visible()
+    assert page.get_by_label('Latitude (optional)').input_value() != ''
+    page.get_by_label('This stream is not on the map').check()
+    page.get_by_role('button', name='Continue to review').click()
+    page.get_by_role('button', name='Submit report').click()
+    expect(page).to_have_url(re.compile(r'/reports/[0-9a-f-]+'))
+
+
+def test_directory_map_and_list_show_precision(page):  # C12 H07
+    open_as(page, 'coordinator@example.test')
+    expect(page.get_by_text(re.compile(r'approximate, ±15 m'))).to_be_visible()
+    page.get_by_role('button', name='Map', exact=True).click()
+    expect(page.locator('[data-map-ready="true"]')).to_be_visible(timeout=20000)
+    expect(page.get_by_text(re.compile('No background map is configured'))).to_be_visible()
+    expect(page.get_by_text(re.compile('have no confirmed coordinates and appear only in the list'))).to_be_visible()

@@ -21,7 +21,9 @@ def open_as(browser_page, email):
 def test_task_proposal_assignment_capture_and_review(page):  # D01 D08 D14 (browser path)
     start = datetime.now() + timedelta(days=random.randint(2, 380), hours=random.randint(0, 23))
     open_as(page, 'coordinator@example.test')
-    page.get_by_role('link', name=re.compile('Harbour channel')).first.click()
+    from tests.api.test_analysis import case_id
+    from tests.api.test_http import ORG
+    page.goto(f"{BASE}/app/{ORG}/investigations/{case_id('Harbour channel')}")
     page.get_by_role('link', name='Tasks', exact=True).click()
     page.get_by_label('Task type').select_option('conductance_reading')
     pick(page.get_by_label('Station'), '^B1 ')

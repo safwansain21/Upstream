@@ -126,3 +126,17 @@ Step 6 DONE (tasks, instruments, readings, task board):
 Rules: commit+push build/upstream after every working chunk (never main, no Claude attribution); update release-results
 after each step with command + passing test IDs (scripts/update_release_results.py); every new page needs loading, empty
 and error states.
+
+Priority 1 DONE (map setup):
+- Migration 202609210006: draft/published network versions (published geometry frozen by trigger), one open draft per case,
+  stations unique per network version, publish_network RPC (network_verify capability, rationale + evidence, boundary,
+  mixing review; supersedes pointer; case.network_id moves only on publish).
+- API: POST cases/{case}/network/drafts (GeoJSON import or copy of current), GET networks/{nid} (validation via engine
+  classify_network, import warnings, diff vs current), PATCH networks/{nid}/edges/{edge}, POST networks/{nid}/stations
+  (on node <=1 m or splits reach <=5 m, else rejected with distance), POST .../stations/{id}/approve, POST networks/{nid}/publish,
+  GET cases/{case}/network/versions, PATCH waterways/{id} (external IDs), cases list now returns first located report point.
+- UI: `/app/[org]/investigations/[case]/map-setup`; `src/components/map-view.tsx` (MapLibre, keyless: MAP_STYLE_URL optional,
+  otherwise labelled plain background; accuracy circles; no camera moves on data refresh); directory Map/List toggle with
+  explicit precision text; report form map pin (method=pin, no snapping).
+- Tests: tests/api/test_mapping.py (7), tests/e2e/test_map_setup.py (3). Full suite 109 passed; release-results 51 PASS.
+- Next: priority 2 evidence review and approval.

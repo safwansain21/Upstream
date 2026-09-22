@@ -7,16 +7,27 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 99 passed, 2026-09-21')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 109 passed, 2026-09-21')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
 T = 'tests/e2e/test_task_flow.py::test_task_proposal_assignment_capture_and_review'
+M, MS = 'tests/api/test_mapping.py::', 'tests/e2e/test_map_setup.py::'
 
 PASSES = {
     'B01': [W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case'],
     'B02': [H + 'test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent', W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case'],
     'B03': [H + 'test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent', W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case'],
+    'B04': [M + 'test_not_on_map_keeps_pin_accuracy_and_local_name_as_provisional_waterway', MS + 'test_report_pin_is_placed_by_map_click_without_snapping'],
+    'C01': [M + 'test_import_preserves_provenance_defaults_unverified_and_crossing_is_not_confluence', MS + 'test_import_station_verify_and_publish'],
+    'C02': [M + 'test_import_preserves_provenance_defaults_unverified_and_crossing_is_not_confluence'],
+    'C03': [M + 'test_culvert_and_split_topology_block_localization_but_case_stays_usable', E + 'test_unknown_connectivity_and_open_boundary_are_explicit'],
+    'C04': [M + 'test_import_preserves_provenance_defaults_unverified_and_crossing_is_not_confluence', MS + 'test_import_station_verify_and_publish'],
+    'C05': [M + 'test_culvert_and_split_topology_block_localization_but_case_stays_usable', E + 'test_graph_signatures_and_lengths'],
+    'C07': [M + 'test_publication_requires_verifier_evidence_and_freezes_version', M + 'test_new_network_version_keeps_old_assessment_dependencies', MS + 'test_import_station_verify_and_publish'],
+    'C08': [M + 'test_waterway_external_id_does_not_change_report_ids'],
+    'C10': [M + 'test_publication_requires_verifier_evidence_and_freezes_version', E + 'test_unknown_connectivity_and_open_boundary_are_explicit'],
+    'C12': [M + 'test_station_splits_reach_without_snapping_and_preserves_length', MS + 'test_directory_map_and_list_show_precision', MS + 'test_report_pin_is_placed_by_map_click_without_snapping'],
     'B06': [H + 'test_upload_rejects_disguised_and_oversized_images', W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case', W + 'test_signed_in_photo_report_uploads_then_submits'],
     'B07': [H + 'test_photo_upload_strips_location_and_attaches_to_report'],
     'B08': [H + 'test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent'],
@@ -61,6 +72,8 @@ PARTIAL = {
     'A08': 'Partial: fresh `supabase db reset --local` applies all migrations and the seed; upgrade from a prior schema not tested.',
     'B11': 'Partial: device-saved vs server-received shown in form and receipt; uploading/offline states not browser-tested.',
     'B14': 'Partial: default private asserted (test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent); cross-record exposure not tested.',
+    'C06': 'Partial: station insertion splits the reach and preserves length (test_station_splits_reach_without_snapping_and_preserves_length); signature recompute and row subdivision without a station not asserted.',
+    'H07': 'Partial: no-basemap fallback is labelled (test_directory_map_and_list_show_precision); a failing configured provider is not tested.',
     'C09': 'Partial: test_readiness_reports_missing_prerequisites_independently covers mapping/flow-regime checks only.',
     'D10': 'Partial: held-for-review reason asserted (test_missing_metadata_meter_sc25_and_calibration_are_history_only); audit entry not asserted.',
     'E08': 'Partial: 105/23 (test_independent_fraction_oracle) and U=5 bound 5300 (test_planner_ambiguous_outcomes_and_budget_safety); equality case not asserted.',

@@ -1,10 +1,13 @@
 "use client";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError, supabase } from "../lib/api";
 import { claimGuestDrafts, db, MAX_PHOTO_BYTES, PHOTO_TYPES, toReportBody, uuidv7, validate, type Draft, type Photo } from "../lib/drafts";
 import { InlineError, LoadingState } from "./ui";
+
+const MapView = dynamic(() => import("./map-view").then(m => m.MapView), { ssr: false, loading: () => <LoadingState label="Loading map…"/> });
 
 const CATEGORIES: [string, string][] = [["unusual_foam", "Unusual foam"], ["colour_change", "Change in colour"], ["odour", "Odour noticed (without deliberately smelling)"],
   ["dead_wildlife", "Dead wildlife"], ["visible_discharge", "Visible discharge"], ["habitat_access", "Habitat or access concern"], ["other", "Something else"]];
@@ -122,6 +125,9 @@ export function ReportForm({ draftId }: { draftId: string }) {
     {draft.step === 2 ? <section className="surface stack" aria-labelledby="step-heading"><h2 id="step-heading" tabIndex={-1} ref={heading}>Where was it?</h2>
       <p className="field-guidance">Use public or approved access points. Do not enter unsafe or private land to make a report.</p>
       <div className="button-row"><button type="button" className="button button-outline" disabled={geoBusy} onClick={locate}>{geoBusy ? "Finding your location…" : "Use my current location"}</button>{hasPoint ? <button type="button" className="button button-quiet" onClick={() => update({ latitude: "", longitude: "", accuracy: "", method: "landmark" })}>Clear coordinates</button> : null}</div>
+      <MapView label="Select the map to place a pin where you observed the change" height={280} pin={hasPoint ? { lon: Number(draft.longitude), lat: Number(draft.latitude) } : null}
+        onPick={(lon, lat) => update({ latitude: lat.toFixed(6), longitude: lon.toFixed(6), accuracy: "", method: "pin" })}/>
+      {hasPoint && draft.method === "pin" ? <p className="muted" role="status">Pin placed at {draft.latitude}, {draft.longitude}. Accuracy is not reported for a hand-placed pin, and it is not moved onto any mapped stream.</p> : null}
       <div className="form-field"><label htmlFor="landmark">Landmark or directions</label><input id="landmark" maxLength={500} value={draft.landmark} aria-invalid={!!errors.landmark} aria-describedby={described("landmark", "landmark-help")} onChange={e => update({ landmark: e.target.value })}/><p className="field-help" id="landmark-help">For example “below the footbridge behind the school”. A landmark alone is enough; the team will confirm the location.</p>{err("landmark")}</div>
       <div className="button-row"><div className="form-field"><label htmlFor="latitude">Latitude (optional)</label><input id="latitude" inputMode="decimal" value={draft.latitude} aria-invalid={!!errors.latitude} aria-describedby={described("latitude")} onChange={e => update({ latitude: e.target.value.trim(), method: "manual" })}/>{err("latitude")}</div>
         <div className="form-field"><label htmlFor="longitude">Longitude (optional)</label><input id="longitude" inputMode="decimal" value={draft.longitude} aria-invalid={!!errors.longitude} aria-describedby={described("longitude")} onChange={e => update({ longitude: e.target.value.trim(), method: "manual" })}/>{err("longitude")}</div></div>

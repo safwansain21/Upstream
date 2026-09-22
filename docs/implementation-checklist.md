@@ -16,7 +16,7 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] B01 Guest starts text/photo draft, signs in, returns with all data preserved.
 - [x] B02 Submit a report without waterway, station or case selection; one durable case opens.
 - [x] B03 Submit with landmark only and unknown coordinate; case says location verification needed, not fake map precision.
-- [ ] B04 "This stream is not on the map" preserves pin/accuracy/local name and creates a provisional association.
+- [x] B04 "This stream is not on the map" preserves pin/accuracy/local name and creates a provisional association.
 - [ ] B05 Geo-permission denial leaves manual location/landmark submission functional.
 - [x] B06 Text-only report works; malformed/oversize media fails locally/server-side without losing text.
 - [x] B07 Public derivatives have location EXIF removed; private original access remains authorized.
@@ -28,18 +28,18 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [ ] B13 Superseded assessment marks its contribution receipt revised; original receipt history remains readable.
 - [ ] B14 Publication defaults private; a report's visibility choice does not expose other case records.
 - [ ] B15 Field access guidance never blocks a legitimate report with a forced assertion of permitted land.
-- [ ] C01 Import GeoJSON preserves license/source and defaults connectivity to unverified.
-- [ ] C02 Proposed network cannot drive source exclusion until reviewed within a documented domain.
-- [ ] C03 Unknown relevant tributary/culvert does not become disconnected/no signal.
-- [ ] C04 A map crossing without a junction is not automatically a confluence.
-- [ ] C05 Flow reversal, cycle or split/rejoin is detected; case usable while localization unsupported.
+- [x] C01 Import GeoJSON preserves license/source and defaults connectivity to unverified.
+- [x] C02 Proposed network cannot drive source exclusion until reviewed within a documented domain.
+- [x] C03 Unknown relevant tributary/culvert does not become disconnected/no signal.
+- [x] C04 A map crossing without a junction is not automatically a confluence.
+- [x] C05 Flow reversal, cycle or split/rejoin is detected; case usable while localization unsupported.
 - [ ] C06 Station insertion splits reach; signatures recompute; row subdivision alone preserves results.
-- [ ] C07 Network publish records reviewer/evidence and creates a new version; old assessments retain their original version.
-- [ ] C08 Existing case on an unnamed waterway can later link to an external ID without changing report IDs.
+- [x] C07 Network publish records reviewer/evidence and creates a new version; old assessments retain their original version.
+- [x] C08 Existing case on an unnamed waterway can later link to an external ID without changing report IDs.
 - [ ] C09 Readiness shows missing background, calibration, transport and persistence independently.
-- [ ] C10 Unknown boundary inflow remains explicit and prevents finite whole-source-area claims.
+- [x] C10 Unknown boundary inflow remains explicit and prevents finite whole-source-area claims.
 - [ ] C11 A valid local domain can be investigated without claiming completeness of the whole watershed.
-- [ ] C12 Coordinate precision appears on map/list and does not silently snap to a nearby stream.
+- [x] C12 Coordinate precision appears on map/list and does not silently snap to a nearby stream.
 - [x] D01 Assignment checks capability, access, time window and instrument; client override is rejected.
 - [x] D02 Two users claiming one task yield one assignment and one clear conflict.
 - [x] D03 Concurrent exclusive instrument bookings are rejected atomically.

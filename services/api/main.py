@@ -208,7 +208,10 @@ def cases(org: UUID, request: Request, q: str = '', workflow: str = '', origin: 
         where.append('(c.updated_at,c.id)<(%s::timestamptz,%s::uuid)'); args += [stamp, cid]
     found = rows(user, f'''select c.id,c.title,c.locality,c.workflow,c.data_origin,c.updated_at,c.version,c.network_id,
         c.current_assessment_id,(select count(*) from case_reports cr where cr.case_id=c.id) report_count,
-        (c.created_by=auth.uid()) mine from cases c where {' and '.join(where)}
+        (c.created_by=auth.uid()) mine,
+        (select json_build_object('lon',extensions.st_x(r.location),'lat',extensions.st_y(r.location),'accuracy_m',r.accuracy_m,
+          'precision',r.location_precision) from reports r where r.case_id=c.id and r.location is not null order by r.created_at limit 1) location
+        from cases c where {' and '.join(where)}
         order by c.updated_at desc,c.id desc limit %s''', (*args, limit + 1))
     more = len(found) > limit
     found = found[:limit]

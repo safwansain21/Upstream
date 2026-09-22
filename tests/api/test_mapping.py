@@ -129,3 +129,14 @@ def test_waterway_external_id_does_not_change_report_ids():  # C08
     assert r.status_code == 200 and not r.json()['data']['provisional']
     after = client.get(f"/api/v1/orgs/{ORG}/cases/{created['case_id']}", headers=as_('coordinator')).json()['data']
     assert [x['id'] for x in after['reports']] == [created['id']] and after['waterway']['external_ids'] == {'hydrorivers': '20000001'}
+
+
+def test_not_on_map_keeps_pin_accuracy_and_local_name_as_provisional_waterway():  # B04
+    body = report(latitude=51.4612, longitude=-2.6001, accuracy_m=12, location_method='pin', location_precision='approximate',
+                  local_name='Brook behind the school', unmapped=True)
+    r = client.post(f'/api/v1/orgs/{ORG}/reports', json=body, headers=as_('reporter') | {'Idempotency-Key': str(uuid4())})
+    assert r.status_code == 201, r.text
+    detail = client.get(f"/api/v1/orgs/{ORG}/reports/{r.json()['data']['id']}", headers=as_('reporter')).json()['data']
+    assert (detail['latitude'], detail['longitude'], Decimal(detail['accuracy_m']), detail['location_method']) == (51.4612, -2.6001, Decimal(12), 'pin')
+    case = client.get(f"/api/v1/orgs/{ORG}/cases/{r.json()['data']['case_id']}", headers=as_('coordinator')).json()['data']
+    assert case['waterway']['local_name'] == 'Brook behind the school' and case['waterway']['provisional'] and case['network_id'] is None
