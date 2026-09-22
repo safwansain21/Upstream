@@ -7,7 +7,8 @@ type Props = { label: string; points?: MapPoint[]; pin?: { lon: number; lat: num
   onSelect?: (id: string) => void; height?: number };
 
 const STYLE_URL = process.env.NEXT_PUBLIC_MAP_STYLE_URL || "";
-// Keyless default: our own data on a plain background. A configured MAP_STYLE_URL adds a basemap with its attribution.
+// Default (.env.example): OpenFreeMap, keyless; its tile source carries the OpenFreeMap/OpenMapTiles/OpenStreetMap attribution.
+// Empty: our own data on a plain background.
 const BLANK = { version: 8, sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": "#EDF4F7" } }] };
 
 function circle(lon: number, lat: number, radiusM: number) { // polygon approximating a GPS accuracy radius
@@ -33,8 +34,9 @@ export function MapView({ label, points = [], pin, onPick, onSelect, height = 36
           zoom: points.length || pin ? 12 : 1, attributionControl: false });
         m.addControl(new AttributionControl({ compact: false, customAttribution: STYLE_URL ? "" : "Upstream records · no basemap configured" }));
         m.addControl(new NavigationControl({ showCompass: false }), "top-right");
-        m.on("error", (e: any) => { if (e?.error?.status || /style|tile/i.test(String(e?.error?.message))) setFailed("The background map is unavailable, so the map may be blank or incomplete. Use the list or coordinate fields, which hold the same information."); });
-        m.on("load", () => {
+        // ponytail: every map resource here is the basemap (our data is inline GeoJSON), so any map error means the basemap failed
+        m.on("error", () => setFailed("The background map is unavailable, so the map may be blank or incomplete. Use the list or coordinate fields, which hold the same information."));
+        m.once("style.load", () => { // our records need only the style, not every basemap tile
           m.addSource("accuracy", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
           m.addSource("points", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
           m.addSource("pin", { type: "geojson", data: { type: "FeatureCollection", features: [] } });

@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 223 passed, 2 skipped (destructive), 2026-09-22, fresh `supabase db reset` + seed_example + seed_load')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 224 passed, 2 skipped (destructive), 2026-09-22, fresh `supabase db reset` + seed_example + seed_load')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
@@ -154,6 +154,7 @@ PASSES = {
     'H10': [OF + 'test_service_worker_update_keeps_unsent_work'],
     'H11': [RE + 'test_late_poll_never_reverts_a_cancelled_analysis'],
     'J12': ['tests/test_docs.py::test_handoff_report_matches_release_results_and_claims_no_field_validation'],
+    'H07': [MS + 'test_failing_basemap_provider_falls_back_to_the_list', MS + 'test_directory_map_and_list_show_precision'],
     'J03': ['tests/e2e/test_performance.py::test_ten_thousand_case_directory_reads_stay_fast', 'tests/e2e/test_performance.py::test_directory_and_map_render_are_bounded'],
 }
 PARTIAL = {
@@ -161,7 +162,6 @@ PARTIAL = {
     'I06': 'Partial: keyboard-only reporting with focus on each step heading (test_keyboard_only_report); task, measurement, map alternative, review and acknowledgment paths not yet keyboard-tested.',
     'I09': 'Partial: OS reduced motion sets reduced mode with no running entrance animation, and the application setting persists (test_reduced_motion_is_honoured); camera flight and shimmer not asserted per page.',
     'I08': 'Partial: automated axe finds zero serious/critical issues on key public and workspace pages (test_no_serious_accessibility_violations); 200% zoom, reflow and manual checks not done.',
-    'H07': 'Partial: with no basemap configured the map is labelled and every map has a list or coordinate fields beside it (test_directory_map_and_list_show_precision); a failing configured basemap provider is not tested (needs a build with MAP_STYLE_URL).',
 }
 
 path = Path(__file__).resolve().parents[1] / 'docs/release-results.md'

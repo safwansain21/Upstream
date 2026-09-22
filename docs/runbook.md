@@ -16,7 +16,7 @@ This describes how to run Upstream outside local development. No live deployment
 | `STORAGE_BUCKET` | config | defaults to `evidence-private` (private bucket from the foundation migration) |
 | `INTAKE_ORG_ID` | config | reports without a chosen organization have nowhere to go; the form says intake is not configured |
 | `EXAMPLE_MODE` | config | must be `false` in production (startup validation refuses otherwise) |
-| `MAP_STYLE_URL` | config, optional | maps show Upstream data on a plain labelled background |
+| `MAP_STYLE_URL` | config, optional (default in `.env.example`: OpenFreeMap Liberty, `https://tiles.openfreemap.org/styles/liberty`) | empty: maps show Upstream data on a plain labelled background. Baked into the web build (`NEXT_PUBLIC_MAP_STYLE_URL`), so rebuild after changing it. OpenFreeMap needs no key, account or payment (A02 holds); its OpenFreeMap / OpenMapTiles / OpenStreetMap attribution comes from the tile source and is shown on every map. If the basemap fails, the caption says so and the list or coordinate fields carry the same information |
 | `GEOCODER_BASE_URL` | config, optional | not used by this build: there is no place-name search; reporters use GPS, a map pin, coordinates or a landmark description |
 | `AI_API_KEY`, `AI_MODEL`, `AI_BASE_URL` | secret/config, optional | AI assistance shown as unavailable; all work continues manually |
 | `EXPORT_SIGNING_KEY_ID`, `EXPORT_SIGNING_PRIVATE_KEY` | secret, optional | packages are explicitly unsigned |

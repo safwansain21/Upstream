@@ -40,7 +40,8 @@ Open http://127.0.0.1:3000. Example accounts (local example workspace only, synt
 `admin@example.test`, password `upstream-example-only`. Production refuses `EXAMPLE_MODE=true`.
 Evidence packages are unsigned unless `EXPORT_SIGNING_KEY_ID` and `EXPORT_SIGNING_PRIVATE_KEY` are set (see `docs/runbook.md`).
 
-No paid map, AI or email service is needed: maps draw Upstream data on a plain background unless `MAP_STYLE_URL` is set;
+No paid map, AI or email service is needed: the default basemap is OpenFreeMap (no key, account or payment; leave
+`MAP_STYLE_URL` empty for a plain background, and rebuild the web app after changing it);
 AI assistance is shown as unavailable; local email goes to the Supabase mail catcher.
 
 ## Tests

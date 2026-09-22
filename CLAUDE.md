@@ -15,7 +15,7 @@ Spec: `docs/specification/` (UPSTREAM-PRD.md, SCIENTIFIC-ENGINE.md, ACCEPTANCE.m
 
 ## Priorities
 - Functionality over UI polish. Skip the I gates (I01-I14, I17); they are for a later UI pass.
-- Done through J12 (130 PASS). Remaining: the UI pass for I01-I14 and I17, and H07 (test a failing configured basemap; needs a build with MAP_STYLE_URL). Keep docs/handoff.md in sync (tests/test_docs.py enforces its open-gate list).
+- Done through J12 and H07 (131 PASS). Remaining: the UI pass for I01-I14 and I17. Default basemap is OpenFreeMap (keyless; map browser tests need internet). Keep docs/handoff.md in sync (tests/test_docs.py enforces its open-gate list).
 
 ## Local stack (Windows)
 - Docker Desktop running; `node_modules/.bin/supabase migration up --local`; `.venv/Scripts/python.exe scripts/seed_example.py` (+ `scripts/seed_load.py` for J03).

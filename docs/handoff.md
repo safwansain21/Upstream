@@ -10,7 +10,7 @@ environmental model is right for any real stream.
 ## Final run
 
 `.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` on a freshly reset database (`supabase db reset --local`,
-`scripts/seed_example.py`, `scripts/seed_load.py`), with the API, worker and `next start` running: 223 passed, 2 skipped, 2026-09-22.
+`scripts/seed_example.py`, `scripts/seed_load.py`), with the API, worker and `next start` running: 224 passed, 2 skipped, 2026-09-22.
 The two skipped tests are destructive and run only with `UPSTREAM_RUN_DESTRUCTIVE=1` (A01 fresh checkout, A08 upgrade); each
 passed in its own recorded run (see the A01 and A08 rows).
 
@@ -28,7 +28,7 @@ passed in its own recorded run (see the A01 and A08 rows).
 ## Integrations not available or not verified
 
 - **AI description assistance:** off by default. The OpenAI Responses adapter has only been tested against a local fake provider, never against the real service.
-- **Background map provider:** none configured. Maps draw Upstream data on a plain background. The failure of a configured basemap provider is untested (H07).
+- **Background map provider:** OpenFreeMap (Liberty style) by default. It needs no key, account or payment and has no service-level agreement. Browser tests that open a map need internet access to `tiles.openfreemap.org`. A tile outage and a full provider outage are both simulated (H07); a real outage has not been observed.
 - **Place search / geocoding:** not built. No geocoder is called.
 - **Email:** only the local Supabase mail catcher has been used. No production SMTP provider has been tested.
 - **Recipient webhooks:** tested against a local HTTP receiver, which is allowed only outside production. The HTTPS path (a request to the checked address with the configured host as SNI) is tested with a mocked transport. No real HTTPS recipient endpoint has been used.
@@ -50,5 +50,4 @@ passed in its own recorded run (see the A01 and A08 rows).
 
 ## Gates not passing
 
-- H07: a failing configured basemap provider is untested. With no basemap, the map is labelled and a list or coordinate fields sit beside every map.
 - I01, I02, I03, I04, I05, I06, I07, I08, I09, I10, I11, I12, I13, I14, I17: visual, interaction and accessibility gates left for the later UI pass. Some have partial automated coverage, described in their rows.

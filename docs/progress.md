@@ -327,3 +327,12 @@ Stragglers (J02, J11, B11, F11; A07 in progress):
   tests/test_docs.py keeps its open-gate list and test inventory in sync with release-results and tests/.
 - Final full run on a fresh database: 223 passed, 2 skipped (destructive; A01 and A08 recorded separately); 130 gates PASS,
   16 FAIL (H07 and the I gates reserved for the UI pass).
+- Basemap: OpenFreeMap Liberty (`https://tiles.openfreemap.org/styles/liberty`) is the default in .env.example; keyless, no
+  account or payment (A02 test checks the configured URL carries no key/token). Attribution (OpenFreeMap, OpenMapTiles,
+  OpenStreetMap) comes from the tile source and is asserted on the map. Found and fixed: our records waited for the map's
+  `load` event, i.e. every basemap tile, so a slow or failing provider left the map without records; they now attach on
+  `style.load`. Any map error now shows the honest fallback caption.
+- H07 closed: tests/e2e/test_map_setup.py::test_failing_basemap_provider_falls_back_to_the_list (tile outage simulated by
+  pointing the real tile index at a closed port, because MapLibre fetches vector tiles in a worker Playwright cannot route;
+  full provider outage via 503). Map browser tests now need internet access to tiles.openfreemap.org.
+- Full suite on a fresh database: 224 passed, 2 skipped (destructive); 131 gates PASS, 15 FAIL (I gates only).
