@@ -6,6 +6,8 @@ import os
 import re
 
 import pytest
+
+from tests.api.test_http import fresh_contributor
 from playwright.sync_api import expect, sync_playwright
 
 BASE = os.getenv('E2E_BASE_URL', 'http://127.0.0.1:3000')
@@ -41,7 +43,7 @@ def test_guest_landmark_report_survives_sign_in_and_opens_one_case(page):  # B01
     expect(page.get_by_text('location verification needed')).to_be_visible()
     page.get_by_role('button', name='Submit report').click()
     expect(page).to_have_url(re.compile('/sign-in'))
-    sign_in(page, 'contributor@example.test')
+    sign_in(page, fresh_contributor())
     expect(page).to_have_url(draft_url)
     expect(page.get_by_text('Old railway arch, Station Road')).to_be_visible()  # guest draft preserved after sign-in
     page.get_by_role('button', name='Submit report').click()
@@ -49,7 +51,7 @@ def test_guest_landmark_report_survives_sign_in_and_opens_one_case(page):  # B01
     expect(page.get_by_text('The cause is not established')).to_be_visible()
     expect(page.get_by_text('Location to be confirmed')).to_be_visible()
     page.get_by_role('link', name='Unnamed stream').click()
-    expect(page.get_by_text('Investigation area not yet established')).to_be_visible()
+    expect(page.get_by_text('Map verification needed')).to_be_visible()
 
 
 def test_directory_requires_sign_in_and_lists_example_cases(page):  # A03 G01
@@ -70,7 +72,7 @@ def test_signed_in_photo_report_uploads_then_submits(page, tmp_path):  # B06 H12
     Image.new('RGB', (320, 240), 'white').save(photo)
     (tmp_path / 'notes.txt').write_text('not a photo')
     page.goto(BASE + '/sign-in')
-    sign_in(page, 'contributor@example.test')
+    sign_in(page, fresh_contributor())
     expect(page).to_have_url(re.compile('/investigations'))
     page.goto(BASE + '/report/new')
     page.get_by_label('Unusual foam').check()
@@ -84,3 +86,16 @@ def test_signed_in_photo_report_uploads_then_submits(page, tmp_path):  # B06 H12
     page.get_by_role('button', name='Submit report').click()
     expect(page).to_have_url(re.compile(r'/reports/[0-9a-f-]+'))
     expect(page.get_by_text('The cause is not established')).to_be_visible()
+
+
+def test_coordinator_runs_analysis_and_sees_engine_result(page):  # E04 E08 C09 R-11 (worker must be running)
+    page.goto(BASE + '/sign-in')
+    sign_in(page, 'coordinator@example.test')
+    expect(page).to_have_url(re.compile('/investigations'))
+    page.get_by_role('link', name=re.compile('Mill Brook')).first.click()
+    expect(page.get_by_role('heading', name='Readiness')).to_be_visible()
+    page.get_by_role('button', name=re.compile('Run analysis|Recompute')).click()
+    expect(page.get_by_text('Analysis complete.')).to_be_visible(timeout=60000)
+    expect(page.get_by_text('5.30 km', exact=True)).to_be_visible()
+    expect(page.get_by_text('No guaranteed narrowing under current bounds').first).to_be_visible()
+    expect(page.get_by_text('Draft · awaiting expert review')).to_be_visible()

@@ -22,8 +22,19 @@ def token(email):
     return {'Authorization': 'Bearer ' + r.json()['access_token'], 'Origin': cfg.app_url}
 
 
+@cache
+def fresh_contributor():
+    """Per-run reporter so the real 20 reports/hour limit never blocks repeated test runs."""
+    cfg = settings()
+    email = f'contributor+{uuid4().hex[:10]}@example.test'
+    r = httpx.post(cfg.supabase_url + '/auth/v1/admin/users', timeout=15, json={'email': email, 'password': 'upstream-example-only', 'email_confirm': True},
+                   headers={'apikey': cfg.supabase_service_role_key, 'Authorization': f'Bearer {cfg.supabase_service_role_key}'})
+    assert r.status_code == 200, r.text
+    return email
+
+
 def as_(role):
-    return token(f'{role}@example.test')
+    return token(fresh_contributor() if role == 'reporter' else f'{role}@example.test')
 
 
 def report(**extra):
@@ -38,7 +49,7 @@ def test_health_and_auth_required():
 
 
 def test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent():  # B02 B03 B08
-    headers = as_('contributor') | {'Idempotency-Key': str(uuid4())}
+    headers = as_('reporter') | {'Idempotency-Key': str(uuid4())}
     body = report()
     first = client.post(f'/api/v1/orgs/{ORG}/reports', json=body, headers=headers)
     assert first.status_code == 201, first.text
@@ -48,7 +59,7 @@ def test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent():  # 
     assert again.json()['data'] == data
     changed = client.post(f'/api/v1/orgs/{ORG}/reports', json=body | {'description': 'altered text here'}, headers=headers)
     assert changed.status_code == 409 and changed.json()['error']['code'] == 'IDEMPOTENCY_MISMATCH'
-    detail = client.get(f"/api/v1/orgs/{ORG}/reports/{data['id']}", headers=as_('contributor')).json()['data']
+    detail = client.get(f"/api/v1/orgs/{ORG}/reports/{data['id']}", headers=as_('reporter')).json()['data']
     assert detail['location_precision'] == 'unresolved' and detail['latitude'] is None and detail['public_visibility'] is False
     case = client.get(f"/api/v1/orgs/{ORG}/cases/{data['case_id']}", headers=as_('coordinator')).json()['data']
     assert [r['id'] for r in case['reports']] == [data['id']]
@@ -116,17 +127,17 @@ def test_photo_upload_strips_location_and_attaches_to_report():  # B06 B07
     raw = jpeg_with_gps()
     assert Image.open(io.BytesIO(raw)).getexif().get_ifd(0x8825)
     up = client.post(f'/api/v1/orgs/{ORG}/uploads', files={'file': ('p.jpg', raw, 'image/jpeg')}, data={'keep_original': 'true'},
-                     headers=as_('contributor'))
+                     headers=as_('reporter'))
     assert up.status_code == 201, up.text
     media_id = up.json()['data']['id']
-    derivative = client.get(f'/api/v1/orgs/{ORG}/media/{media_id}', headers=as_('contributor')).content
+    derivative = client.get(f'/api/v1/orgs/{ORG}/media/{media_id}', headers=as_('reporter')).content
     assert not Image.open(io.BytesIO(derivative)).getexif().get_ifd(0x8825)
-    assert client.get(f'/api/v1/orgs/{ORG}/media/{media_id}?original=true', headers=as_('contributor')).content == raw
+    assert client.get(f'/api/v1/orgs/{ORG}/media/{media_id}?original=true', headers=as_('reporter')).content == raw
     assert client.get(f'/api/v1/orgs/{ORG}/media/{media_id}', headers=as_('monitor')).status_code == 404  # G02
     r = client.post(f'/api/v1/orgs/{ORG}/reports', json=report(media_ids=[media_id]),
-                    headers=as_('contributor') | {'Idempotency-Key': str(uuid4())})
+                    headers=as_('reporter') | {'Idempotency-Key': str(uuid4())})
     assert r.status_code == 201, r.text
-    detail = client.get(f"/api/v1/orgs/{ORG}/reports/{r.json()['data']['id']}", headers=as_('contributor')).json()['data']
+    detail = client.get(f"/api/v1/orgs/{ORG}/reports/{r.json()['data']['id']}", headers=as_('reporter')).json()['data']
     assert [m['id'] for m in detail['media']] == [media_id]
 
 

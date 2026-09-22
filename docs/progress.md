@@ -72,5 +72,10 @@ Step 5 core DONE (worker + engine on real records), done before step 4 UI becaus
 - Seed adds Mill Brook evidence straight from fixtures.network1_snapshot (backgrounds, transport record, anchor task, visits,
   O x2 + A3 enclosure readings, accepted QC). Worker result: eligible, 5300 m retained, 3 upper-A classes incompatible,
   B2 plan bound 5300 (U=5, no guaranteed narrowing). tests/api/test_analysis.py 4 passed; full suite 82 passed.
-- Next: case page UI for readiness/assessment/recommendations + "Run analysis" with polling (step 4/5 UI), map-setup page,
-  then remaining seed scenarios (precision-limited, revised evidence, confluence, access-blocked, delivery).
+- Case page UI DONE (`src/components/case-analysis.tsx`): schematic from network version (retained hatched / excluded dashed /
+  unreviewed faded), retained km + disjoint segment count + class breakdown + draft status, next-useful-observation list with
+  honest "no guaranteed narrowing", readiness checklist (ready/missing/not evaluated), Run/Recompute with job polling.
+  `GET cases/{case}/network` added. Contributors see neither assessment nor readiness (review team only).
+- Tests: full suite `pytest tests` 86 passed (API tests use a fresh per-run reporter because of the real 20 reports/hour limit).
+  Local servers: build web, then `powershell -ExecutionPolicy Bypass -File scripts/restart-local.ps1` (API, worker, web).
+- Next: map-setup page, tasks board/assignment (step 6), remaining seed scenarios (precision-limited, revised evidence, confluence, access-blocked, delivery).

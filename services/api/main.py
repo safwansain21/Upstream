@@ -414,3 +414,21 @@ def latest_assessment(org: UUID, case: UUID, request: Request, revision: int | N
         from recommendations where assessment_id=%s order by (constraints->>'rank')::int''', (a['id'],))
     a['dependencies'] = rows(user, 'select entity_type,entity_id,version,reason from assessment_dependencies where assessment_id=%s', (a['id'],))
     return envelope(a, request, version=a['revision'])
+
+
+@app.get('/api/v1/orgs/{org}/cases/{case}/network')
+def case_network(org: UUID, case: UUID, request: Request, user: Identity = Depends(identity)):
+    """Current network version geometry for map/schematic. Coordinates are display-only floats."""
+    c = one(user, 'select network_id from cases where org_id=%s and id=%s', (org, case))
+    if not c['network_id']:
+        return envelope(None, request)
+    net = one(user, '''select id,version,status,source,license,retrieved_at,completeness,flow_regime,boundary_treatment,mixing_reviewed
+        from network_versions where id=%s''', (c['network_id'],))
+    net['nodes'] = rows(user, '''select id,code,kind,boundary,extensions.st_x(point) lon,extensions.st_y(point) lat
+        from network_nodes where network_id=%s order by code''', (net['id'],))
+    net['edges'] = rows(user, '''select e.id,e.code,f.code from_code,t.code to_code,e.length_m,e.flow_status,e.connectivity
+        from network_edges e join network_nodes f on f.id=e.from_node join network_nodes t on t.id=e.to_node
+        where e.network_id=%s order by e.code''', (net['id'],))
+    net['stations'] = rows(user, '''select id,code,status,access_status,access_notes,extensions.st_x(point) lon,extensions.st_y(point) lat
+        from stations where case_id=%s and network_id=%s order by code''', (case, net['id']))
+    return envelope(net, request, version=net['version'])
