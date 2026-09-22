@@ -185,3 +185,17 @@ Priority 4 DONE:
   Tests: shared `wait_job()` helper (background worker may hold the lease), `free_window()` for instrument bookings.
 - Full suite 120 passed; 66 gates PASS (D12 moved to partial).
 - Next: priority 5 (B09 duplicates, B12 contribution effect, B13 revised receipts).
+
+Priority 5 DONE (B09, B12, B13):
+- Migration 202609210012: contribution_receipts (immutable, own-only RLS), private.write_receipts called on approval
+  (reporters: recorded_for_triage; monitors: used_in_assessment with co-dependency count / excluded_after_review / history_only;
+  retained before/after), contribution_effect notifications; merge_case RPC (coordinator, optimistic version, both reports linked
+  via case_reports, source becomes redirect via merged_into); approve_assessment re-created to write receipts.
+- API: GET duplicate-suggestions (generalized: title, rounded distance, days apart), POST cases/{case}/merge,
+  GET reports/{id}/receipts, GET receipts (mine). Case detail reports now come from case_reports (includes merged).
+- UI: receipt page shows "Based on assessment N", effect text, "This assessment was revised", earlier receipts;
+  report form review step offers nearby investigations with "This is a new observation" default; case page merge panel + notice.
+- Tests: tests/api/test_receipts.py (2), tests/e2e/test_receipts_flow.py (2). Full suite 124 passed.
+- Next: priority 6 (remaining routes, e2e, accessibility, release docs). Header links Community/Evidence: Evidence now exists;
+  Community, notifications, settings/profile/organization/protocols, observations/history/decision case tabs, example scenarios
+  and /onboarding org join remain.

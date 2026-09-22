@@ -21,11 +21,11 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] B06 Text-only report works; malformed/oversize media fails locally/server-side without losing text.
 - [x] B07 Public derivatives have location EXIF removed; private original access remains authorized.
 - [x] B08 Duplicate submit with same idempotency key/body returns same report/case; altered body returns conflict.
-- [ ] B09 Nearby duplicate suggestion can be rejected; merge preserves both reports and immutable attribution.
+- [x] B09 Nearby duplicate suggestion can be rejected; merge preserves both reports and immutable attribution.
 - [ ] B10 AI suggestions require acceptance/edit; refusal or provider failure does not block report.
 - [ ] B11 Submission receipt distinguishes device-saved, uploading and server-received.
-- [ ] B12 Contributor can see actual effect or no-effect message and the assessment version used.
-- [ ] B13 Superseded assessment marks its contribution receipt revised; original receipt history remains readable.
+- [x] B12 Contributor can see actual effect or no-effect message and the assessment version used.
+- [x] B13 Superseded assessment marks its contribution receipt revised; original receipt history remains readable.
 - [ ] B14 Publication defaults private; a report's visibility choice does not expose other case records.
 - [ ] B15 Field access guidance never blocks a legitimate report with a forced assertion of permitted land.
 - [x] C01 Import GeoJSON preserves license/source and defaults connectivity to unverified.

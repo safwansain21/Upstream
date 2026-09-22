@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { ReceiptHistory } from "../../../../../components/receipts";
 import { CaseStatus, InlineError, LoadingState, OriginBadge, PageIntro } from "../../../../../components/ui";
 import { api } from "../../../../../lib/api";
 import { WORKFLOW } from "../../../../../lib/labels";
@@ -26,7 +27,7 @@ function Receipt() {
     {received ? <p className="notice" role="status"><span aria-hidden="true">✓ </span>Your report has been received for review. The cause is not established.</p> : null}
     <section className="surface stack"><h2>Status</h2><p><CaseStatus tone="accepted">Received by the server</CaseStatus> <OriginBadge origin={r.data_origin}/></p>
       <p>Linked investigation: <Link className="text-link" href={`/app/${org}/investigations/${r.case_id}`}>{r.case_title}</Link> · {WORKFLOW[r.workflow] ?? r.workflow}</p>
-      <p><strong>What this changed:</strong> recorded for triage. No assessment has used this report yet.</p></section>
+      <ReceiptHistory path={`/orgs/${org}/reports/${r.id}/receipts`}/></section>
     <section className="surface stack"><h2>What you reported</h2><p>{r.description || "No description"}</p><p className="muted">{r.categories.join(", ")}</p>
       <p>{r.media.length ? `${r.media.length} ${r.media.length === 1 ? "photo" : "photos"} attached. Location data embedded in photos was removed from shared copies${r.media.some(m => m.consent_original) ? "; originals are kept privately for the review team" : ""}.` : "No photos attached."}</p>
       <p className="muted">Observed {new Date(r.observed_at).toLocaleString()} ({r.timezone}) · {r.latitude === null ? `Location to be confirmed: “${r.landmark}”` : `${r.latitude.toFixed(5)}, ${r.longitude!.toFixed(5)}`}</p>

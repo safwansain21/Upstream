@@ -142,9 +142,25 @@ export function ReportForm({ draftId }: { draftId: string }) {
         <dt>Location</dt><dd>{hasPoint ? `${draft.latitude}, ${draft.longitude}${draft.accuracy ? ` ±${draft.accuracy} m` : ""}` : "Coordinates not provided: location verification needed"}{draft.landmark ? ` · ${draft.landmark}` : ""}</dd>
         <dt>Photos</dt><dd>{draft.photos?.length ? draft.photos.map(p => p.name).join(", ") : "None (text-only report)"}</dd>
         {draft.localName || draft.unmapped ? <><dt>Stream</dt><dd>{draft.localName || "Unnamed"}{draft.unmapped ? " · not on the map" : ""}</dd></> : null}</dl>
+      {account && hasPoint ? <Duplicates draft={draft} onChoose={id => update({ suggestedCaseId: id })}/> : null}
       <label className="checkbox-field"><input type="checkbox" checked={draft.publicVisibility} onChange={e => update({ publicVisibility: e.target.checked })}/><span>Allow a generalized public summary of this report</span></label>
       <p className="field-help">Private to the receiving organization by default. Precise location and your contact details are never public.</p>
       {!account ? <p className="notice">You will be asked to sign in and verify your email before the report is sent. Your draft stays on this device.</p> : null}
       <div className="button-row"><button type="button" className="button button-outline" onClick={() => go(2)}>Back</button><button type="button" className="button button-quiet" onClick={() => setNotice("Draft saved on this device.")}>Save draft</button><button type="button" className="button button-primary" disabled={draft.status === "submitting"} onClick={submit}>{draft.status === "submitting" ? "Submitting…" : draft.error ? "Retry submission" : "Submit report"}</button></div></section> : null}
   </div>;
+}
+
+type Suggestion = { case_id: string; title: string; distance_m: number; days_apart: number };
+function Duplicates({ draft, onChoose }: { draft: Draft; onChoose: (id: string | undefined) => void }) {
+  const [items, setItems] = useState<Suggestion[] | null>(null);
+  useEffect(() => {
+    const params = new URLSearchParams({ lat: draft.latitude, lon: draft.longitude, observed_at: toReportBody(draft).observed_at });
+    api<Suggestion[]>(`/orgs/${draft.org}/duplicate-suggestions?${params}`).then(setItems, () => setItems([]));
+  }, [draft.org, draft.latitude, draft.longitude]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!items?.length) return null;
+  return <fieldset><legend>Possibly related investigations nearby</legend>
+    <p className="field-help">Your report is saved either way. A coordinator decides whether reports describe the same event; nothing is merged automatically.</p>
+    <label className="checkbox-field"><input type="radio" name="dup" checked={!draft.suggestedCaseId} onChange={() => onChoose(undefined)}/><span>This is a new observation</span></label>
+    {items.map(i => <label key={i.case_id} className="checkbox-field"><input type="radio" name="dup" checked={draft.suggestedCaseId === i.case_id} onChange={() => onChoose(i.case_id)}/>
+      <span>It may be the same as “{i.title}” (about {i.distance_m} m away, {i.days_apart} day(s) apart)</span></label>)}</fieldset>;
 }

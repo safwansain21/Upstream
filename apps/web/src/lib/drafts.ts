@@ -21,6 +21,7 @@ export type Draft = {
   unmapped: boolean;
   publicVisibility: boolean;
   keepOriginals: boolean;
+  suggestedCaseId?: string; // citizen thinks it may match; a coordinator decides, nothing merges automatically
   photos: Photo[];
   error?: string;
   result?: { id: string; case_id: string; org_id: string };
@@ -72,7 +73,7 @@ export function toReportBody(d: Draft) {
     landmark: d.landmark.trim(), latitude: hasPoint ? Number(d.latitude) : null, longitude: hasPoint ? Number(d.longitude) : null,
     accuracy_m: hasPoint && d.accuracy ? Number(d.accuracy) : null, location_method: hasPoint ? d.method : "landmark",
     location_precision: hasPoint ? "approximate" : "unresolved", local_name: d.localName.trim() || null, unmapped: d.unmapped,
-    public_visibility: d.publicVisibility, media_ids: (d.photos ?? []).map(p => p.mediaId).filter(Boolean), new_observation: true,
+    public_visibility: d.publicVisibility, suggested_case_id: d.suggestedCaseId || null, media_ids: (d.photos ?? []).map(p => p.mediaId).filter(Boolean), new_observation: true,
   };
 }
 

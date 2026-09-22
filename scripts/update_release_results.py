@@ -7,12 +7,13 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 120 passed, 2026-09-21')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 124 passed, 2026-09-21')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
 T = 'tests/e2e/test_task_flow.py::test_task_proposal_assignment_capture_and_review'
 M, MS = 'tests/api/test_mapping.py::', 'tests/e2e/test_map_setup.py::'
+RC, RCE = 'tests/api/test_receipts.py::', 'tests/e2e/test_receipts_flow.py::'
 R, RE = 'tests/api/test_review.py::', 'tests/e2e/test_review_flow.py::'
 X, XE = 'tests/api/test_exports.py::', 'tests/e2e/test_export_flow.py::test_package_send_and_recipient_acknowledgment'
 
@@ -21,6 +22,9 @@ PASSES = {
     'B02': [H + 'test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent', W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case'],
     'B03': [H + 'test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent', W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case'],
     'B04': [M + 'test_not_on_map_keeps_pin_accuracy_and_local_name_as_provisional_waterway', MS + 'test_report_pin_is_placed_by_map_click_without_snapping'],
+    'B09': [RC + 'test_duplicate_suggestion_can_be_rejected_and_merge_preserves_both_reports', RCE + 'test_duplicate_suggested_rejected_and_merged'],
+    'B12': [RC + 'test_receipts_show_effect_and_become_revised_after_supersession', RCE + 'test_receipt_shows_effect_then_revision'],
+    'B13': [RC + 'test_receipts_show_effect_and_become_revised_after_supersession', RCE + 'test_receipt_shows_effect_then_revision'],
     'C01': [M + 'test_import_preserves_provenance_defaults_unverified_and_crossing_is_not_confluence', MS + 'test_import_station_verify_and_publish'],
     'C02': [M + 'test_import_preserves_provenance_defaults_unverified_and_crossing_is_not_confluence'],
     'C03': [M + 'test_culvert_and_split_topology_block_localization_but_case_stays_usable', E + 'test_unknown_connectivity_and_open_boundary_are_explicit'],
