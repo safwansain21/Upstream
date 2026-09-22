@@ -23,7 +23,7 @@ from services.worker.snapshot import NotReady, build as build_snapshot  # noqa: 
 
 from .auth import Identity, identity
 from .config import settings
-from .contracts import ProfilePatch, ReportCreate, TaskCreate, Assignment, TaskTransition, StrictModel
+from .contracts import Assignment, CaseDecision, ProfilePatch, ReportCreate, StrictModel, TaskCreate, TaskTransition
 from .db import transaction
 from .security import DomainError, verify_origin
 
@@ -882,3 +882,78 @@ def patch_waterway(org: UUID, waterway: UUID, body: WaterwayPatch, request: Requ
         if not row:
             raise DomainError('NOT_FOUND', 'Record not found.', 404)
     return envelope(row, request, version=row['version'])
+
+
+# ---- expert review, approval, decisions ----
+
+class Rationale(StrictModel):
+    reason: str
+
+
+class ReviewAction(StrictModel):
+    action: str
+    reason: str
+
+
+class FailureReport(StrictModel):
+    effective_from: str
+    effective_until: str | None = None
+    reason: str
+
+
+def require_expert(user: Identity, org: UUID):
+    with transaction(user.user_id) as db:
+        if not db.execute("select private.has_capability(%s,'expert') ok", (org,)).fetchone()['ok']:
+            raise DomainError('FORBIDDEN', 'Expert review capability is required; organization administration alone is not enough.', 403)
+
+
+@app.post('/api/v1/orgs/{org}/assessments/{aid}/approve')
+def approve(org: UUID, aid: UUID, body: Rationale, request: Request, user: Identity = Depends(identity)):
+    require_expert(user, org)
+    a = one(user, 'select case_id from assessments where org_id=%s and id=%s', (org, aid))
+    with transaction(user.user_id) as db:
+        # Hold the per-case lock that evidence/network mutations take, recompute the dependency snapshot, then approve atomically (F02).
+        db.execute('select pg_advisory_xact_lock(hashtext(%s))', (str(a['case_id']),))
+        with transaction(worker=True) as wdb:
+            try:
+                current = canonical_hash(build_snapshot(wdb, org, a['case_id'])[0])
+            except NotReady as exc:
+                current = 'not-ready: ' + '; '.join(exc.reasons)
+        result = db.execute('select public.approve_assessment(%s,%s,%s,%s) r', (org, aid, current, body.reason)).fetchone()['r']
+    return envelope(result, request)
+
+
+@app.post('/api/v1/orgs/{org}/assessments/{aid}/review')
+def review(org: UUID, aid: UUID, body: ReviewAction, request: Request, user: Identity = Depends(identity)):
+    return envelope(rpc(user, 'select public.review_assessment(%s,%s,%s,%s)', (org, aid, body.action, body.reason)), request)
+
+
+@app.post('/api/v1/orgs/{org}/instruments/{instrument}/failure')
+def instrument_failure(org: UUID, instrument: UUID, body: FailureReport, request: Request, user: Identity = Depends(identity)):
+    """Record a failed verification and hold affected readings as suspect for review (never deletes them)."""
+    add_calibration(org, instrument, CalibrationEvent(status='fail', effective_from=body.effective_from, effective_until=body.effective_until,
+                                                      checked_at=body.effective_until or body.effective_from, reason=body.reason), request, user)
+    return envelope(rpc(user, 'select public.flag_instrument_failure(%s,%s,%s,%s,%s)',
+                        (org, instrument, body.effective_from, body.effective_until, body.reason)), request)
+
+
+@app.post('/api/v1/orgs/{org}/cases/{case}/decisions', status_code=201)
+def decide(org: UUID, case: UUID, body: CaseDecision, request: Request, user: Identity = Depends(identity)):
+    return envelope(rpc(user, 'select public.record_decision(%s,%s,%s,%s,%s,%s,%s,%s)',
+                        (org, case, body.expected_version, body.action, body.reason, body.assessment_id, body.segments, body.context_sources)), request, 201)
+
+
+@app.get('/api/v1/orgs/{org}/cases/{case}/assessments')
+def assessment_history(org: UUID, case: UUID, request: Request, user: Identity = Depends(identity)):
+    return envelope(rows(user, '''select a.id,a.revision,a.retained_length_m,a.created_at,a.snapshot_hash,(a.result->>'eligible')::boolean eligible,
+        (a.id=(select current_assessment_id from cases where id=%s)) current,
+        coalesce((select json_agg(json_build_object('status',p.status,'reason',p.reason,'at',p.created_at) order by p.created_at)
+          from assessment_publications p where p.assessment_id=a.id),'[]') publications
+        from assessments a where a.org_id=%s and a.case_id=%s order by a.revision desc''', (case, org, case)), request)
+
+
+@app.get('/api/v1/orgs/{org}/review-queue')
+def review_queue(org: UUID, request: Request, user: Identity = Depends(identity)):
+    return envelope(rows(user, '''select c.id case_id,c.title,c.review_hold,a.id assessment_id,a.revision,a.retained_length_m,a.created_at,
+        private.publication_status(a.id) status from cases c join lateral (select * from assessments x where x.case_id=c.id order by revision desc limit 1) a on true
+        where c.org_id=%s and (c.review_hold or private.publication_status(a.id) in ('draft','under_review')) order by a.created_at desc''', (org,)), request)

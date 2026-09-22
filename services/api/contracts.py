@@ -96,6 +96,7 @@ class TaskCreate(StrictModel):
                        'coordinated_pair', 'instrument_check', 'expert_review']
     purpose: str = Field(min_length=10, max_length=2000)
     limitations: str = Field(default='', max_length=2000)
+    rationale_hash: str | None = Field(default=None, max_length=64)  # assessment snapshot the proposal came from
     station_id: UUID | None = None
     protocol_id: UUID | None = None
     window_start: datetime

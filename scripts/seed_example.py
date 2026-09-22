@@ -121,9 +121,9 @@ def seed_network(db, org, case, net, offset, status='reviewed', flow_regime='ste
     return nid
 
 
-def seed_evidence(db, org, case, monitor, expert):
-    """Mill Brook useful-evidence episode: exactly the SCIENTIFIC-ENGINE §9.1 fixture (anchor O x2, A3), no extra values."""
-    snap = network1_snapshot()
+def seed_evidence(db, org, case, monitor, expert, branch=None):
+    """Mill Brook episode: exactly the SCIENTIFIC-ENGINE §9.1 fixture (anchor O x2, A3; optional B2 branch), no extra values."""
+    snap = network1_snapshot(branch)
     if db.execute('select 1 from transport_versions where case_id=%s', (case,)).fetchone():
         return
     stations = {r['code']: r['id'] for r in db.execute('select id,code from stations where case_id=%s', (case,))}
@@ -157,6 +157,7 @@ def seed_evidence(db, org, case, monitor, expert):
                                'episode': snap.episode, 'epoch': 'synthetic-epoch'}}),
             sid('protocol-hash:1'), expert))
     for r in snap.readings:
+        meter = sid('instrument:SC-014' if r.station_id == 'B2' else 'instrument:SC-011')  # B2 on its own meter: scenario 3 revises it
         visit = sid(f'{case}:visit:{r.visit_id}')
         db.execute('''insert into visits(id,org_id,task_id,station_id,instrument_id,operator_id,started_at,shared_effect_group)
             values(%s,%s,%s,%s,%s,%s,%s,%s) on conflict do nothing''', (visit, org, task, stations[r.station_id], meter, monitor, r.measured_at, r.visit_id))
@@ -171,6 +172,22 @@ def seed_evidence(db, org, case, monitor, expert):
                     r.measured_at, r.received_at, monitor, sid(f'{case}:reading-hash:{r.id}')))
         db.execute('''insert into quality_decisions(org_id,reading_id,disposition,reason,reviewer_id)
             values(%s,%s,'accepted','Synthetic fixture reading accepted for the example episode',%s)''', (org, rid, expert))
+
+
+def seed_revised_scenario(org, key='revised', title='Mill Brook (revised evidence)'):
+    """Scenario 3: accepted B2=600 reading (fixture 'high' branch) that a later instrument check can revise. Returns case id."""
+    with transaction(worker=True) as db:
+        users = {r['email']: str(r['id']) for r in db.execute('select id,email from auth.users where email like %s', ('%@example.test',))}
+    report = submit(users['contributor@example.test'], org, f'report:{key}', {
+        'client_id': sid(f'client:{key}'), 'categories': ['unusual_foam'], 'description': 'Foam below the B2 footbridge (synthetic example).',
+        'observed_at': '2026-09-10T14:20:00+01:00', 'timezone': 'Europe/London', 'landmark': 'B2 footbridge', 'latitude': BASE[0] + .01,
+        'longitude': BASE[1] + .01, 'accuracy_m': 20, 'location_method': 'gps', 'location_precision': 'approximate', 'local_name': title,
+        'unmapped': False, 'public_visibility': False, 'media_ids': [], 'new_observation': True})
+    with transaction(worker=True) as db:
+        db.execute("update cases set locality='West catchment (synthetic)', workflow='localization_active' where id=%s", (report['case_id'],))
+        seed_network(db, org, report['case_id'], network1(), (.01, .01), mixing=True)
+        seed_evidence(db, org, report['case_id'], users['monitor@example.test'], users['expert@example.test'], branch='high')
+    return report['case_id']
 
 
 def submit(user_id, org, key, body):
@@ -235,6 +252,7 @@ def main():
         seed_network(db, org, mill['case_id'], network1(), (0, 0), mixing=True)
         seed_evidence(db, org, mill['case_id'], ids['monitor@example.test'], ids['expert@example.test'])
         seed_network(db, org, tidal['case_id'], unsupported_networks()[1], (-.05, -.05))
+    seed_revised_scenario(org)
     print(f'Seeded synthetic example workspace in organization {org}. Users: {", ".join(USERS)}; password: {PASSWORD}')
 
 
