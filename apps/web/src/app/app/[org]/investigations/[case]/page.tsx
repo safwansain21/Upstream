@@ -22,7 +22,7 @@ export default function CaseOverview() {
   return <main id="main-content" className="page-shell">
     <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href={`/app/${org}/investigations`}>Investigations</Link> / <span aria-current="page">{c.title}</span></nav>
     <div className="page-intro"><div><h1>{c.title}</h1><p><CaseStatus>{WORKFLOW[c.workflow] ?? c.workflow}</CaseStatus> <span>Cause unconfirmed</span> <OriginBadge origin={c.data_origin}/></p><p className="muted">{c.locality || "Location to be confirmed"}</p></div></div>
-    <nav className="tab-nav" aria-label="Investigation sections"><Link className="active" aria-current="page" href={`/app/${org}/investigations/${id}`}>Overview</Link><Link href={`/app/${org}/investigations/${id}/tasks`}>Tasks</Link></nav>
+    <nav className="tab-nav" aria-label="Investigation sections"><Link className="active" aria-current="page" href={`/app/${org}/investigations/${id}`}>Overview</Link><Link href={`/app/${org}/investigations/${id}/tasks`}>Tasks</Link>{can("coordinate") || can("network_verify") || can("expert") ? <Link href={`/app/${org}/investigations/${id}/map-setup`}>Map setup</Link> : null}</nav>
     <CaseAnalysis org={org} caseId={id} canAnalyse={can("coordinate") || can("expert")} canReview={can("coordinate") || can("expert") || can("evidence_view")}/>
     <div className="case-grid">
       <section className="surface stack" aria-labelledby="reports-heading"><h2 id="reports-heading">Reports</h2>
