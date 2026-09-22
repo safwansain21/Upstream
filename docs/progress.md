@@ -38,3 +38,20 @@ Step 1 DONE:
 - Local gotcha: migration 202609210002 had not been applied; run `pnpm exec supabase migration up --local`.
 - APP_URL is now http://127.0.0.1:3000 (matches `next dev --hostname 127.0.0.1` and supabase site_url).
 - Tests: `.venv/Scripts/python -m pytest tests/api` 26 passed (tests/api/test_http.py needs Supabase running + seed).
+
+Step 2 DONE (auth/org shell): `/sign-in` (password for example users + Supabase email link), `/auth/callback`,
+`/onboarding` (display name; explains intake when no membership), `/app` (redirects to last/first org),
+`/app/[org]` layout (client sign-in redirect, membership check → "not available" state, example banner).
+Web talks to API through same-origin `/api/v1` rewrite with the Supabase access token (`src/lib/api.ts`).
+ponytail: route guarding is client-side; API + RLS are the authority. Add SSR cookie middleware if needed later.
+Root `.env` is loaded by next.config.ts; needs INTAKE_ORG_ID and API_INTERNAL_URL (added to local .env).
+
+Step 3 PARTIAL (report flow): `/report/new` → Dexie draft (`src/lib/drafts.ts`, per-account, guest drafts claimed on
+sign-in) → `/report/[draft]/edit` 3 steps (categories/text/time; GPS on click, landmark, manual coords, local name,
+"not on the map"; review + private-by-default visibility) → submit w/ idempotency key = draft UUIDv7 →
+`/app/[org]/reports/[report]` receipt (visibility toggle). Directory `/app/[org]/investigations` (search, status,
+origin, involving-me filters, cursor "Show more"), case overview `/app/[org]/investigations/[case]`.
+Browser e2e: `tests/e2e/test_report_flow.py` (python Playwright; `pnpm test:e2e`) 2 passed — needs API on :8000 and
+`next start` on :3000. Chromium installed via `.venv/Scripts/python -m playwright install chromium`.
+Remaining in step 3: photo upload (B06/B07, /uploads + storage + EXIF strip), duplicate suggestions (B09),
+map pin + directory map view (needs MapLibre, do with step 4), offline queue (step 9).

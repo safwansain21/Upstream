@@ -5,7 +5,8 @@ try { process.loadEnvFile("../../.env"); } catch { /* production injects environ
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  env: { NEXT_PUBLIC_SUPABASE_URL: process.env.SUPABASE_URL || "", NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || "" },
+  env: { NEXT_PUBLIC_SUPABASE_URL: process.env.SUPABASE_URL || "", NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || "",
+    NEXT_PUBLIC_INTAKE_ORG_ID: process.env.INTAKE_ORG_ID || "" },
   async rewrites() {
     const api = process.env.API_INTERNAL_URL || "http://127.0.0.1:8000";
     return [{ source: "/api/v1/:path*", destination: `${api}/api/v1/:path*` }];

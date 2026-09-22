@@ -12,7 +12,7 @@
     "dev": "python scripts/local.py dev",
     "test": "python scripts/local.py test",
     "test:engine": "python scripts/local.py engine",
-    "test:e2e": "pnpm exec playwright test",
+    "test:e2e": "python scripts/local.py e2e",
     "test:security": "python scripts/local.py security",
     "verify:fhir": "python scripts/local.py fhir",
     "build": "pnpm --filter @upstream/web build",

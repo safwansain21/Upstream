@@ -19,6 +19,8 @@ def main(command):
         raise SystemExit('Create .venv with Python 3.12+ and install requirements.lock first; see README.')
     if command == 'engine':
         run(PYTHON, '-m', 'pytest', 'tests/engine', '-q', '-p', 'no:cacheprovider')
+    elif command == 'e2e':  # needs API :8000 + `next start` :3000 running against the seeded local stack
+        run(PYTHON, '-m', 'pytest', 'tests/e2e', '-q', '-p', 'no:cacheprovider')
     elif command == 'test':
         run(PYTHON, '-m', 'pytest', 'tests/api', 'tests/packages', '-q', '-p', 'no:cacheprovider')
         run(PNPM, '--filter', '@upstream/web', 'typecheck')
@@ -60,7 +62,7 @@ def main(command):
     elif command == 'release':
         for stage in ['test', 'engine', 'security', 'fhir']:
             main(stage)
-        run(PNPM, 'test:e2e')
+        main('e2e')
         run(PNPM, 'build')
         if '| FAIL |' in (ROOT / 'docs/release-results.md').read_text():
             raise SystemExit('Release is not complete: unresolved acceptance gates in docs/release-results.md')
