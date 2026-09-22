@@ -29,3 +29,13 @@ export type Me = { user_id: string; profile: { display_name: string } | null; or
 
 /** Only same-site relative paths; blocks open redirects like //evil.example. */
 export function safeNext(value: string | null) { return value && value.startsWith("/") && !value.startsWith("//") ? value : "/app"; }
+
+/** Authenticated file download (artifacts are private; a plain link would not carry the session). */
+export async function download(path: string, filename: string) {
+  const { data } = await supabase.auth.getSession();
+  const response = await fetch(`/api/v1${path}`, { headers: data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {}, cache: "no-store" });
+  if (!response.ok) throw new ApiError("DOWNLOAD_FAILED", `Download failed (${response.status}).`, response.status);
+  const url = URL.createObjectURL(await response.blob());
+  const a = Object.assign(document.createElement("a"), { href: url, download: filename });
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

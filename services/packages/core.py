@@ -13,6 +13,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 
 from .contracts import PackagePayload
+from .report import human_report
 
 
 def canonical_json(value) -> bytes:
@@ -44,25 +45,6 @@ def fingerprint(key: Ed25519PublicKey) -> str:
 class EvidencePackage:
     artifacts: Mapping[str, bytes]
     manifest_hash: str
-
-
-def human_report(p: PackagePayload, assessment: dict, signed: bool) -> str:
-    escape = lambda value: html.escape(str(value), quote=True)
-    def section(title, values):
-        if not isinstance(values, list):
-            values = [values]
-        return f"<section><h2>{escape(title)}</h2>" + "".join(f"<p>{escape(v)}</p>" for v in values) + "</section>"
-    content = section("Reviewed conclusion", p.conclusion)
-    content += section("Scope and origin", [p.case_scope, p.data_origin, f"{p.observation_start} to {p.observation_end}"])
-    content += section("Retained channel", f"{assessment['retained_length_km']} km within the mapped domain" + ("; upstream extent unresolved" if p.upstream_extent_unresolved else ""))
-    content += section("Retained segments and map geometry", [f"{s.id}: {s.length_km} km — {s.compatibility}; {s.origin}; {s.source}; WGS84 {s.geometry.coordinates}" for s in p.retained_segments])
-    content += section("Legend", "Compatible and unknown segments are retained. Geometry is WGS84 longitude, latitude; channel length is supplied reviewed length, not a count of rows.")
-    for title, values in [("Assumptions", p.assumptions), ("Unknowns", p.unknowns), ("Model limitations", p.limitations), ("Next action", p.next_action)]:
-        content += section(title, values)
-    content += section("Versions and review", [f"Assessment {p.assessment_id} version {p.assessment_version}", f"Reviewed by pseudonym {p.reviewer_pseudonym} at {p.reviewed_at}", str(p.versions.model_dump()), f"Problem SHA-256 {p.problem_hash}", f"Predecessor manifest: {p.predecessor_manifest_hash or 'none'}"])
-    content += section("Evidence and quality", [f"{o.id} version {o.version}; {o.value} {o.unit}; {o.mode}; {o.origin}; QC {o.quality}; {o.inclusion}; contributor {o.contributor_pseudonym}; protocol {o.protocol_version}; calibration {o.calibration_version}" for o in p.observations])
-    content += section("Verification", ["Signed with a detached Ed25519 JWS." if signed else "Unsigned package.", "Verify every artifact against manifest.json using the package verification CLI and an independently trusted key and predecessor hash. Integrity/key origin does not prove scientific correctness."])
-    return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'"><title>Upstream evidence report</title><style>body{font:14px sans-serif;line-height:1.5;max-width:850px;margin:40px auto;color:#17252b}h1,h2{break-after:avoid}p{overflow-wrap:anywhere}section{margin:24px 0}@page{size:A4;margin:18mm}</style></head><body><h1>Upstream environmental evidence</h1>' + content + "</body></html>"
 
 
 def build_package(payload: dict | PackagePayload, *, private_key: Ed25519PrivateKey | None = None,

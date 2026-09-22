@@ -157,3 +157,20 @@ Priority 2 DONE (evidence review and approval):
   evidence table, revision audit, approve/request more/reject, case decision). Evidence tab on the case page.
 - Tests: tests/api/test_review.py (4), tests/e2e/test_review_flow.py (2). Full suite 115 passed; release-results updated.
 - Next: priority 3 exports and delivery.
+
+Priority 3 DONE (exports and delivery, portal method end to end):
+- Worker `services/worker/exports.py`: approved assessment -> allowlisted PackagePayload (snapshot readings, retained edge
+  geometry, stations, versions, reviewer pseudonym, predecessor manifest) -> build_package with offline Playwright PDF and
+  Ed25519 signature when EXPORT_SIGNING_KEY_ID/EXPORT_SIGNING_PRIVATE_KEY (base64 raw 32-byte key) are set -> private storage
+  `packages/{org}/{id}/{file}` -> evidence_packages row (immutable). Export job = analysis_jobs purpose 'export', one per assessment.
+  Local .env has a generated dev key (never commit/reuse).
+- Report layout rewritten in `services/packages/report.py` (summary cards, inline SVG schematic, tables, example-data banner).
+- Migrations 0009 (delivery ack columns, grant recipient, package case_id, bucket text/plain), 0010 (admins read recipients).
+- API: GET /signing-key (public), POST assessments/{id}/exports (202), GET cases/{case}/packages, GET packages/{id}/artifacts/{name},
+  GET packages/{id}/verify, GET/POST recipients (admin; portal only - webhook not enabled), POST packages/{id}/deliveries
+  (expert, explicit; retry = same logical delivery, new link, old link revoked; revision notice to prior recipients),
+  POST packages/{id}/grants/revoke, public GET /share/{token}, GET /share/{token}/artifacts/{name}, POST /share/{token}/acknowledge.
+  `services/api/storage.py` now holds the storage helper.
+- UI: `/app/[org]/investigations/[case]/exports`, public `/share/[token]`, `/app/[org]/settings/integrations`.
+- Tests: tests/api/test_exports.py (3), tests/e2e/test_export_flow.py (1). Full suite 119 passed; 67 gates PASS.
+- Next: priority 4 (B01 with photo; D12 note), then 5 (B09, B12, B13).

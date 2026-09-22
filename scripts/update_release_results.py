@@ -7,13 +7,14 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 115 passed, 2026-09-21')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 119 passed, 2026-09-21')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
 T = 'tests/e2e/test_task_flow.py::test_task_proposal_assignment_capture_and_review'
 M, MS = 'tests/api/test_mapping.py::', 'tests/e2e/test_map_setup.py::'
 R, RE = 'tests/api/test_review.py::', 'tests/e2e/test_review_flow.py::'
+X, XE = 'tests/api/test_exports.py::', 'tests/e2e/test_export_flow.py::test_package_send_and_recipient_acknowledgment'
 
 PASSES = {
     'B01': [W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case'],
@@ -71,7 +72,16 @@ PASSES = {
     'F03': [R + 'test_only_experts_approve', RE + 'test_admin_sees_no_approval_controls'],
     'F04': [R + 'test_instrument_failure_review_exclusion_and_supersession'],
     'F05': [R + 'test_instrument_failure_review_exclusion_and_supersession', RE + 'test_expert_approves_then_reviews_expanded_revision'],
+    'F06': [X + 'test_supersession_sends_distinct_revision_notice_and_keeps_old_bytes'],
+    'F07': [X + 'test_delivery_acknowledgment_retry_and_scoped_link', XE],
+    'F08': [X + 'test_delivery_acknowledgment_retry_and_scoped_link'],
+    'F09': [X + 'test_delivery_acknowledgment_retry_and_scoped_link', XE],
+    'F12': [X + 'test_export_contains_matching_versions_and_verifies', 'tests/packages/test_packages.py::test_exports_share_version_geometry_origin_and_preserve_exact_values', 'tests/packages/test_pdf_cli.py::test_real_pdf_contains_reviewed_content_and_blocks_external_requests'],
+    'F15': [X + 'test_export_contains_matching_versions_and_verifies', 'tests/packages/test_packages.py::test_signed_package_detects_tamper_wrong_key_missing_signature_and_wrong_predecessor', 'tests/packages/test_pdf_cli.py::test_cli_verifies_signature_and_rejects_tampering'],
+    'F16': [X + 'test_export_contains_matching_versions_and_verifies', XE],
+    'F17': [X + 'test_supersession_sends_distinct_revision_notice_and_keeps_old_bytes', 'tests/packages/test_packages.py::test_superseding_build_never_rewrites_old_signed_package'],
     'F10': [R + 'test_request_more_evidence_and_inspection_decision_coexist_with_limits'],
+    'J08': [X + 'test_supersession_sends_distinct_revision_notice_and_keeps_old_bytes', XE],
     'G01': [H + 'test_other_org_and_unknown_records_are_not_found', 'tests/security/test_database.py::test_cross_tenant_relationship_is_rejected'],
     'G06': ['tests/api/test_contracts.py::test_profile_cannot_upgrade_capabilities', H + 'test_me_lists_capabilities_not_client_roles'],
 }

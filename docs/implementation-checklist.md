@@ -86,18 +86,18 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] F03 Admin without expert capability cannot approve from API or UI.
 - [x] F04 Suspect relevant reading marks approved assessment under review and dependent tasks needing review.
 - [x] F05 Reviewer exclusion recomputes actual retained geometry and produces superseding review draft.
-- [ ] F06 Approval supersedes prior publication; previous recipients get distinct revision notices.
-- [ ] F07 Transport delivered != human acknowledged; verify independent fields.
-- [ ] F08 Retry delivery preserves package bytes/logical ID, no duplicate notice.
-- [ ] F09 Recipient link is scoped, expires/revokes, cannot enumerate other packages.
+- [x] F06 Approval supersedes prior publication; previous recipients get distinct revision notices.
+- [x] F07 Transport delivered != human acknowledged; verify independent fields.
+- [x] F08 Retry delivery preserves package bytes/logical ID, no duplicate notice.
+- [x] F09 Recipient link is scoped, expires/revokes, cannot enumerate other packages.
 - [x] F10 Expert inspection decision can coexist with structural resolution limit.
 - [ ] F11 Context layers influence recipient suggestions/priority only with source and no health claim.
-- [ ] F12 Export JSON/GeoJSON/PDF contains matching assessment version, geometry, origins and assumptions.
+- [x] F12 Export JSON/GeoJSON/PDF contains matching assessment version, geometry, origins and assumptions.
 - [ ] F13 FHIR validator reports zero errors; no Patient/RelatedPerson/Practitioner fiction; DocumentReference subject is not Location.
 - [ ] F14 Adapter retains quality/attribution semantics and resolves references.
-- [ ] F15 Detached signature verifies; changed artifact/wrong key/broken predecessor fails. Unsigned package explicitly unsigned.
-- [ ] F16 Exporting does not require sending. Configured delivery requires explicit action.
-- [ ] F17 Original signed package is never rewritten when latest metadata becomes superseded.
+- [x] F15 Detached signature verifies; changed artifact/wrong key/broken predecessor fails. Unsigned package explicitly unsigned.
+- [x] F16 Exporting does not require sending. Configured delivery requires explicit action.
+- [x] F17 Original signed package is never rewritten when latest metadata becomes superseded.
 - [x] G01 Every cross-organization direct object/API/storage request is denied.
 - [ ] G02 Contributors cannot read private other-person media or internal evidence just by knowing an ID.
 - [ ] G03 Revoked membership immediately blocks new privileged operations and offline sync.
@@ -146,7 +146,7 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [ ] J05 Evaluation compares policies using same inference/eligibility/stopping and exogenous paired episodes.
 - [ ] J06 Independent-event count is separate from sample/replicate count.
 - [ ] J07 Report containment, incorrect exclusions, unresolved rate and effort together.
-- [ ] J08 Local test receiver demonstrates delivery and supersession acknowledgment without sending to real organizations.
+- [x] J08 Local test receiver demonstrates delivery and supersession acknowledgment without sending to real organizations.
 - [ ] J09 Database/object backup and isolated restore procedure exercised.
 - [ ] J10 Deployment guide, environment classification, key rotation and rollback procedures complete.
 - [ ] J11 No unwired button, temporary screen, lorem ipsum, fake partner claim or "coming soon" route inside required scope.
