@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { MotionPreferences } from "../components/motion-settings";
+import { Providers } from "./providers";
 import "@fontsource/barlow-condensed/600.css";
 import "@fontsource/barlow-condensed/700.css";
 import "@fontsource/barlow-condensed/800.css";
@@ -12,5 +13,5 @@ import "./globals.css";
 
 export const metadata: Metadata = { title: { default: "Upstream — Follow it upstream", template: "%s · Upstream" }, description: "Turn local stream observations into a coordinated, reviewable investigation. Notice a change, collect useful evidence, and decide the next step together." };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body><MotionPreferences/><a href="#main-content" className="skip-link">Skip to main content</a>{children}</body></html>;
+  return <html lang="en"><body><MotionPreferences/><a href="#main-content" className="skip-link">Skip to main content</a><Providers>{children}</Providers></body></html>;
 }

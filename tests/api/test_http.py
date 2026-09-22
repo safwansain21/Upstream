@@ -32,7 +32,7 @@ def report(**extra):
 
 
 def test_health_and_auth_required():
-    assert client.get('/api/v1/health').json()['data']['database'] == 'ok'
+    assert client.get('/api/v1/health').json()['data']['database'] == 'available'
     r = client.get('/api/v1/me')
     assert r.status_code == 401 and r.json()['error']['code'] == 'AUTH_REQUIRED'
 

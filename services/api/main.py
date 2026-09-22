@@ -101,19 +101,21 @@ def one(user: Identity, sql: str, args: tuple):
 
 # ---- health / identity ----
 
+@app.get('/api/v1/status')
 @app.get('/api/v1/health')
-def health(request: Request):
-    checks = {'api': 'ok'}
+def status(request: Request):
+    """Non-sensitive availability only. Optional providers report their own state, never a total outage."""
+    cfg = settings()
+    checks = {'api': 'available', 'storage': 'unverified',
+              'ai': 'configured' if cfg.ai_api_key else 'unavailable',
+              'email': 'local_mail_catcher' if cfg.environment != 'production' else 'configured'}
     try:
         with transaction(worker=True) as db:
-            db.execute('select 1')
-            checks['database'] = 'ok'
-            checks['worker'] = 'ok' if db.execute(
-                "select count(*)=0 as ok from analysis_jobs where state='running' and lease_until<now()").fetchone()['ok'] else 'stalled'
+            checks['database'] = 'available'
+            stalled = db.execute("select count(*) n from analysis_jobs where state='running' and lease_until<now()").fetchone()['n']
+            checks['worker'] = 'unavailable' if stalled else 'available'
     except psycopg.Error:
-        checks['database'] = 'unavailable'
-    checks['ai'] = 'configured' if settings().ai_api_key else 'unavailable'
-    checks['signing'] = 'configured' if settings().export_signing_private_key else 'unsigned'
+        checks['database'] = checks['worker'] = 'unavailable'
     return envelope(checks, request)
 
 
