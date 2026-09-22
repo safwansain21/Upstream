@@ -96,3 +96,6 @@ Step 6 backend DONE (tasks/field work), UI pending:
   After schema changes: `pnpm exec supabase db reset --local && pnpm seed:example` (fresh migrations verified).
 - Next: task board + task detail/capture UI, assignment dialog, create task from recommendation; then step 7 (review/approve,
   instrument verification failure -> suspect -> under_review -> recompute).
+
+Release evidence: after each step rerun the full suite and `python scripts/update_release_results.py` (edit its PASSES/PARTIAL maps). PASS only with command + passing test IDs. Session 2 end state: 40 PASS, 106 FAIL; 96 tests passed.
+In progress (uncommitted UI may be partial): task board `/app/[org]/tasks` + `src/components/tasks.tsx`; task detail, assignment dialog and capture UI still to do.

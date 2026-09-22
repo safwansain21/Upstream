@@ -13,14 +13,14 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [ ] A06 First production admin/intake organization setup is documented and does not reuse example credentials.
 - [ ] A07 All required routes have loading, empty, error and permission states; zero dead-end navigation items.
 - [ ] A08 Fresh migrations and upgrade migrations pass against isolated databases.
-- [ ] B01 Guest starts text/photo draft, signs in, returns with all data preserved.
-- [ ] B02 Submit a report without waterway, station or case selection; one durable case opens.
-- [ ] B03 Submit with landmark only and unknown coordinate; case says location verification needed, not fake map precision.
+- [x] B01 Guest starts text/photo draft, signs in, returns with all data preserved.
+- [x] B02 Submit a report without waterway, station or case selection; one durable case opens.
+- [x] B03 Submit with landmark only and unknown coordinate; case says location verification needed, not fake map precision.
 - [ ] B04 "This stream is not on the map" preserves pin/accuracy/local name and creates a provisional association.
 - [ ] B05 Geo-permission denial leaves manual location/landmark submission functional.
-- [ ] B06 Text-only report works; malformed/oversize media fails locally/server-side without losing text.
-- [ ] B07 Public derivatives have location EXIF removed; private original access remains authorized.
-- [ ] B08 Duplicate submit with same idempotency key/body returns same report/case; altered body returns conflict.
+- [x] B06 Text-only report works; malformed/oversize media fails locally/server-side without losing text.
+- [x] B07 Public derivatives have location EXIF removed; private original access remains authorized.
+- [x] B08 Duplicate submit with same idempotency key/body returns same report/case; altered body returns conflict.
 - [ ] B09 Nearby duplicate suggestion can be rejected; merge preserves both reports and immutable attribution.
 - [ ] B10 AI suggestions require acceptance/edit; refusal or provider failure does not block report.
 - [ ] B11 Submission receipt distinguishes device-saved, uploading and server-received.
@@ -40,45 +40,45 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [ ] C10 Unknown boundary inflow remains explicit and prevents finite whole-source-area claims.
 - [ ] C11 A valid local domain can be investigated without claiming completeness of the whole watershed.
 - [ ] C12 Coordinate precision appears on map/list and does not silently snap to a nearby stream.
-- [ ] D01 Assignment checks capability, access, time window and instrument; client override is rejected.
-- [ ] D02 Two users claiming one task yield one assignment and one clear conflict.
-- [ ] D03 Concurrent exclusive instrument bookings are rejected atomically.
-- [ ] D04 Monitor declines/blocks a task with reason; case remains useful and replanning respects it.
-- [ ] D05 General contributor cannot submit a protocol-qualified reading without qualification.
-- [ ] D06 Raw conductivity vs meter-SC25 vs true-SC25 enclosure are explicit; unit conversion round-trips correctly.
-- [ ] D07 Required temperature/compensation metadata absent makes reading history-only/ineligible.
-- [ ] D08 Rapid repeats do not shrink systematic bounds; individual readings and visit ID survive.
+- [x] D01 Assignment checks capability, access, time window and instrument; client override is rejected.
+- [x] D02 Two users claiming one task yield one assignment and one clear conflict.
+- [x] D03 Concurrent exclusive instrument bookings are rejected atomically.
+- [x] D04 Monitor declines/blocks a task with reason; case remains useful and replanning respects it.
+- [x] D05 General contributor cannot submit a protocol-qualified reading without qualification.
+- [x] D06 Raw conductivity vs meter-SC25 vs true-SC25 enclosure are explicit; unit conversion round-trips correctly.
+- [x] D07 Required temperature/compensation metadata absent makes reading history-only/ineligible.
+- [x] D08 Rapid repeats do not shrink systematic bounds; individual readings and visit ID survive.
 - [ ] D09 Instrument expiry after a valid reading leaves it valid.
 - [ ] D10 Instrument invalid at measurement time is handled by protocol and logged.
 - [ ] D11 Later verification failure creates suspect/review states, not automatic universal deletion.
-- [ ] D12 Revised task/protocol while offline preserves reading as submitted under its actual version.
-- [ ] D13 Access closure blocks affected tasks; no assignment to inaccessible station just because its score is best.
-- [ ] D14 Future sampling task includes purpose and limitations, not promised source discovery.
-- [ ] E01 Network 1 has 8.50km, eight signature classes and .60km confluence group.
-- [ ] E02 Network 2 totals 5.00km and produces the documented merged groups.
-- [ ] E03 Network 3 is unsupported for localization without being rejected as a report.
-- [ ] E04 Fraction oracle yields anchor [9.52,31.28], A3 L_hi=5.75 and retained 5.30km.
-- [ ] E05 A3 alone preserves weak-source possibilities.
-- [ ] E06 Alternative B2=600 and B2=452 fixtures yield 2.30km and 3.00km respectively.
-- [ ] E07 Removing reviewed B2 evidence expands retained area back to 5.30km.
+- [x] D12 Revised task/protocol while offline preserves reading as submitted under its actual version.
+- [x] D13 Access closure blocks affected tasks; no assignment to inaccessible station just because its score is best.
+- [x] D14 Future sampling task includes purpose and limitations, not promised source discovery.
+- [x] E01 Network 1 has 8.50km, eight signature classes and .60km confluence group.
+- [x] E02 Network 2 totals 5.00km and produces the documented merged groups.
+- [x] E03 Network 3 is unsupported for localization without being rejected as a report.
+- [x] E04 Fraction oracle yields anchor [9.52,31.28], A3 L_hi=5.75 and retained 5.30km.
+- [x] E05 A3 alone preserves weak-source possibilities.
+- [x] E06 Alternative B2=600 and B2=452 fixtures yield 2.30km and 3.00km respectively.
+- [x] E07 Removing reviewed B2 evidence expands retained area back to 5.30km.
 - [ ] E08 Simple planner threshold is 105/23; equality ambiguous; U=5 cannot promise one-step narrowing.
-- [ ] E09 Compensation range and independent-scale behavior match the exact equations.
-- [ ] E10 All in-bounds generated truths are retained across property tests; unknown is retained.
-- [ ] E11 Widening bounds/removing readings cannot shrink mathematical feasible set; eligibility assessed separately.
-- [ ] E12 Shared offsets, visit effects and water-condition scopes are actual shared variables.
-- [ ] E13 Unknown/timeout/out-of-memory never means incompatible.
+- [x] E09 Compensation range and independent-scale behavior match the exact equations.
+- [x] E10 All in-bounds generated truths are retained across property tests; unknown is retained.
+- [x] E11 Widening bounds/removing readings cannot shrink mathematical feasible set; eligibility assessed separately.
+- [x] E12 Shared offsets, visit effects and water-condition scopes are actual shared variables.
+- [x] E13 Unknown/timeout/out-of-memory never means incompatible.
 - [ ] E14 No fitted source likelihood, pollution probability or health score appears.
-- [ ] E15 Every exclusion has versioned constraints and a reproducible problem hash.
-- [ ] E16 Planner contains ambiguous outcomes and counts channel length, not reach rows.
-- [ ] E17 McCormick outer relaxation contains generated exact configurations.
-- [ ] E18 Witness-based oracle lower bound never exceeds planner upper bound.
-- [ ] E19 Time-limited planner returns conservative bound/unscored; it does not quietly omit hard subsets.
+- [x] E15 Every exclusion has versioned constraints and a reproducible problem hash.
+- [x] E16 Planner contains ambiguous outcomes and counts channel length, not reach rows.
+- [x] E17 McCormick outer relaxation contains generated exact configurations.
+- [x] E18 Witness-based oracle lower bound never exceeds planner upper bound.
+- [x] E19 Time-limited planner returns conservative bound/unscored; it does not quietly omit hard subsets.
 - [ ] E20 Future solver unresolved results cannot be dropped to make observed area match prediction.
-- [ ] E21 AI and simulator truth fields cannot enter scientific snapshots.
+- [x] E21 AI and simulator truth fields cannot enter scientific snapshots.
 - [ ] E22 One Health context toggles do not change compatibility.
-- [ ] E23 Claimed comparable readings have actual persistence/path/transport justification; timestamps alone insufficient.
-- [ ] E24 Below-background events/negative load are outside the one-positive-input model, not mislocalized.
-- [ ] E25 Background empirical coverage label is honest; chronological validation is separate from fitting.
+- [x] E23 Claimed comparable readings have actual persistence/path/transport justification; timestamps alone insufficient.
+- [x] E24 Below-background events/negative load are outside the one-positive-input model, not mislocalized.
+- [x] E25 Background empirical coverage label is honest; chronological validation is separate from fitting.
 - [ ] E26 Multi-source/transient/misconnected cases report limitations without guaranteed fault-detection claims.
 - [ ] E27 No live protocol is automatically populated with synthetic bounds.
 - [ ] F01 Approved assessment is immutable; change creates draft and preserves predecessor.
@@ -98,12 +98,12 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [ ] F15 Detached signature verifies; changed artifact/wrong key/broken predecessor fails. Unsigned package explicitly unsigned.
 - [ ] F16 Exporting does not require sending. Configured delivery requires explicit action.
 - [ ] F17 Original signed package is never rewritten when latest metadata becomes superseded.
-- [ ] G01 Every cross-organization direct object/API/storage request is denied.
+- [x] G01 Every cross-organization direct object/API/storage request is denied.
 - [ ] G02 Contributors cannot read private other-person media or internal evidence just by knowing an ID.
 - [ ] G03 Revoked membership immediately blocks new privileged operations and offline sync.
 - [ ] G04 Public snapshot exposes only sanitized approved fields and generalized coordinates.
 - [ ] G05 RLS tests cover reads and writes, RPCs and direct REST; no service-role key in browser.
-- [ ] G06 Role/capability self-upgrade is rejected.
+- [x] G06 Role/capability self-upgrade is rejected.
 - [ ] G07 CSRF/origin/unsafe HTML/prompt-injection input cannot execute actions.
 - [ ] G08 Media MIME mismatch/decompression bomb/oversize import is rejected.
 - [ ] G09 Arbitrary URLs in reports/AI/imports cannot trigger server-side network access.

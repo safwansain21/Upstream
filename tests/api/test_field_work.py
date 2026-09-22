@@ -170,3 +170,17 @@ def test_access_closure_blocks_tasks_and_assignment():  # D13
                        json={'status': 'open', 'notes': 'Looks open again'}).status_code == 403  # only coordinators resolve
     assert client.post(f'/api/v1/orgs/{ORG}/stations/{station(code)}/access', headers=as_('coordinator'),
                        json={'status': 'open', 'notes': 'Coordinator confirmed path reopened'}).status_code == 200
+
+
+def test_conductivity_modes_are_explicit_and_units_round_trip():  # D06
+    from decimal import Decimal
+    from services.worker.snapshot import to_us_cm
+    for value in ('1.4135', '0.00045', '12', '0.1'):
+        assert Decimal(to_us_cm(value, 'mS/cm')) / 1000 == Decimal(value)  # exact, no binary rounding
+    assert to_us_cm('452', 'uS/cm') == '452'
+    task = accepted_task()
+    r = readings(task, [rep()], mode='true_sc25_enclosure')  # an enclosure is a reviewed construct, not a field entry
+    assert r.status_code == 422
+    raw = readings(accepted_task(), [rep('1.4135')], unit='mS/cm').json()['data']['readings'][0]
+    detail = client.get(f"/api/v1/orgs/{ORG}/tasks/{task['id']}", headers=as_('monitor'))
+    assert raw['eligible'] and detail.status_code == 200

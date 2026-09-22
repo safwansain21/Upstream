@@ -521,3 +521,9 @@ def case_readings(org: UUID, case: UUID, request: Request, user: Identity = Depe
 def record_quality(org: UUID, reading: UUID, body: QualityCommand, request: Request, user: Identity = Depends(identity)):
     return envelope(rpc(user, 'select public.record_quality(%s,%s,%s,%s,%s)',
                         (org, reading, body.disposition, body.reason, body.comparable)), request)
+
+
+@app.get('/api/v1/orgs/{org}/protocols')
+def protocols(org: UUID, request: Request, user: Identity = Depends(identity)):
+    return envelope(rows(user, '''select id,entity_id,version,name,status,data_origin,source,configuration->'instructions' instructions,
+        configuration->'replicates' replicates from protocol_versions where org_id=%s order by name,version desc''', (org,)), request)
