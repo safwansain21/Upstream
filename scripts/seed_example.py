@@ -202,6 +202,8 @@ def main():
         db.execute('''insert into organizations(id,name,slug,intake_enabled,example,contact)
             values(%s,'Mill Brook Watershed Group (example)','example',true,true,'Synthetic example workspace - no real contact')
             on conflict(id) do nothing''', (org,))
+        # Example workspace only: raised (still capped at 200) so repeated local test runs are not throttled.
+        db.execute("update organizations set intake_policy=intake_policy||'{\"reports_per_hour\": 200}' where id=%s", (org,))
         ids = {email: ensure_user(db, cfg, email) for email in USERS}
         admin = ids['admin@example.test']
         for email, (name, caps, quals) in USERS.items():

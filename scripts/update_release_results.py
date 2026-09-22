@@ -7,12 +7,13 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 109 passed, 2026-09-21')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 115 passed, 2026-09-21')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
 T = 'tests/e2e/test_task_flow.py::test_task_proposal_assignment_capture_and_review'
 M, MS = 'tests/api/test_mapping.py::', 'tests/e2e/test_map_setup.py::'
+R, RE = 'tests/api/test_review.py::', 'tests/e2e/test_review_flow.py::'
 
 PASSES = {
     'B01': [W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case'],
@@ -43,6 +44,7 @@ PASSES = {
     'D12': [F + 'test_missing_metadata_meter_sc25_and_calibration_are_history_only'],
     'D13': [F + 'test_access_closure_blocks_tasks_and_assignment'],
     'D14': [F + 'test_assignment_checks_qualification_instrument_version_and_limitations', T],
+    'D11': [R + 'test_instrument_failure_review_exclusion_and_supersession'],
     'E01': [E + 'test_graph_signatures_and_lengths'],
     'E02': [E + 'test_graph_signatures_and_lengths'],
     'E03': [E + 'test_graph_signatures_and_lengths', AN + 'test_readiness_reports_missing_prerequisites_independently'],
@@ -64,6 +66,12 @@ PASSES = {
     'E23': ['tests/engine/test_readiness_and_precision.py::test_transport_bound_is_computed_from_paths_and_velocity'],
     'E24': [P + 'test_negative_event_is_conflict_and_resource_failure_retains'],
     'E25': [B + 'test_chronological_evaluation_freezes_fit_and_counts_independent_events'],
+    'F01': [R + 'test_instrument_failure_review_exclusion_and_supersession', 'tests/security/test_database.py::test_versions_are_immutable_even_for_maintenance'],
+    'F02': [R + 'test_changed_dependency_blocks_approval'],
+    'F03': [R + 'test_only_experts_approve', RE + 'test_admin_sees_no_approval_controls'],
+    'F04': [R + 'test_instrument_failure_review_exclusion_and_supersession'],
+    'F05': [R + 'test_instrument_failure_review_exclusion_and_supersession', RE + 'test_expert_approves_then_reviews_expanded_revision'],
+    'F10': [R + 'test_request_more_evidence_and_inspection_decision_coexist_with_limits'],
     'G01': [H + 'test_other_org_and_unknown_records_are_not_found', 'tests/security/test_database.py::test_cross_tenant_relationship_is_rejected'],
     'G06': ['tests/api/test_contracts.py::test_profile_cannot_upgrade_capabilities', H + 'test_me_lists_capabilities_not_client_roles'],
 }

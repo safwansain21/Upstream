@@ -50,7 +50,7 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] D08 Rapid repeats do not shrink systematic bounds; individual readings and visit ID survive.
 - [x] D09 Instrument expiry after a valid reading leaves it valid.
 - [ ] D10 Instrument invalid at measurement time is handled by protocol and logged.
-- [ ] D11 Later verification failure creates suspect/review states, not automatic universal deletion.
+- [x] D11 Later verification failure creates suspect/review states, not automatic universal deletion.
 - [x] D12 Revised task/protocol while offline preserves reading as submitted under its actual version.
 - [x] D13 Access closure blocks affected tasks; no assignment to inaccessible station just because its score is best.
 - [x] D14 Future sampling task includes purpose and limitations, not promised source discovery.
@@ -81,16 +81,16 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] E25 Background empirical coverage label is honest; chronological validation is separate from fitting.
 - [ ] E26 Multi-source/transient/misconnected cases report limitations without guaranteed fault-detection claims.
 - [ ] E27 No live protocol is automatically populated with synthetic bounds.
-- [ ] F01 Approved assessment is immutable; change creates draft and preserves predecessor.
-- [ ] F02 Concurrent evidence change makes approval fail with dependency conflict.
-- [ ] F03 Admin without expert capability cannot approve from API or UI.
-- [ ] F04 Suspect relevant reading marks approved assessment under review and dependent tasks needing review.
-- [ ] F05 Reviewer exclusion recomputes actual retained geometry and produces superseding review draft.
+- [x] F01 Approved assessment is immutable; change creates draft and preserves predecessor.
+- [x] F02 Concurrent evidence change makes approval fail with dependency conflict.
+- [x] F03 Admin without expert capability cannot approve from API or UI.
+- [x] F04 Suspect relevant reading marks approved assessment under review and dependent tasks needing review.
+- [x] F05 Reviewer exclusion recomputes actual retained geometry and produces superseding review draft.
 - [ ] F06 Approval supersedes prior publication; previous recipients get distinct revision notices.
 - [ ] F07 Transport delivered != human acknowledged; verify independent fields.
 - [ ] F08 Retry delivery preserves package bytes/logical ID, no duplicate notice.
 - [ ] F09 Recipient link is scoped, expires/revokes, cannot enumerate other packages.
-- [ ] F10 Expert inspection decision can coexist with structural resolution limit.
+- [x] F10 Expert inspection decision can coexist with structural resolution limit.
 - [ ] F11 Context layers influence recipient suggestions/priority only with source and no health claim.
 - [ ] F12 Export JSON/GeoJSON/PDF contains matching assessment version, geometry, origins and assumptions.
 - [ ] F13 FHIR validator reports zero errors; no Patient/RelatedPerson/Practitioner fiction; DocumentReference subject is not Location.

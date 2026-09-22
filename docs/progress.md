@@ -140,3 +140,20 @@ Priority 1 DONE (map setup):
   explicit precision text; report form map pin (method=pin, no snapping).
 - Tests: tests/api/test_mapping.py (7), tests/e2e/test_map_setup.py (3). Full suite 109 passed; release-results 51 PASS.
 - Next: priority 2 evidence review and approval.
+
+Priority 2 DONE (evidence review and approval):
+- Migration 202609210007: publication_status(); propagate_evidence_change (suspect/excluded reading -> approved assessments
+  under_review + case review_hold + tasks with matching rationale_hash -> needs_revision); record_quality v2; flag_instrument_failure
+  (readings in interval -> suspect, never deleted); review_assessment (reject / more_evidence); approve_assessment (expert only,
+  draft only, compares recomputed snapshot hash under a per-case advisory lock -> DEPENDENCY_CHANGED; supersedes prior approved;
+  follower notifications); record_decision (inspection/escalate/close, optimistic version); create_task stores rationale_hash;
+  publish_network takes the per-case lock. Migration 202609210008: org-adjustable report rate limit (default 20/h, cap 200;
+  example org 200 for local test runs).
+- API: POST assessments/{id}/approve|review, POST instruments/{id}/failure, POST cases/{case}/decisions, GET cases/{case}/assessments
+  (history with publication trail), GET review-queue.
+- Seed: scenario 3 `Mill Brook (revised evidence)` (fixture high branch, B2 on SC-014, 2.30 km); `seed_revised_scenario()` is
+  reused by tests to create fresh copies.
+- UI: `/app/[org]/evidence` (queue), `/app/[org]/investigations/[case]/evidence` (approved vs draft side by side, what changed,
+  evidence table, revision audit, approve/request more/reject, case decision). Evidence tab on the case page.
+- Tests: tests/api/test_review.py (4), tests/e2e/test_review_flow.py (2). Full suite 115 passed; release-results updated.
+- Next: priority 3 exports and delivery.
