@@ -1398,3 +1398,62 @@ def request_deletion(body: DeletionRequest, request: Request, user: Identity = D
     except httpx.HTTPError:
         raise DomainError('PROVIDER_UNAVAILABLE', 'Your request was recorded, but sign-in could not be disabled yet. An administrator will complete it.', 503, True)
     return envelope({'requested': True, 'note': 'Your account is disabled and your public identity removed. Evidence you contributed stays, without your name.'}, request)
+
+
+# ---- optional AI description assistant (suggestions only; the person decides) ----
+
+from services.api import ai as ai_adapter  # noqa: E402
+
+
+class DescribeRequest(StrictModel):
+    text: str = ''
+    media_ids: list[UUID] = []
+    consent_photos: bool = False
+
+
+class SuggestionReview(StrictModel):
+    accepted_codes: list[str] = []
+    edited: bool = False
+
+
+@app.post('/api/v1/orgs/{org}/ai/describe')
+def ai_describe(org: UUID, body: DescribeRequest, request: Request, user: Identity = Depends(identity)):
+    """Never blocks reporting: any failure returns PROVIDER_UNAVAILABLE and the form continues manually (B10, H08)."""
+    if len(body.text) > 2000 or len(body.media_ids) > 5:
+        raise DomainError('VALIDATION_FAILED', 'Too much input for a suggestion.')
+    if body.media_ids and not body.consent_photos:
+        raise DomainError('VALIDATION_FAILED', 'Photos are only sent to the AI provider with your explicit consent for this report.')
+    with transaction(worker=True) as db:
+        if db.execute("select count(*) n from ai_runs where owner_id=%s and created_at>now()-interval '1 hour'", (user.user_id,)).fetchone()['n'] >= 10:
+            raise DomainError('RATE_LIMITED', 'AI suggestions are limited to 10 per hour. You can continue manually.', 429)
+        media = db.execute('select id,derivative_key,sha256 from media_assets where org_id=%s and owner_id=%s and id=any(%s::uuid[])',
+                           (org, user.user_id, [str(m) for m in body.media_ids])).fetchall()
+    if len(media) != len(body.media_ids):
+        raise DomainError('NOT_FOUND', 'Record not found.', 404)
+    run = {'org_id': org, 'owner_id': user.user_id, 'consent': body.consent_photos,
+           'input_refs': json.dumps({'text_sha256': hashlib.sha256(body.text.encode()).hexdigest(), 'media': [{'id': str(m['id']), 'sha256': m['sha256']} for m in media]})}
+    try:
+        suggestion = ai_adapter.describe(body.text, [(str(m['id']), storage('GET', m['derivative_key'])) for m in media])
+        output, disposition = suggestion.model_dump_json(), 'pending_review'
+    except ai_adapter.ProviderUnavailable:
+        suggestion, output, disposition = None, None, 'unavailable'
+    cfg = settings()
+    with transaction(worker=True) as db:
+        rid = db.execute('''insert into ai_runs(org_id,owner_id,purpose,consent,provider,model,schema_version,input_refs,output,disposition)
+            values(%s,%s,'describe',%s,%s,%s,%s,%s,%s,%s) returning id''', (run['org_id'], run['owner_id'], run['consent'],
+            'openai-responses' if ai_adapter.configured() else 'disabled', cfg.ai_model or None, ai_adapter.SCHEMA_VERSION,
+            run['input_refs'], output, disposition)).fetchone()['id']
+    if suggestion is None:
+        raise DomainError('PROVIDER_UNAVAILABLE', ai_adapter.UNAVAILABLE, 503, True)
+    return envelope({'run_id': rid, 'suggestion': suggestion.model_dump()}, request)
+
+
+@app.post('/api/v1/orgs/{org}/ai/runs/{run}/review')
+def ai_review(org: UUID, run: UUID, body: SuggestionReview, request: Request, user: Identity = Depends(identity)):
+    """Stores what the person accepted or edited; the AI draft itself stays separate from the submitted report."""
+    with transaction(worker=True) as db:
+        row = db.execute("""update ai_runs set disposition=%s where org_id=%s and id=%s and owner_id=%s and disposition='pending_review' returning id,disposition""",
+                         (json.dumps({'accepted_codes': body.accepted_codes, 'edited': body.edited}), org, run, user.user_id)).fetchone()
+    if not row:
+        raise DomainError('NOT_FOUND', 'Record not found.', 404)
+    return envelope(row, request)
