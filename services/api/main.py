@@ -432,3 +432,92 @@ def case_network(org: UUID, case: UUID, request: Request, user: Identity = Depen
     net['stations'] = rows(user, '''select id,code,status,access_status,access_notes,extensions.st_x(point) lon,extensions.st_y(point) lat
         from stations where case_id=%s and network_id=%s order by code''', (case, net['id']))
     return envelope(net, request, version=net['version'])
+
+
+# ---- field work: task detail, assignment candidates, access, readings, QC ----
+
+class AccessReport(StrictModel):
+    status: str
+    notes: str
+
+
+class Replicate(StrictModel):
+    value: str
+    temperature: str | None = None
+    measured_at: str
+    meter_sc25: str | None = None
+    notes: str = ''
+
+
+class ReadingSet(StrictModel):
+    client_id: UUID
+    task_version: int
+    started_at: str
+    mode: str
+    unit: str
+    compensation_mode: str | None = None
+    compensation_coefficient: str | None = None
+    replicates: list[Replicate]
+
+
+class QualityCommand(StrictModel):
+    disposition: str
+    reason: str
+    comparable: bool | None = None
+
+
+@app.get('/api/v1/orgs/{org}/tasks/{task}')
+def task_detail(org: UUID, task: UUID, request: Request, user: Identity = Depends(identity)):
+    t = one(user, '''select t.*,c.title case_title,s.code station_code,s.access_status,s.access_notes,i.serial instrument_serial,
+        p.name protocol_name,p.version protocol_version,p.configuration->'instructions' instructions
+        from tasks t join cases c on c.id=t.case_id left join stations s on s.id=t.station_id
+        left join instruments i on i.id=t.instrument_id left join protocol_versions p on p.id=t.protocol_id
+        where t.org_id=%s and t.id=%s''', (org, task))
+    t['readings'] = rows(user, '''select r.id,r.mode,r.value,r.unit,r.temperature,r.measured_at,r.received_at,r.eligible,r.ineligibility_reasons,
+        r.submitted_task_version,r.visit_id,(select disposition from quality_decisions q where q.reading_id=r.id order by created_at desc limit 1) quality
+        from reading_versions r join visits v on v.id=r.visit_id where v.task_id=%s order by r.measured_at''', (task,))
+    return envelope(t, request, version=t['version'])
+
+
+@app.get('/api/v1/orgs/{org}/tasks/{task}/candidates')
+def task_candidates(org: UUID, task: UUID, request: Request, user: Identity = Depends(identity)):
+    """Assignment dialog data. Informational only: assign_task re-checks everything server-side (D01)."""
+    t = one(user, 'select * from tasks where org_id=%s and id=%s', (org, task))
+    case_access(user, org, t['case_id'], ('coordinate',))
+    with transaction(worker=True) as db:
+        people = db.execute('''select m.user_id,p.display_name,exists(select 1 from qualifications q where q.membership_id=m.id and q.task_type=%s
+            and q.valid_from<=%s and q.valid_until>=%s) qualified from memberships m left join profiles p on p.id=m.user_id
+            where m.org_id=%s and m.status='active' order by p.display_name''', (t['task_type'], t['window_start'], t['window_end'], org)).fetchall()
+        meters = db.execute('''select i.id,i.serial,i.model,i.available,
+            exists(select 1 from calibration_events c where c.instrument_id=i.id and c.status='pass' and c.effective_from<=%s and c.effective_until>=%s) verified,
+            exists(select 1 from instrument_bookings b where b.instrument_id=i.id and b.active and b.during && tstzrange(%s,%s)) booked
+            from instruments i where i.org_id=%s order by i.serial''', (t['window_start'], t['window_end'], t['window_start'], t['window_end'], org)).fetchall()
+    return envelope({'people': people, 'instruments': meters, 'travel_estimate': None,
+                     'travel_note': 'Travel time not established'}, request)
+
+
+@app.post('/api/v1/orgs/{org}/stations/{station}/access')
+def report_access(org: UUID, station: UUID, body: AccessReport, request: Request, user: Identity = Depends(identity)):
+    return envelope(rpc(user, 'select public.report_access(%s,%s,%s,%s)', (org, station, body.status, body.notes)), request)
+
+
+@app.post('/api/v1/orgs/{org}/tasks/{task}/readings', status_code=201)
+def submit_readings(org: UUID, task: UUID, body: ReadingSet, request: Request, user: Identity = Depends(identity)):
+    return envelope(rpc(user, 'select public.submit_readings(%s,%s,%s,%s::jsonb)',
+                        (org, task, body.task_version, body.model_dump_json(exclude={'task_version'}))), request, 201)
+
+
+@app.get('/api/v1/orgs/{org}/cases/{case}/readings')
+def case_readings(org: UUID, case: UUID, request: Request, user: Identity = Depends(identity)):
+    return envelope(rows(user, '''select r.id,r.entity_id,r.version,r.mode,r.value,r.unit,r.temperature,r.measured_at,r.received_at,r.eligible,
+        r.ineligibility_reasons,r.data_origin,r.visit_id,s.code station_code,i.serial instrument_serial,
+        q.disposition quality,q.reason quality_reason,q.comparable
+        from reading_versions r join stations s on s.id=r.station_id join instruments i on i.id=r.instrument_id
+        left join lateral (select disposition,reason,comparable from quality_decisions d where d.reading_id=r.id order by created_at desc limit 1) q on true
+        where r.org_id=%s and r.case_id=%s order by r.measured_at''', (org, case)), request)
+
+
+@app.post('/api/v1/orgs/{org}/readings/{reading}/quality')
+def record_quality(org: UUID, reading: UUID, body: QualityCommand, request: Request, user: Identity = Depends(identity)):
+    return envelope(rpc(user, 'select public.record_quality(%s,%s,%s,%s,%s)',
+                        (org, reading, body.disposition, body.reason, body.comparable)), request)

@@ -33,6 +33,11 @@ USERS = {  # email -> (display name, capabilities, qualified task types)
 BASE = (51.4500, -2.5900)  # synthetic placement; the example river is fictional
 
 
+def synthetic(lo, hi, unit):
+    return dict(lower=lo, upper=hi, unit=unit, method='synthetic protocol bound', source='example workspace (synthetic)',
+                validity_scope='example workspace only', data_origin='synthetic', reviewer='synthetic-fixture-review')
+
+
 def sid(name: str) -> str:
     return str(uuid5(NAMESPACE_URL, 'upstream-example:' + name))
 
@@ -139,6 +144,17 @@ def seed_evidence(db, org, case, monitor, expert):
         values(%s,%s,%s,'anchor_reading','completed','Synthetic anchor and A3 readings for the example episode',%s,%s,%s,5)''',
                (task, org, case, monitor, start - timedelta(hours=1), start + timedelta(hours=2)))
     meter = sid('instrument:SC-011')
+    iv = lambda lo, hi, unit: dict(lower=lo, upper=hi, unit=unit, method='synthetic protocol bound', source='example protocol (synthetic)',  # noqa: E731
+                                   validity_scope='example workspace only', data_origin='synthetic', reviewer='synthetic-fixture-review')
+    db.execute('''insert into protocol_versions(id,org_id,entity_id,version,name,configuration,status,data_origin,content_hash,source,signed_by)
+        values(%s,%s,%s,1,'Example conductance protocol (synthetic)',%s,'approved','synthetic',%s,'Example workspace only; not a field protocol',%s)
+        on conflict do nothing''', (sid('protocol:1'), org, sid('protocol-entity'), json.dumps({
+            'replicates': 3, 'cadence_seconds': 60, 'range_uS_cm': ['0', '5000'],
+            'instructions': 'Example only: rinse probe, wait for a stable display, record three replicates one minute apart.',
+            'reading_bounds': {'noise': iv('-2', '2', 'uS/cm'), 'visit_effect': iv('-3', '3', 'uS/cm'),
+                               'temperature_noise': iv('-.2', '.2', 'degC'), 'water_group': sid('water:1'),
+                               'episode': snap.episode, 'epoch': 'synthetic-epoch'}}),
+            sid('protocol-hash:1'), expert))
     for r in snap.readings:
         visit = sid(f'{case}:visit:{r.visit_id}')
         db.execute('''insert into visits(id,org_id,task_id,station_id,instrument_id,operator_id,started_at,shared_effect_group)
@@ -180,16 +196,22 @@ def main():
                     values(%s,%s,%s,%s) on conflict do nothing''', (org, mid, cap, admin))
             for task_type in quals:
                 db.execute('''insert into qualifications(id,org_id,membership_id,task_type,evidence_document,reviewed_by,valid_from,valid_until)
-                    values(%s,%s,%s,%s,'Synthetic example training record',%s,'2026-01-01','2028-01-01') on conflict do nothing''',
+                    values(%s,%s,%s,%s,'Synthetic example training record',%s,'2025-01-01','2028-01-01') on conflict do nothing''',
                            (sid(f'{email}:qual:{task_type}'), org, mid, task_type, ids['expert@example.test']))
         for serial in ('SC-009', 'SC-011', 'SC-014'):
             iid = sid(f'instrument:{serial}')
             db.execute('''insert into instruments(id,org_id,serial,model,capabilities,specifications) values(%s,%s,%s,
                 'Example conductivity meter (synthetic)','{conductivity,temperature}','{"accuracy":"synthetic specification"}')
                 on conflict do nothing''', (iid, org, serial))
-            db.execute('''insert into calibration_events(id,org_id,instrument_id,status,effective_from,effective_until,checked_at,reason,reviewer_id)
-                values(%s,%s,%s,'pass','2026-01-01','2027-12-31','2026-01-01','Synthetic example calibration',%s) on conflict do nothing''',
-                       (sid(f'calibration:{serial}:1'), org, iid, ids['expert@example.test']))
+            db.execute('''insert into calibration_events(id,org_id,instrument_id,status,effective_from,effective_until,checked_at,reason,reviewer_id,bounds)
+                values(%s,%s,%s,'pass','2026-01-01','2027-12-31','2026-01-01','Synthetic example calibration',%s,%s) on conflict do nothing''',
+                       (sid(f'calibration:{serial}:1'), org, iid, ids['expert@example.test'], json.dumps({
+                           'gain': synthetic('.99', '1.01', '1'), 'offset': synthetic('-1', '1', 'uS/cm'),
+                           'temperature_bias': synthetic('-.1', '.1', 'degC'), 'accounting': 'decomposed'})))
+        # Compensation coefficient interval from the SCIENTIFIC-ENGINE.md regression example; independent per reading by default.
+        db.execute('''insert into water_condition_groups(id,org_id,coefficient,temperature_domain,sharing_scope,justification,source)
+            values(%s,%s,%s,%s,'independent','Synthetic example water group; no shared-coefficient evidence','SCIENTIFIC-ENGINE.md section 9.1')
+            on conflict do nothing''', (sid('water:1'), org, json.dumps(synthetic('.018', '.022', '1/degC')), json.dumps({'min': '0', 'max': '30'})))
 
     contributor = ids['contributor@example.test']
     base = {'categories': ['unusual_foam'], 'observed_at': '2026-09-10T14:20:00+01:00', 'timezone': 'Europe/London',

@@ -12,6 +12,7 @@ Record conventions (JSON columns hold engine Interval objects verbatim):
 import hashlib
 import json
 from datetime import datetime
+from decimal import Decimal
 
 from pydantic import ValidationError
 from upstream_engine import (Action, Background, FutureReading, Instrument, Interval, Network, Reach, Readiness,
@@ -45,10 +46,11 @@ def load_inputs(db, org, case):
                        (net['id'],)).fetchall()
     stations = db.execute("select id,code,status,access_status from stations where case_id=%s and network_id=%s order by code",
                           (case, net['id'])).fetchall()
-    readings = db.execute('''select r.*, s.code station_code, i.serial, q.disposition from reading_versions r
+    readings = db.execute('''select r.*, s.code station_code, i.serial, q.disposition, q.comparable reviewed_comparable from reading_versions r
         join stations s on s.id=r.station_id join instruments i on i.id=r.instrument_id
-        left join lateral (select disposition from quality_decisions d where d.reading_id=r.id order by created_at desc limit 1) q on true
+        left join lateral (select disposition, comparable from quality_decisions d where d.reading_id=r.id order by created_at desc limit 1) q on true
         where r.case_id=%s and r.station_id in (select id from stations where case_id=%s)
+        and q.disposition is not null  -- readings awaiting QC are not evidence yet; they never enter a snapshot
         and not exists(select 1 from reading_versions n where n.entity_id=r.entity_id and n.version>r.version)
         order by r.entity_id''', (case, case)).fetchall()
     backgrounds = db.execute('''select distinct on (b.station_id) b.*, s.code station_code from background_versions b
@@ -88,7 +90,7 @@ def build(db, org, case) -> tuple[Snapshot, list[dict], dict]:
         snapshot = Snapshot(
             network=network, episode=cfg['episode'], protocol_version=cfg['protocol_version'], load=Interval(**cfg['load']),
             readiness=Readiness(**cfg['readiness']), data_origin=origin,
-            readings=tuple(reading(r, cfg['episode']) for r in readings),
+            readings=tuple(named(reading, r, cfg) for r in readings),
             backgrounds=tuple(Background(station_id=b['station_code'], version=str(b['version']), enclosure=Interval(**b['enclosure']),
                                          epoch=b['scope'].get('epoch', 'unspecified')) for b in backgrounds),
             instruments=tuple(Instrument(id=c['serial'], calibration_version=str(c['id']), valid_from=c['effective_from'],
@@ -108,19 +110,36 @@ def build(db, org, case) -> tuple[Snapshot, list[dict], dict]:
     return snapshot, deps, {'stations': stations, 'config': cfg}
 
 
-def reading(r, episode) -> Reading:
+def named(fn, r, cfg):
+    try:
+        return fn(r, cfg)
+    except (ValidationError, KeyError, ValueError) as exc:  # name the record; never drop accepted evidence silently
+        raise ValueError(f"reading {r['id']} at {r['station_code']} cannot be modelled: {str(exc).splitlines()[-1][:200]}")
+
+
+def to_us_cm(value, unit) -> str:
+    """Exact decimal unit conversion (D06); mS/cm x 1000 without binary rounding."""
+    value = Decimal(str(value)) * (1000 if unit == 'mS/cm' else 1)
+    if unit not in ('uS/cm', 'mS/cm'):
+        raise ValueError(f'unsupported conductivity unit {unit}')
+    return format(value.normalize(), 'f')
+
+
+def reading(r, cfg) -> Reading:
+    episode = cfg['episode']
     b = r['bounds'] or {}
     iv = lambda k: Interval(**b[k]) if b.get(k) else None  # noqa: E731
     return Reading(id=str(r['entity_id']), version=str(r['version']), station_id=r['station_code'], visit_id=str(r['visit_id']),
                    instrument_id=r['serial'] if r['mode'] == 'raw' else None,
                    calibration_version=str(r['calibration_id']) if r['mode'] == 'raw' and r['calibration_id'] else None,
                    contributor='pseudonym:' + digest(str(r['operator_id']))[:12], measured_at=r['measured_at'], received_at=r['received_at'],
-                   episode=b.get('episode', episode), epoch=b.get('epoch', 'unspecified'), comparable=bool(b.get('comparable')),
+                   episode=b.get('episode', episode), epoch=b.get('epoch', 'unspecified'),
+                   comparable=r['reviewed_comparable'] if r['reviewed_comparable'] is not None else bool(b.get('comparable')),
                    qc=QC.get(r['disposition'] or '', 'pending'), mode=r['mode'],
-                   conductivity=str(r['value']) if r['mode'] == 'raw' else None,
+                   conductivity=to_us_cm(r['value'], r['unit']) if r['mode'] == 'raw' else None,
                    temperature=str(r['temperature']) if r['mode'] == 'raw' and r['temperature'] is not None else None,
                    enclosure=iv('enclosure'), noise=iv('noise'), temperature_noise=iv('temperature_noise'), visit_effect=iv('visit_effect'),
-                   water_group=b.get('water_group'), discharge=Interval(**b['discharge']), file_ref=f"reading_version:{r['id']}",
+                   water_group=b.get('water_group'), discharge=Interval(**(b.get('discharge') or cfg['discharge'][r['station_code']])), file_ref=f"reading_version:{r['id']}",
                    protocol_ref=str(r['protocol_id'] or 'unspecified'), data_origin=r['data_origin'])
 
 

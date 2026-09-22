@@ -79,3 +79,20 @@ Step 5 core DONE (worker + engine on real records), done before step 4 UI becaus
 - Tests: full suite `pytest tests` 86 passed (API tests use a fresh per-run reporter because of the real 20 reports/hour limit).
   Local servers: build web, then `powershell -ExecutionPolicy Bypass -File scripts/restart-local.ps1` (API, worker, web).
 - Next: map-setup page, tasks board/assignment (step 6), remaining seed scenarios (precision-limited, revised evidence, confluence, access-blocked, delivery).
+
+Step 6 backend DONE (tasks/field work), UI pending:
+- Migration 202609210004: create_task checks station belongs to case; RPCs report_access (closed -> station closed, open
+  tasks blocked + bookings released + assignee notified; reopening needs coordinator), submit_readings (assignee only,
+  qualification valid at measured_at, calibration valid at measured_at else held, raw needs temperature + calibration bounds +
+  water group else history-only, meter SC25 history-only, stale task version recorded not rejected, future times rejected,
+  idempotent by client_id, one visit per set, each replicate its own reading_version), record_quality (expert; coordinator may
+  only flag suspect; history-only cannot be accepted; comparability recorded by reviewer). Policies: available_tasks, own_visits.
+- API: GET tasks/{task}, GET tasks/{task}/candidates, POST stations/{station}/access, POST tasks/{task}/readings,
+  GET cases/{case}/readings, POST readings/{id}/quality.
+- Snapshot builder: only QC-decided readings enter; discharge falls back to the reviewed per-station interval; mS/cm converted
+  exactly; unmodellable accepted reading -> NotReady naming it.
+- Seed: example protocol (synthetic reading bounds), calibration bounds, water group; qualifications valid from 2025-01-01.
+- tests/api/test_field_work.py (D01-D10, D12-D14) on the Harbour channel case so Mill Brook stays canonical. API suite 41 passed.
+  After schema changes: `pnpm exec supabase db reset --local && pnpm seed:example` (fresh migrations verified).
+- Next: task board + task detail/capture UI, assignment dialog, create task from recommendation; then step 7 (review/approve,
+  instrument verification failure -> suspect -> under_review -> recompute).
