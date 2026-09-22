@@ -99,3 +99,43 @@ def test_only_coordinators_create_tasks(role):
     body = {'case_id': mill['id'], 'task_type': 'location_confirmation', 'purpose': 'Confirm the footbridge location.',
             'window_start': '2030-01-01T09:00:00Z', 'window_end': '2030-01-01T12:00:00Z'}
     assert client.post(f'/api/v1/orgs/{ORG}/tasks', json=body, headers=as_(role)).status_code == 403
+
+
+def jpeg_with_gps():
+    import io
+    from PIL import Image
+    image, exif = Image.new('RGB', (64, 48), 'teal'), Image.Exif()
+    exif[0x8825] = {1: 'N', 2: (51.0, 27.0, 0.0), 3: 'W', 4: (2.0, 35.0, 0.0)}  # GPS IFD
+    out = io.BytesIO(); image.save(out, 'JPEG', exif=exif)
+    return out.getvalue()
+
+
+def test_photo_upload_strips_location_and_attaches_to_report():  # B06 B07
+    from PIL import Image
+    import io
+    raw = jpeg_with_gps()
+    assert Image.open(io.BytesIO(raw)).getexif().get_ifd(0x8825)
+    up = client.post(f'/api/v1/orgs/{ORG}/uploads', files={'file': ('p.jpg', raw, 'image/jpeg')}, data={'keep_original': 'true'},
+                     headers=as_('contributor'))
+    assert up.status_code == 201, up.text
+    media_id = up.json()['data']['id']
+    derivative = client.get(f'/api/v1/orgs/{ORG}/media/{media_id}', headers=as_('contributor')).content
+    assert not Image.open(io.BytesIO(derivative)).getexif().get_ifd(0x8825)
+    assert client.get(f'/api/v1/orgs/{ORG}/media/{media_id}?original=true', headers=as_('contributor')).content == raw
+    assert client.get(f'/api/v1/orgs/{ORG}/media/{media_id}', headers=as_('monitor')).status_code == 404  # G02
+    r = client.post(f'/api/v1/orgs/{ORG}/reports', json=report(media_ids=[media_id]),
+                    headers=as_('contributor') | {'Idempotency-Key': str(uuid4())})
+    assert r.status_code == 201, r.text
+    detail = client.get(f"/api/v1/orgs/{ORG}/reports/{r.json()['data']['id']}", headers=as_('contributor')).json()['data']
+    assert [m['id'] for m in detail['media']] == [media_id]
+
+
+def test_upload_rejects_disguised_and_oversized_images():  # B06 G08
+    fake = client.post(f'/api/v1/orgs/{ORG}/uploads', files={'file': ('x.jpg', b'<svg onload=alert(1)>', 'image/jpeg')},
+                       headers=as_('contributor'))
+    assert fake.status_code == 422
+    import io
+    from PIL import Image
+    out = io.BytesIO(); Image.new('1', (8000, 6000)).save(out, 'PNG')  # 48 MP, tiny file
+    bomb = client.post(f'/api/v1/orgs/{ORG}/uploads', files={'file': ('b.png', out.getvalue(), 'image/png')}, headers=as_('contributor'))
+    assert bomb.status_code == 422 and 'megapixels' in bomb.json()['error']['message']

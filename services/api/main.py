@@ -1,12 +1,16 @@
 """HTTP boundary: identity, envelopes and error mapping. Authority lives in database RPCs and RLS."""
+import hashlib
+import io
 from decimal import Decimal
 from uuid import UUID, uuid4
 
+import httpx
 import psycopg
-from fastapi import Depends, FastAPI, Header, Request
+from fastapi import Depends, FastAPI, File, Form, Header, Request, UploadFile
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+from PIL import Image, ImageOps
 
 from .auth import Identity, identity
 from .config import settings
@@ -159,6 +163,7 @@ def own_reports(org: UUID, request: Request, user: Identity = Depends(identity))
 def report_detail(org: UUID, report: UUID, request: Request, user: Identity = Depends(identity)):
     data = one(user, f'select {REPORT_COLUMNS} from reports r join cases c on c.id=r.case_id where r.org_id=%s and r.id=%s', (org, report))
     data['versions'] = rows(user, 'select version,change_reason,created_at from report_versions where report_id=%s order by version', (report,))
+    data['media'] = rows(user, 'select id,width,height,consent_original from media_assets where report_id=%s order by created_at', (report,))
     return envelope(data, request, version=data['version'])
 
 
@@ -241,3 +246,73 @@ def transition_task(org: UUID, task: UUID, body: TaskTransition, request: Reques
         result = rpc(user, 'select public.transition_task(%s,%s,%s,%s,%s,%s)',
                      (org, task, body.expected_version, body.action, body.reason, body.outcome))
     return envelope(result, request)
+
+
+# ---- uploads / media ----
+
+Image.MAX_IMAGE_PIXELS = 40_000_000  # decompression-bomb guard (G08); also checked explicitly below
+MAX_BYTES = 15 * 1024 * 1024
+FORMATS = {'JPEG': 'image/jpeg', 'PNG': 'image/png', 'WEBP': 'image/webp'}
+
+
+def storage(method: str, key: str, content: bytes | None = None, mime: str = ''):
+    cfg = settings()  # service key stays server-side; objects are only reachable through authorized endpoints
+    headers = {'apikey': cfg.supabase_service_role_key, 'Authorization': f'Bearer {cfg.supabase_service_role_key}'}
+    if mime:
+        headers['Content-Type'] = mime
+    try:
+        r = httpx.request(method, f'{cfg.supabase_url}/storage/v1/object/{cfg.storage_bucket}/{key}', headers=headers,
+                          content=content, timeout=30)
+    except httpx.HTTPError:
+        raise DomainError('PROVIDER_UNAVAILABLE', 'Evidence storage is unavailable. Your draft is kept on this device.', 503, True)
+    if r.status_code >= 300:
+        raise DomainError('PROVIDER_UNAVAILABLE', 'Evidence storage rejected the file. Your draft is kept on this device.', 503, True)
+    return r.content
+
+
+@app.post('/api/v1/orgs/{org}/uploads', status_code=201)
+async def upload(org: UUID, request: Request, file: UploadFile = File(...), keep_original: bool = Form(False),
+                 user: Identity = Depends(identity)):
+    data = await file.read(MAX_BYTES + 1)
+    if len(data) > MAX_BYTES:
+        raise DomainError('VALIDATION_FAILED', 'Each photo must be 15 MB or smaller.')
+    try:  # trust decoded content, never the filename or declared MIME
+        image = Image.open(io.BytesIO(data))
+        if image.format not in FORMATS:
+            raise ValueError
+        if image.width * image.height > 40_000_000:
+            raise DomainError('VALIDATION_FAILED', 'Photos larger than 40 megapixels are not accepted.')
+        image.load()
+    except (ValueError, OSError, Image.DecompressionBombError, Image.DecompressionBombWarning):
+        raise DomainError('VALIDATION_FAILED', 'This file is not a readable JPEG, PNG or WebP photo. HEIC conversion is not yet available.')
+    derivative = ImageOps.exif_transpose(image).convert('RGB')
+    derivative.thumbnail((2400, 2400))
+    out = io.BytesIO()
+    derivative.save(out, 'JPEG', quality=85)  # re-encoding drops EXIF including GPS (B07)
+    media_id = uuid4()
+    with transaction(user.user_id) as db:  # same intake/membership rule as submit_report
+        allowed = db.execute('''select exists(select 1 from organizations where id=%s and intake_enabled)
+            or private.is_member(%s) as ok''', (org, org)).fetchone()['ok']
+    if not allowed:
+        raise DomainError('FORBIDDEN', 'This organization does not accept your uploads.', 403)
+    base = f'{org}/{user.user_id}/{media_id}'
+    storage('POST', f'{base}/derivative.jpg', out.getvalue(), 'image/jpeg')
+    if keep_original:
+        storage('POST', f'{base}/original', data, FORMATS[image.format])
+    with transaction(worker=True) as db:
+        db.execute('insert into memberships(org_id,user_id) values(%s,%s) on conflict do nothing', (org, user.user_id))
+        db.execute('''insert into media_assets(id,org_id,owner_id,private_key,derivative_key,mime,sha256,bytes,width,height,
+            consent_original,scan_state) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'ready')''',
+                   (media_id, org, user.user_id, f'{base}/original' if keep_original else f'{base}/derivative.jpg',
+                    f'{base}/derivative.jpg', FORMATS[image.format], hashlib.sha256(data).hexdigest(), len(data),
+                    image.width, image.height, keep_original))
+    return envelope({'id': media_id, 'width': derivative.width, 'height': derivative.height, 'bytes': len(data)}, request, 201)
+
+
+@app.get('/api/v1/orgs/{org}/media/{media}')
+def media(org: UUID, media: UUID, original: bool = False, user: Identity = Depends(identity)):
+    row = one(user, 'select private_key,derivative_key,mime,consent_original from media_assets where org_id=%s and id=%s', (org, media))
+    if original and not row['consent_original']:
+        raise DomainError('NOT_FOUND', 'No original was retained for this photo.', 404)
+    key, mime = (row['private_key'], row['mime']) if original else (row['derivative_key'], 'image/jpeg')
+    return Response(storage('GET', key), media_type=mime, headers={'Cache-Control': 'private, max-age=300'})
