@@ -14,25 +14,22 @@ Supabase (PostgreSQL + PostGIS, Auth, private storage) with migrations in `supab
 
 ## Local setup
 
-Requirements: Node 24, pnpm 11, Python 3.12, Docker (for the local Supabase stack).
+Requirements: Node 24, pnpm 11 (without a global pnpm, use `npx pnpm@11.19.0` wherever `pnpm` appears), Python 3.12,
+Docker (for the local Supabase stack). On Windows, clone into a short path such as `C:\src\upstream`: deep folders hit the
+Windows path-length limit inside `node_modules`.
 
 ```sh
 pnpm install
 python -m venv .venv && .venv/Scripts/python -m pip install -r requirements.lock   # macOS/Linux: .venv/bin/python
 .venv/Scripts/python -m playwright install chromium                               # PDF export and browser tests
 cp .env.example .env
-pnpm exec supabase start                     # prints local URLs and keys
-pnpm exec supabase migration up --local      # or: pnpm setup:local (starts + migrates)
 ```
-
-Put the local `ANON_KEY` and `SERVICE_ROLE_KEY` from `pnpm exec supabase status` into `.env` as `SUPABASE_ANON_KEY` and
-`SUPABASE_SERVICE_ROLE_KEY`. Optional: set `EXPORT_SIGNING_KEY_ID` and `EXPORT_SIGNING_PRIVATE_KEY` (base64 of a raw
-32-byte Ed25519 key) to sign evidence packages; without them packages are explicitly unsigned.
 
 The `pnpm` scripts call `python scripts/local.py …`; run them with the virtual environment activated
 (`.venv\Scripts\activate` on Windows, `source .venv/bin/activate` elsewhere).
 
 ```sh
+pnpm setup:local           # supabase start + migration up --local, then writes the local keys into blank .env entries
 pnpm seed:example          # synthetic example workspace (idempotent; refuses non-local or production databases)
 pnpm dev                   # API :8000, worker, web :3000 (web proxies /api/v1 to the API)
 pnpm reset:example         # rebuild the local database and reseed (local only)
@@ -41,6 +38,7 @@ pnpm reset:example         # rebuild the local database and reseed (local only)
 Open http://127.0.0.1:3000. Example accounts (local example workspace only, synthetic data):
 `coordinator@example.test`, `expert@example.test`, `monitor@example.test`, `contributor@example.test`,
 `admin@example.test`, password `upstream-example-only`. Production refuses `EXAMPLE_MODE=true`.
+Evidence packages are unsigned unless `EXPORT_SIGNING_KEY_ID` and `EXPORT_SIGNING_PRIVATE_KEY` are set (see `docs/runbook.md`).
 
 No paid map, AI or email service is needed: maps draw Upstream data on a plain background unless `MAP_STYLE_URL` is set;
 AI assistance is shown as unavailable; local email goes to the Supabase mail catcher.
