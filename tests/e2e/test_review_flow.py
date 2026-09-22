@@ -47,21 +47,31 @@ def test_admin_sees_no_approval_controls(page):  # F03 (UI)
     expect(page.get_by_role('button', name='Approve revision')).to_have_count(0)
 
 
-def test_cancel_analysis_button_stops_queued_work_and_keeps_results(page):  # J02 (browser path)
+def queued_analysis(page):
+    """Approved case whose recompute request is held in the queue (as if new evidence were waiting); returns the case and job status."""
     import json
     from services.api.db import transaction
-    from tests.api.test_review import approve, history
+    from tests.api.test_review import approve
     case = scenario()
     first = compute(case)
     assert approve(first['id']).status_code == 200
+    held = {'first': first}
 
-    def park(route):  # real request; the reused job is then held in the queue as if new evidence were waiting
+    def park(route):  # the real request; the reused job is then put back in the queue for an hour
         job = route.fetch().json()['data']
         with transaction(worker=True) as db:
             db.execute("update analysis_jobs set state='queued',result_id=null,progress_stage='Queued',available_at=now()+interval '1 hour' where id=%s", (job['id'],))
-        status = client.get(f"/api/v1/orgs/{ORG}/analyses/{job['id']}", headers=as_('coordinator')).json()
-        route.fulfill(status=202, content_type='application/json', body=json.dumps(status))
+        held['status'] = client.get(f"/api/v1/orgs/{ORG}/analyses/{job['id']}", headers=as_('coordinator')).json()
+        route.fulfill(status=202, content_type='application/json', body=json.dumps(held['status']))
     page.route(re.compile(r'.*/api/v1/orgs/[^/]+/cases/[^/]+/analyses$'), park)
+    return case, held
+
+
+def test_cancel_analysis_button_stops_queued_work_and_keeps_results(page):  # J02 (browser path)
+    from services.api.db import transaction
+    from tests.api.test_review import history
+    case, held = queued_analysis(page)
+    first = held['first']
     open_as(page, 'coordinator@example.test')
     page.goto(f'{BASE}/app/{ORG}/investigations/{case}')
     page.get_by_role('button', name='Recompute with current evidence').click()
@@ -95,3 +105,26 @@ def test_decision_view_shows_sourced_context_and_suggestions(page):  # F11 (brow
     expect(page.get_by_text(f'{name}: handles {cattle}')).to_be_visible()
     expect(page.get_by_text('The expert chooses recipients and purpose.', exact=False)).to_be_visible()
     expect(page.get_by_text('No health outcome is established or assessed by Upstream.')).to_be_visible()
+
+
+def test_late_poll_never_reverts_a_cancelled_analysis(page):  # H11 (polling is the only status channel; no stream to fail)
+    import json
+    case, held = queued_analysis(page)
+    polls = []
+    page.route(re.compile(r'.*/api/v1/orgs/[^/]+/analyses/[0-9a-f-]+$'), lambda route: polls.append(route) if route.request.method == 'GET' else route.continue_())
+    open_as(page, 'coordinator@example.test')
+    page.goto(f'{BASE}/app/{ORG}/investigations/{case}')
+    page.get_by_role('button', name='Recompute with current evidence').click()
+    expect(page.get_by_text(re.compile('Queued · '))).to_be_visible()
+    for _ in range(50):  # a status poll is now in flight and held
+        if polls:
+            break
+        page.wait_for_timeout(100)
+    page.get_by_role('button', name='Cancel analysis').click()
+    expect(page.get_by_text('Analysis cancelled. Earlier results are unchanged.')).to_be_visible()
+    stale = json.dumps(held['status'])  # the earlier queued state, delivered after the cancellation
+    for route in polls:
+        route.fulfill(status=200, content_type='application/json', body=stale)
+    page.evaluate("() => new Promise(r => setTimeout(r, 2000))")
+    expect(page.get_by_text('Analysis cancelled. Earlier results are unchanged.')).to_be_visible()
+    expect(page.get_by_role('button', name='Cancel analysis')).to_have_count(0)

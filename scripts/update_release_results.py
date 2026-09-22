@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 212 passed, 1 skipped (destructive), 2026-09-22, fresh `supabase db reset` + seed_example + seed_load')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 218 passed, 2 skipped (destructive), 2026-09-22, fresh `supabase db reset` + seed_example + seed_load')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
@@ -20,6 +20,7 @@ RT, MB = 'tests/e2e/test_routes.py::', 'tests/api/test_membership.py::'
 RC, RCE = 'tests/api/test_receipts.py::', 'tests/e2e/test_receipts_flow.py::'
 R, RE = 'tests/api/test_review.py::', 'tests/e2e/test_review_flow.py::'
 CA, RS = 'tests/test_content_audit.py::', 'tests/e2e/test_route_states.py::'
+WH = 'tests/api/test_webhooks.py::'
 X, XE = 'tests/api/test_exports.py::', 'tests/e2e/test_export_flow.py::test_package_send_and_recipient_acknowledgment'
 
 PASSES = {
@@ -142,14 +143,16 @@ PASSES = {
     'J11': [CA + 'test_every_route_is_required_scope', CA + 'test_no_placeholder_copy_or_partner_claims', CA + 'test_every_button_and_form_is_wired', RT + 'test_public_routes_and_links_resolve', RT + 'test_workspace_and_case_routes_render[expert]', RT + 'test_workspace_and_case_routes_render[coordinator]'],
     'B11': ['tests/e2e/test_offline.py::test_receipt_states_move_from_device_to_uploading_to_server', 'tests/e2e/test_offline.py::test_offline_submission_is_queued_then_sent_once_with_photo', W + 'test_signed_in_photo_report_uploads_then_submits'],
     'F11': ['tests/api/test_context.py::test_context_suggests_recipients_and_attention_with_sources_only', 'tests/api/test_context.py::test_recipient_concerns_are_a_closed_list', RE + 'test_decision_view_shows_sourced_context_and_suggestions', GM + 'test_context_layers_do_not_change_compatibility_inputs'],
+    'A07': [RS + 'test_every_workspace_route_shows_loading_then_error[coordinator]', RS + 'test_every_workspace_route_shows_loading_then_error[admin]', RS + 'test_review_routes_show_a_permission_state_to_contributors', RS + 'test_new_organization_routes_show_empty_states', RS + 'test_public_data_routes_show_loading_error_and_unavailable_states', RT + 'test_public_routes_and_links_resolve'],
+    'J09': ['tests/ops/test_backup_restore.py::test_backup_restores_into_an_isolated_stack_and_verifies'],
+    'G10': [WH + 'test_signed_delivery_reaches_the_local_test_receiver_once', WH + 'test_private_and_non_https_destinations_are_refused', WH + 'test_redirects_are_not_followed', WH + 'test_dns_rebinding_is_refused_at_delivery_and_the_checked_address_is_used', WH + 'test_local_test_receiver_is_refused_in_production', WH + 'test_retry_schedule_then_failed_then_admin_retry_keeps_id_and_bytes'],
+    'A01': ['tests/migrations/test_fresh_checkout.py::test_fresh_checkout_starts_everything_and_shows_the_example'],
     'J03': ['tests/e2e/test_performance.py::test_ten_thousand_case_directory_reads_stay_fast', 'tests/e2e/test_performance.py::test_directory_and_map_render_are_bounded'],
 }
 PARTIAL = {
-    'G10': 'Partial: webhook recipients are refused and only scoped portal delivery exists (test_webhook_recipients_are_not_accepted); the signed HTTPS outbox with private-address, redirect and DNS-rebinding checks is not built.',
     'I05': 'Partial: 12 key public/workspace pages have no horizontal scroll at 1920-320 px (test_pages_reflow_without_horizontal_scroll[*]); not every page and no map-height/menu assertions.',
     'I06': 'Partial: keyboard-only reporting with focus on each step heading (test_keyboard_only_report); task, measurement, map alternative, review and acknowledgment paths not yet keyboard-tested.',
     'I09': 'Partial: OS reduced motion sets reduced mode with no running entrance animation, and the application setting persists (test_reduced_motion_is_honoured); camera flight and shimmer not asserted per page.',
-    'A07': 'Partial: loading, error, permission and empty states are browser-tested on every workspace, case, public data route and the report/task detail routes (tests/e2e/test_route_states.py); the report/task detail additions are not yet in a recorded full run.',
     'I08': 'Partial: automated axe finds zero serious/critical issues on key public and workspace pages (test_no_serious_accessibility_violations); 200% zoom, reflow and manual checks not done.',
     'H07': 'Partial: no-basemap fallback is labelled (test_directory_map_and_list_show_precision); a failing configured provider is not tested.',
     'D12': 'Partial: server side verified (test_missing_metadata_meter_sc25_and_calibration_are_history_only); the offline client now queues reports, but offline capture of task readings is not built yet.',
@@ -159,7 +162,8 @@ path = Path(__file__).resolve().parents[1] / 'docs/release-results.md'
 text = path.read_text(encoding='utf-8')
 
 
-COMMANDS = {'A08': '`UPSTREAM_RUN_DESTRUCTIVE=1 .venv/Scripts/python.exe -m pytest tests/migrations -q -p no:cacheprovider -rA` (resets the local database, then reseeds) - 1 passed, 2026-09-22'}
+COMMANDS = {'A01': '`UPSTREAM_RUN_DESTRUCTIVE=1 .venv/Scripts/python.exe -m pytest tests/migrations/test_fresh_checkout.py -q -p no:cacheprovider -rA` (clones the committed tree to a temp folder, runs the README commands, replaces then restores the local stack) - 1 passed, 2026-09-22',
+            'A08': '`UPSTREAM_RUN_DESTRUCTIVE=1 .venv/Scripts/python.exe -m pytest tests/migrations -q -p no:cacheprovider -rA` (resets the local database, then reseeds) - 1 passed, 2026-09-22'}
 
 
 def row(match):

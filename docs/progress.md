@@ -303,3 +303,16 @@ Stragglers (J02, J11, B11, F11; A07 in progress):
   README update (pnpm fallback via npx/corepack, setup:local fills keys, short clone path on Windows), then `supabase db reset`
   + both seeds, rebuild, restart, full suite, record A01/A07/J09 evidence.
 - Next after A01: G10 webhook outbox, then offline leftovers, then J12.
+
+## 2026-09-22 session 5 (ponytail mode)
+
+- A01: tests/migrations/test_fresh_checkout.py (destructive-gated) clones the committed tree to %TEMP%\ua01, runs the README
+  commands (pnpm install, venv + requirements.lock, playwright chromium, .env, pnpm setup:local, seed:example, dev), checks
+  status through the web proxy, the example chooser and the signed-in example case, then restores this checkout's stack.
+  README: npx pnpm fallback, one-step setup:local, short clone path on Windows.
+- G10: migration 202609210016 (recipient_secrets and webhook_outbox, RLS with no policies), services/worker/outbox.py
+  (HMAC-SHA256 signature over timestamp + body; DNS re-resolved and checked each attempt, request sent to the checked IP
+  with Host/SNI of the configured name; no redirects; 1m/5m/30m/2h/12h then failed), admin GET deliveries + POST retry
+  (same delivery id, stored payload bytes). Integrations page: webhook destination, secret shown once, delivery status + Retry.
+  tests/api/test_webhooks.py (local receiver + the real worker).
+- Full suite 218 passed, 2 skipped (destructive); 124 gates PASS.

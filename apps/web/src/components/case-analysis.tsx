@@ -17,6 +17,7 @@ type Assessment = { id: string; revision: number; retained_length_m: string; cre
 type Readiness = { eligible: boolean; checks: { label: string; state: string; reasons: string[] }[] };
 type Job = { id: string; state: string; progress_stage: string; elapsed_seconds: number; last_error: string | null };
 
+const RANK: Record<string, number> = { queued: 0, running: 1, done: 2, failed: 2, cancelled: 2 };
 export const km = (m: string | number) => `${(Number(m) / 1000).toFixed(2)} km`;
 
 /** Disjoint retained segments: connected components of retained edges; never visually or numerically joined. */
@@ -50,7 +51,7 @@ export function CaseAnalysis({ org, caseId, canAnalyse, canReview, dataOrigin = 
     const timer = setTimeout(async () => {
       try {
         const next = await api<Job>(`/orgs/${org}/analyses/${job.id}`);
-        setJob(next);
+        setJob(prev => prev?.id === next.id && RANK[prev.state] > RANK[next.state] ? prev : next); // H11: a late or repeated poll never moves a job backwards
         if (next.state === "done") { client.invalidateQueries({ queryKey: ["assessment", org, caseId] }); client.invalidateQueries({ queryKey: ["case", org, caseId] }); }
       } catch (e) { setError((e as Error).message); }
     }, 1500);
