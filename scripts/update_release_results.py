@@ -7,12 +7,13 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 131 passed, 2026-09-22')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 144 passed, 2026-09-22')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
 T = 'tests/e2e/test_task_flow.py::test_task_proposal_assignment_capture_and_review'
 M, MS = 'tests/api/test_mapping.py::', 'tests/e2e/test_map_setup.py::'
+RA, SEC = 'tests/e2e/test_responsive_a11y.py::', 'tests/security/test_secrets.py::'
 RT, MB = 'tests/e2e/test_routes.py::', 'tests/api/test_membership.py::'
 RC, RCE = 'tests/api/test_receipts.py::', 'tests/e2e/test_receipts_flow.py::'
 R, RE = 'tests/api/test_review.py::', 'tests/e2e/test_review_flow.py::'
@@ -20,6 +21,8 @@ X, XE = 'tests/api/test_exports.py::', 'tests/e2e/test_export_flow.py::test_pack
 
 PASSES = {
     'A03': [RT + 'test_workspace_and_case_routes_render[expert]', RT + 'test_workspace_and_case_routes_render[coordinator]', W + 'test_directory_requires_sign_in_and_lists_example_cases'],
+    'A05': [SEC + 'test_production_build_and_repository_have_no_privileged_secrets', SEC + 'test_web_typecheck_passes', SEC + 'test_scanner_detects_planted_service_key_and_private_key'],
+    'A06': ['tests/api/test_bootstrap.py::test_bootstrap_creates_real_org_with_admin_only'],
     'B01': [W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case', H + 'test_first_time_reporter_can_upload_before_any_report'],
     'B02': [H + 'test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent', W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case'],
     'B03': [H + 'test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent', W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case'],
@@ -92,6 +95,9 @@ PASSES = {
     'G06': ['tests/api/test_contracts.py::test_profile_cannot_upgrade_capabilities', H + 'test_me_lists_capabilities_not_client_roles', MB + 'test_capabilities_cannot_be_self_granted_or_granted_by_non_admins'],
 }
 PARTIAL = {
+    'I05': 'Partial: 12 key public/workspace pages have no horizontal scroll at 1920-320 px (test_pages_reflow_without_horizontal_scroll[*]); not every page and no map-height/menu assertions.',
+    'I06': 'Partial: keyboard-only reporting with focus on each step heading (test_keyboard_only_report); task, measurement, map alternative, review and acknowledgment paths not yet keyboard-tested.',
+    'I09': 'Partial: OS reduced motion sets reduced mode with no running entrance animation, and the application setting persists (test_reduced_motion_is_honoured); camera flight and shimmer not asserted per page.',
     'A07': 'Partial: every required route renders and all internal links resolve (test_public_routes_and_links_resolve, test_workspace_and_case_routes_render); loading/empty/error/permission states are implemented per page but not asserted route by route.',
     'J11': 'Partial: no dead internal links (test_public_routes_and_links_resolve); unwired-button and content audit not automated.',
     'I08': 'Partial: automated axe finds zero serious/critical issues on key public and workspace pages (test_no_serious_accessibility_violations); 200% zoom, reflow and manual checks not done.',

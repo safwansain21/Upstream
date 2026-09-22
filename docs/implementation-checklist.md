@@ -9,8 +9,8 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [ ] A02 No paid map/AI/email API key is needed for the example workspace and complete deterministic core workflow.
 - [x] A03 Refreshing each required route retains server records and correct case/org identity.
 - [ ] A04 Worker/API restart during a job does not lose data, duplicate a case, or approve a partial result.
-- [ ] A05 Production build/typecheck and secret scanning pass; source maps/assets contain no privileged key.
-- [ ] A06 First production admin/intake organization setup is documented and does not reuse example credentials.
+- [x] A05 Production build/typecheck and secret scanning pass; source maps/assets contain no privileged key.
+- [x] A06 First production admin/intake organization setup is documented and does not reuse example credentials.
 - [ ] A07 All required routes have loading, empty, error and permission states; zero dead-end navigation items.
 - [ ] A08 Fresh migrations and upgrade migrations pass against isolated databases.
 - [x] B01 Guest starts text/photo draft, signs in, returns with all data preserved.

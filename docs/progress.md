@@ -213,3 +213,8 @@ Priority 6 IN PROGRESS (routes, e2e, accessibility, release docs):
   tests/api/test_membership.py (G03, G06). Full suite 131 passed; 71 gates PASS.
 - Next in priority 6: A01 one-command setup check + README/runbook, A05 build/secret scan, A06 production admin doc,
   I05 responsive viewport pass, I06 keyboard-only flows, I09 reduced motion, remaining partial gates. Then priority 7.
+- Priority 6 continued: tests/e2e/test_responsive_a11y.py (7 widths reflow, keyboard-only report, reduced motion),
+  scripts/secret_scan.py + tests/security/test_secrets.py (A05), scripts/bootstrap_org.py + tests/api/test_bootstrap.py (A06),
+  README rewritten with setup/test commands, docs/runbook.md (env classification, first production setup, key rotation,
+  backup/restore drill, rollback, queue retry, solver limits). Full suite 144 passed; 73 gates PASS.
+- Remaining after this: priority 7 (offline sync, AI adapter) and the long tail of partial/untested gates (see release-results).
