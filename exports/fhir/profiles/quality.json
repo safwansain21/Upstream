@@ -1,0 +1,51 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "quality",
+  "url": "https://upstream.example/fhir/StructureDefinition/quality",
+  "version": "1.0.0",
+  "name": "UpstreamQuality",
+  "status": "active",
+  "experimental": false,
+  "description": "Environmental quality review: unreviewed, reviewed, suspect or rejected; never clinical interpretation.",
+  "fhirVersion": "4.0.1",
+  "kind": "complex-type",
+  "abstract": false,
+  "context": [
+    {
+      "type": "element",
+      "expression": "Element"
+    }
+  ],
+  "type": "Extension",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Extension",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Extension",
+        "path": "Extension",
+        "short": "Environmental quality review: unreviewed, reviewed, suspect or rejected; never clinical interpretation."
+      },
+      {
+        "id": "Extension.extension",
+        "path": "Extension.extension",
+        "max": "0"
+      },
+      {
+        "id": "Extension.url",
+        "path": "Extension.url",
+        "fixedUri": "https://upstream.example/fhir/StructureDefinition/quality"
+      },
+      {
+        "id": "Extension.value[x]",
+        "path": "Extension.value[x]",
+        "min": 1,
+        "type": [
+          {
+            "code": "code"
+          }
+        ]
+      }
+    ]
+  }
+}

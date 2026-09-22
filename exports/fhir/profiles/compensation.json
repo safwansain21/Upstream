@@ -1,0 +1,51 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "compensation",
+  "url": "https://upstream.example/fhir/StructureDefinition/compensation",
+  "version": "1.0.0",
+  "name": "UpstreamCompensation",
+  "status": "active",
+  "experimental": false,
+  "description": "Documented temperature compensation semantics; does not imply model validity.",
+  "fhirVersion": "4.0.1",
+  "kind": "complex-type",
+  "abstract": false,
+  "context": [
+    {
+      "type": "element",
+      "expression": "Element"
+    }
+  ],
+  "type": "Extension",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Extension",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Extension",
+        "path": "Extension",
+        "short": "Documented temperature compensation semantics; does not imply model validity."
+      },
+      {
+        "id": "Extension.extension",
+        "path": "Extension.extension",
+        "max": "0"
+      },
+      {
+        "id": "Extension.url",
+        "path": "Extension.url",
+        "fixedUri": "https://upstream.example/fhir/StructureDefinition/compensation"
+      },
+      {
+        "id": "Extension.value[x]",
+        "path": "Extension.value[x]",
+        "min": 1,
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      }
+    ]
+  }
+}

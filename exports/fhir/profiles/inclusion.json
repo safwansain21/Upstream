@@ -1,0 +1,51 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "inclusion",
+  "url": "https://upstream.example/fhir/StructureDefinition/inclusion",
+  "version": "1.0.0",
+  "name": "UpstreamInclusion",
+  "status": "active",
+  "experimental": false,
+  "description": "Assessment selection: included, excluded or history_only.",
+  "fhirVersion": "4.0.1",
+  "kind": "complex-type",
+  "abstract": false,
+  "context": [
+    {
+      "type": "element",
+      "expression": "Element"
+    }
+  ],
+  "type": "Extension",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Extension",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Extension",
+        "path": "Extension",
+        "short": "Assessment selection: included, excluded or history_only."
+      },
+      {
+        "id": "Extension.extension",
+        "path": "Extension.extension",
+        "max": "0"
+      },
+      {
+        "id": "Extension.url",
+        "path": "Extension.url",
+        "fixedUri": "https://upstream.example/fhir/StructureDefinition/inclusion"
+      },
+      {
+        "id": "Extension.value[x]",
+        "path": "Extension.value[x]",
+        "min": 1,
+        "type": [
+          {
+            "code": "code"
+          }
+        ]
+      }
+    ]
+  }
+}

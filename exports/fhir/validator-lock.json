@@ -1,0 +1,7 @@
+{
+  "validatorVersion": "6.10.4",
+  "url": "https://github.com/hapifhir/org.hl7.fhir.core/releases/download/6.10.4/validator_cli.jar",
+  "sha256": "1106b9d58f9e363e47bea7c4fc065841e5fc91fe9d062775c3bfdd212bd653cc",
+  "fhirVersion": "4.0.1",
+  "corePackage": "hl7.fhir.r4.core#4.0.1"
+}

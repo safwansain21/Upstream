@@ -1,0 +1,51 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "contributor-pseudonym",
+  "url": "https://upstream.example/fhir/StructureDefinition/contributor-pseudonym",
+  "version": "1.0.0",
+  "name": "UpstreamContributorPseudonym",
+  "status": "active",
+  "experimental": false,
+  "description": "Pseudonymous reading contributor; no clinical identity is asserted.",
+  "fhirVersion": "4.0.1",
+  "kind": "complex-type",
+  "abstract": false,
+  "context": [
+    {
+      "type": "element",
+      "expression": "Element"
+    }
+  ],
+  "type": "Extension",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Extension",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Extension",
+        "path": "Extension",
+        "short": "Pseudonymous reading contributor; no clinical identity is asserted."
+      },
+      {
+        "id": "Extension.extension",
+        "path": "Extension.extension",
+        "max": "0"
+      },
+      {
+        "id": "Extension.url",
+        "path": "Extension.url",
+        "fixedUri": "https://upstream.example/fhir/StructureDefinition/contributor-pseudonym"
+      },
+      {
+        "id": "Extension.value[x]",
+        "path": "Extension.value[x]",
+        "min": 1,
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      }
+    ]
+  }
+}

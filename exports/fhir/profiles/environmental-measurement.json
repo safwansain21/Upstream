@@ -1,0 +1,30 @@
+{
+  "resourceType": "CodeSystem",
+  "id": "environmental-measurement",
+  "url": "https://upstream.example/fhir/CodeSystem/environmental-measurement",
+  "version": "1.0.0",
+  "name": "UpstreamEnvironmentalMeasurement",
+  "status": "active",
+  "experimental": false,
+  "description": "Local environmental codes; no HL7 endorsement or LOINC equivalence is claimed.",
+  "caseSensitive": true,
+  "content": "complete",
+  "concept": [
+    {
+      "code": "raw",
+      "display": "Raw electrical conductivity"
+    },
+    {
+      "code": "meter_sc25",
+      "display": "Meter compensated specific conductance at 25 Cel"
+    },
+    {
+      "code": "true_sc25",
+      "display": "Specific conductance at 25 Cel"
+    },
+    {
+      "code": "temperature",
+      "display": "Water temperature"
+    }
+  ]
+}

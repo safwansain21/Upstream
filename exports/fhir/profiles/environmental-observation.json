@@ -1,0 +1,48 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "environmental-observation",
+  "url": "https://upstream.example/fhir/StructureDefinition/environmental-observation",
+  "version": "1.0.0",
+  "name": "UpstreamEnvironmentalObservation",
+  "status": "active",
+  "experimental": false,
+  "description": "Station conductivity with optional measured temperature component. Environmental evidence, not clinical care.",
+  "fhirVersion": "4.0.1",
+  "kind": "resource",
+  "abstract": false,
+  "type": "Observation",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Observation",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Observation.subject",
+        "path": "Observation.subject",
+        "min": 1,
+        "type": [
+          {
+            "code": "Reference",
+            "targetProfile": [
+              "http://hl7.org/fhir/StructureDefinition/Location"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Observation.value[x]",
+        "path": "Observation.value[x]",
+        "min": 1,
+        "type": [
+          {
+            "code": "Quantity"
+          }
+        ]
+      },
+      {
+        "id": "Observation.interpretation",
+        "path": "Observation.interpretation",
+        "max": "0"
+      }
+    ]
+  }
+}
