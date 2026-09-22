@@ -26,6 +26,7 @@ from .config import settings
 from .contracts import Assignment, CaseDecision, ProfilePatch, ReportCreate, StrictModel, TaskCreate, TaskTransition
 from .db import transaction
 from .security import DomainError, verify_origin
+from .storage import storage
 
 app = FastAPI(title='Upstream API', version='1', openapi_url='/api/v1/openapi.json', docs_url=None, redoc_url=None)
 STATUS = {'AUTH_REQUIRED': 401, 'FORBIDDEN': 403, 'NOT_FOUND': 404, 'VERSION_CONFLICT': 409,
@@ -266,21 +267,6 @@ def transition_task(org: UUID, task: UUID, body: TaskTransition, request: Reques
 Image.MAX_IMAGE_PIXELS = 40_000_000  # decompression-bomb guard (G08); also checked explicitly below
 MAX_BYTES = 15 * 1024 * 1024
 FORMATS = {'JPEG': 'image/jpeg', 'PNG': 'image/png', 'WEBP': 'image/webp'}
-
-
-def storage(method: str, key: str, content: bytes | None = None, mime: str = ''):
-    cfg = settings()  # service key stays server-side; objects are only reachable through authorized endpoints
-    headers = {'apikey': cfg.supabase_service_role_key, 'Authorization': f'Bearer {cfg.supabase_service_role_key}'}
-    if mime:
-        headers['Content-Type'] = mime
-    try:
-        r = httpx.request(method, f'{cfg.supabase_url}/storage/v1/object/{cfg.storage_bucket}/{key}', headers=headers,
-                          content=content, timeout=30)
-    except httpx.HTTPError:
-        raise DomainError('PROVIDER_UNAVAILABLE', 'Evidence storage is unavailable. Your draft is kept on this device.', 503, True)
-    if r.status_code >= 300:
-        raise DomainError('PROVIDER_UNAVAILABLE', 'Evidence storage rejected the file. Your draft is kept on this device.', 503, True)
-    return r.content
 
 
 @app.post('/api/v1/orgs/{org}/uploads', status_code=201)
@@ -957,3 +943,223 @@ def review_queue(org: UUID, request: Request, user: Identity = Depends(identity)
     return envelope(rows(user, '''select c.id case_id,c.title,c.review_hold,a.id assessment_id,a.revision,a.retained_length_m,a.created_at,
         private.publication_status(a.id) status from cases c join lateral (select * from assessments x where x.case_id=c.id order by revision desc limit 1) a on true
         where c.org_id=%s and (c.review_hold or private.publication_status(a.id) in ('draft','under_review')) order by a.created_at desc''', (org,)), request)
+
+
+# ---- evidence packages, recipients, delivery, recipient portal ----
+
+import secrets  # noqa: E402
+from datetime import datetime, timedelta, timezone  # noqa: E402
+
+from services.packages import verify_package  # noqa: E402
+from services.worker.exports import MIME, signing_key  # noqa: E402
+
+SHARE_DAYS = 30
+
+
+class RecipientCreate(StrictModel):
+    name: str
+    method: str = 'portal'
+
+
+class DeliveryCreate(StrictModel):
+    recipient_id: UUID
+
+
+class Acknowledge(StrictModel):
+    name: str
+    notice_id: UUID | None = None
+
+
+def capability(user: Identity, org: UUID, *caps):
+    with transaction(user.user_id) as db:
+        if not any(db.execute('select private.has_capability(%s,%s) ok', (org, c)).fetchone()['ok'] for c in caps):
+            raise DomainError('FORBIDDEN', 'Your current qualification does not allow this action.', 403)
+
+
+def package_artifacts(pkg):
+    return {name: storage('GET', key) for name, key in pkg['artifact_keys'].items()}
+
+
+def public_key():
+    key, kid = signing_key()
+    return (key.public_key(), kid) if key else (None, None)
+
+
+@app.get('/api/v1/signing-key')
+def signing_public_key(request: Request):
+    """Published verification key (public). Trust it independently of any package you verify."""
+    from cryptography.hazmat.primitives import serialization
+    from services.packages.core import fingerprint
+    key, kid = public_key()
+    if not key:
+        return envelope({'configured': False, 'note': 'Packages from this deployment are explicitly unsigned.'}, request)
+    return envelope({'configured': True, 'key_id': kid, 'public_key_sha256': fingerprint(key),
+                     'pem': key.public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo).decode()}, request)
+
+
+@app.post('/api/v1/orgs/{org}/assessments/{aid}/exports', status_code=202)
+def create_export(org: UUID, aid: UUID, request: Request, user: Identity = Depends(identity)):
+    """Exporting never sends anything (F16). One immutable package per approved assessment (F17)."""
+    capability(user, org, 'expert', 'coordinate')
+    a = one(user, 'select case_id,private.publication_status(id) status from assessments where org_id=%s and id=%s', (org, aid))
+    if a['status'] != 'approved':
+        raise DomainError('READINESS_REQUIRED', 'Only the currently approved assessment can be packaged.')
+    with transaction(worker=True) as db:
+        job = db.execute('''insert into analysis_jobs(org_id,case_id,purpose,input_hash,snapshot) values(%s,%s,'export',%s,'{}')
+            on conflict(purpose,input_hash,org_id) do update set purpose=excluded.purpose returning id,state,progress_stage,result_id''',
+                         (org, a['case_id'], str(aid))).fetchone()
+    return envelope(job, request, 202)
+
+
+@app.get('/api/v1/orgs/{org}/cases/{case}/packages')
+def case_packages(org: UUID, case: UUID, request: Request, user: Identity = Depends(identity)):
+    capability(user, org, 'expert', 'coordinate', 'evidence_view')
+    with transaction(worker=True) as db:
+        packages = db.execute('''select p.id,p.assessment_id,a.revision,p.manifest_hash,p.signing_status,p.predecessor_id,p.created_at,
+            private.publication_status(p.assessment_id) assessment_status,(select array_agg(k order by k) from jsonb_object_keys(p.artifact_keys) k) artifacts
+            from evidence_packages p join assessments a on a.id=p.assessment_id where p.org_id=%s and p.case_id=%s order by p.created_at desc''', (org, case)).fetchall()
+        for p in packages:
+            p['deliveries'] = db.execute('''select d.id,d.state,d.delivered_at,d.attempts,d.acknowledged_at,d.acknowledged_by,r.name recipient
+                from deliveries d join recipients r on r.id=d.recipient_id where d.package_id=%s order by r.name''', (p['id'],)).fetchall()
+            p['notices'] = db.execute('''select n.id,n.prior_package_id,n.delivery_state,n.acknowledged_at,n.acknowledgment_actor,r.name recipient
+                from revision_notices n join recipients r on r.id=n.recipient_id where n.new_package_id=%s''', (p['id'],)).fetchall()
+    return envelope(packages, request)
+
+
+@app.get('/api/v1/orgs/{org}/packages/{pkg}/artifacts/{name}')
+def package_artifact(org: UUID, pkg: UUID, name: str, user: Identity = Depends(identity)):
+    capability(user, org, 'expert', 'coordinate', 'evidence_view')
+    with transaction(worker=True) as db:
+        p = db.execute('select artifact_keys from evidence_packages where org_id=%s and id=%s', (org, pkg)).fetchone()
+    if not p or name not in p['artifact_keys']:
+        raise DomainError('NOT_FOUND', 'Record not found.', 404)
+    return Response(storage('GET', p['artifact_keys'][name]), media_type=MIME[name.rsplit('.', 1)[1]],
+                    headers={'Content-Disposition': f'attachment; filename="{name}"', 'Cache-Control': 'private, no-store'})
+
+
+@app.get('/api/v1/orgs/{org}/packages/{pkg}/verify')
+def verify_stored_package(org: UUID, pkg: UUID, request: Request, user: Identity = Depends(identity)):
+    capability(user, org, 'expert', 'coordinate', 'evidence_view')
+    with transaction(worker=True) as db:
+        p = db.execute('''select p.*,(select manifest_hash from evidence_packages x where x.id=p.predecessor_id) predecessor_hash
+            from evidence_packages p where p.org_id=%s and p.id=%s''', (org, pkg)).fetchone()
+    if not p:
+        raise DomainError('NOT_FOUND', 'Record not found.', 404)
+    key, _ = public_key()
+    try:
+        result = verify_package(package_artifacts(p), public_key=key if p['signing_status'] == 'signed' else None,
+                                expected_manifest_hash=p['manifest_hash'], expected_predecessor_hash=p['predecessor_hash'],
+                                require_signature=p['signing_status'] == 'signed')
+    except ValueError as exc:
+        return envelope({'valid': False, 'reason': str(exc)}, request)
+    return envelope({'valid': True} | result, request)
+
+
+@app.get('/api/v1/orgs/{org}/recipients')
+def recipients(org: UUID, request: Request, user: Identity = Depends(identity)):
+    return envelope(rows(user, 'select id,name,method,verified,scopes from recipients where org_id=%s order by name', (org,)), request)
+
+
+@app.post('/api/v1/orgs/{org}/recipients', status_code=201)
+def add_recipient(org: UUID, body: RecipientCreate, request: Request, user: Identity = Depends(identity)):
+    capability(user, org, 'admin')
+    if body.method != 'portal' or len(body.name.strip()) < 2:  # ponytail: webhook delivery needs SSRF-checked HTTPS config; portal only for now
+        raise DomainError('VALIDATION_FAILED', 'Provide a recipient name. Only scoped portal delivery is available in this deployment.')
+    with transaction(worker=True) as db:
+        row = db.execute("insert into recipients(org_id,name,method,verified) values(%s,%s,'portal',true) returning id,name,method,verified",
+                         (org, body.name.strip())).fetchone()
+    return envelope(row, request, 201)
+
+
+@app.post('/api/v1/orgs/{org}/packages/{pkg}/deliveries', status_code=201)
+def deliver(org: UUID, pkg: UUID, body: DeliveryCreate, request: Request, user: Identity = Depends(identity)):
+    """Explicit send (F16). Retrying keeps the same logical delivery and bytes (F08); prior recipients get a revision notice (F06)."""
+    capability(user, org, 'expert')
+    token = secrets.token_urlsafe(32)
+    with transaction(worker=True) as db:
+        p = db.execute('select * from evidence_packages where org_id=%s and id=%s', (org, pkg)).fetchone()
+        r = db.execute('select * from recipients where org_id=%s and id=%s', (org, body.recipient_id)).fetchone()
+        if not p or not r:
+            raise DomainError('NOT_FOUND', 'Record not found.', 404)
+        d = db.execute('''insert into deliveries(org_id,package_id,recipient_id,state,delivered_at,attempts,created_by) values(%s,%s,%s,'delivered',now(),1,%s)
+            on conflict(package_id,recipient_id) do update set attempts=deliveries.attempts+1 returning *''', (org, pkg, r['id'], user.user_id)).fetchone()
+        db.execute('update share_grants set revoked_at=now() where package_id=%s and recipient_id=%s and revoked_at is null', (pkg, r['id']))
+        prior = db.execute('''select p.id from evidence_packages p join deliveries x on x.package_id=p.id
+            where p.case_id=%s and x.recipient_id=%s and p.id<>%s order by p.created_at desc limit 1''', (p['case_id'], r['id'], pkg)).fetchone()
+        notice = None
+        if prior:
+            notice = db.execute('''insert into revision_notices(org_id,prior_package_id,new_package_id,recipient_id,delivery_state) values(%s,%s,%s,%s,'delivered')
+                on conflict(prior_package_id,new_package_id,recipient_id) do update set delivery_state='delivered' returning id''', (org, prior['id'], pkg, r['id'])).fetchone()['id']
+        db.execute('''insert into share_grants(org_id,package_id,notice_id,recipient_id,token_hash,scope,expires_at) values(%s,%s,%s,%s,%s,'package',%s)''',
+                   (org, pkg, notice, r['id'], hashlib.sha256(token.encode()).hexdigest(), datetime.now(timezone.utc) + timedelta(days=SHARE_DAYS)))
+        db.execute("insert into case_events(org_id,case_id,event_type,actor_id,object_id,payload) values(%s,%s,'package.delivered',%s,%s,%s)",
+                   (org, p['case_id'], user.user_id, pkg, json.dumps({'recipient': str(r['id']), 'attempt': d['attempts'], 'revision_notice': str(notice) if notice else None})))
+    # The raw token is shown once to the sender; only its hash is stored.
+    return envelope({'delivery_id': d['id'], 'attempts': d['attempts'], 'state': d['state'], 'revision_notice_id': notice,
+                     'share_path': f'/share/{token}', 'expires_in_days': SHARE_DAYS}, request, 201)
+
+
+@app.post('/api/v1/orgs/{org}/packages/{pkg}/grants/revoke')
+def revoke_grants(org: UUID, pkg: UUID, request: Request, user: Identity = Depends(identity)):
+    capability(user, org, 'expert', 'admin')
+    with transaction(worker=True) as db:
+        n = db.execute('update share_grants set revoked_at=now() where org_id=%s and package_id=%s and revoked_at is null', (org, pkg)).rowcount
+    return envelope({'revoked': n}, request)
+
+
+def grant_for(token: str):
+    """Scoped recipient access: token hash lookup only; expired/revoked/unknown are indistinguishable (F09)."""
+    with transaction(worker=True) as db:
+        g = db.execute('''select g.*,p.case_id,p.manifest,p.manifest_hash,p.signing_status,p.artifact_keys,p.assessment_id,p.predecessor_id
+            from share_grants g join evidence_packages p on p.id=g.package_id where g.token_hash=%s''', (hashlib.sha256(token.encode()).hexdigest(),)).fetchone()
+    if not g or g['revoked_at'] or g['expires_at'] < datetime.now(timezone.utc):
+        raise DomainError('NOT_FOUND', 'This link has expired or is no longer available.', 404)
+    return g
+
+
+@app.get('/api/v1/share/{token}')
+def share_view(token: str, request: Request):
+    g = grant_for(token)
+    with transaction(worker=True) as db:
+        status = db.execute('select private.publication_status(%s) s', (g['assessment_id'],)).fetchone()['s']
+        newer = db.execute('''select p.id,p.created_at from evidence_packages p join deliveries d on d.package_id=p.id
+            where p.case_id=%s and d.recipient_id=%s and p.created_at>(select created_at from evidence_packages where id=%s) order by p.created_at desc limit 1''',
+                           (g['case_id'], g['recipient_id'], g['package_id'])).fetchone()
+        delivery = db.execute('select state,delivered_at,acknowledged_at,acknowledged_by from deliveries where package_id=%s and recipient_id=%s',
+                              (g['package_id'], g['recipient_id'])).fetchone()
+        notice = db.execute('select id,prior_package_id,acknowledged_at,acknowledgment_actor from revision_notices where id=%s', (g['notice_id'],)).fetchone() if g['notice_id'] else None
+        assessment = json.loads(storage('GET', g['artifact_keys']['assessment.json']))
+    banner = 'superseded' if newer or status == 'superseded' else 'under_review' if status == 'under_review' else 'current'
+    return envelope({'banner': banner, 'replacement_available': bool(newer), 'manifest_hash': g['manifest_hash'], 'signing_status': g['signing_status'],
+                     'artifacts': sorted(g['artifact_keys']), 'conclusion': assessment['conclusion'], 'case_scope': assessment['case_scope'],
+                     'data_origin': assessment['data_origin'], 'retained_length_km': assessment['retained_length_km'], 'limitations': assessment['limitations'],
+                     'assumptions': assessment['assumptions'], 'unknowns': assessment['unknowns'], 'next_action': assessment['next_action'],
+                     'assessment_version': assessment['assessment_version'], 'reviewed_at': assessment['reviewed_at'],
+                     'delivery': delivery, 'revision_notice': notice, 'expires_at': g['expires_at']}, request)
+
+
+@app.get('/api/v1/share/{token}/artifacts/{name}')
+def share_artifact(token: str, name: str):
+    g = grant_for(token)
+    if name not in g['artifact_keys']:
+        raise DomainError('NOT_FOUND', 'Record not found.', 404)
+    return Response(storage('GET', g['artifact_keys'][name]), media_type=MIME[name.rsplit('.', 1)[1]],
+                    headers={'Content-Disposition': f'attachment; filename="{name}"', 'Cache-Control': 'private, no-store'})
+
+
+@app.post('/api/v1/share/{token}/acknowledge')
+def share_acknowledge(token: str, body: Acknowledge, request: Request):
+    """Human acknowledgment of this exact package/revision; separate from transport delivery (F07)."""
+    g = grant_for(token)
+    name = body.name.strip()
+    if not 2 <= len(name) <= 120:
+        raise DomainError('VALIDATION_FAILED', 'Enter your name or role to acknowledge.')
+    with transaction(worker=True) as db:
+        db.execute('update deliveries set acknowledged_at=coalesce(acknowledged_at,now()),acknowledged_by=coalesce(acknowledged_by,%s) where package_id=%s and recipient_id=%s',
+                   (name, g['package_id'], g['recipient_id']))
+        if g['notice_id']:
+            db.execute('update revision_notices set acknowledged_at=coalesce(acknowledged_at,now()),acknowledgment_actor=coalesce(acknowledgment_actor,%s) where id=%s',
+                       (name, g['notice_id']))
+        db.execute("insert into case_events(org_id,case_id,event_type,object_id,payload) values(%s,%s,'package.acknowledged',%s,%s)",
+                   (g['org_id'], g['case_id'], g['package_id'], json.dumps({'by': name, 'notice': str(g['notice_id']) if g['notice_id'] else None})))
+    return envelope({'acknowledged': True}, request)

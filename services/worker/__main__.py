@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT / 'packages/engine'))
 from upstream_engine import Snapshot, assess, plan, rank_actions  # noqa: E402
 
 from services.api.db import transaction  # noqa: E402
+from services.worker.exports import export  # noqa: E402
 from services.worker.snapshot import candidate_actions  # noqa: E402
 
 WORKER = uuid4()
@@ -74,6 +75,11 @@ def work_once() -> bool:
     try:
         if job['attempts'] > MAX_ATTEMPTS:
             raise RuntimeError('attempt limit reached')
+        if job['purpose'] == 'export':
+            with transaction(worker=True) as db:
+                package = export(db, job)
+                db.execute("update analysis_jobs set state='done', progress_stage='Complete', result_id=%s, lease_until=null where id=%s", (package, job['id']))
+            return True
         snapshot, result, ranked = run(job)
         with transaction(worker=True) as db:
             if db.execute('select lease_owner from analysis_jobs where id=%s for update', (job['id'],)).fetchone()['lease_owner'] != WORKER:
