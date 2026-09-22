@@ -7,6 +7,7 @@ import { NetworkDiagram, ReachLegend } from "../../../../../../components/networ
 import { CaseStatus, EmptyState, InlineError, LoadingState, PageIntro } from "../../../../../../components/ui";
 import { api } from "../../../../../../lib/api";
 import { schematic } from "../../../../../../lib/geo";
+import { CaseTabs } from "../../../../../../components/case-tabs";
 import { useOrg } from "../../../../../../lib/session";
 
 type Hist = { id: string; revision: number; retained_length_m: string | null; created_at: string; eligible: boolean; current: boolean; publications: { status: string; reason: string; at: string }[] };
@@ -63,6 +64,7 @@ export default function EvidenceReview() {
   const changed = L && A ? L.classes.filter(c => A.classes.find(x => x.id === c.id)?.status !== c.status) : [];
   return <main id="main-content" className="page-shell">
     <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href={`/app/${org}/investigations/${caseId}`}>{caseQ.data.title}</Link> / <span aria-current="page">Evidence</span></nav>
+    <CaseTabs caseId={caseId} current="evidence"/>
     <PageIntro title={latestHist && last(latestHist) === "draft" && A ? "A revision worth reviewing" : "Evidence and assessments"}>
       <p><CaseStatus>Cause unconfirmed</CaseStatus> {caseQ.data.review_hold ? <CaseStatus tone="warning">Review required</CaseStatus> : null}</p></PageIntro>
     {error ? <InlineError>{error}{/Evidence or assumptions changed/.test(error) ? <> <button className="button button-quiet" onClick={recompute}>Recompute with current evidence</button></> : null}</InlineError> : null}

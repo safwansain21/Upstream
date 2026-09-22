@@ -7,7 +7,7 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 
 - [ ] A01 Fresh checkout + documented commands starts web/API/worker/database/auth/storage, applies migrations and shows seed example.
 - [ ] A02 No paid map/AI/email API key is needed for the example workspace and complete deterministic core workflow.
-- [ ] A03 Refreshing each required route retains server records and correct case/org identity.
+- [x] A03 Refreshing each required route retains server records and correct case/org identity.
 - [ ] A04 Worker/API restart during a job does not lose data, duplicate a case, or approve a partial result.
 - [ ] A05 Production build/typecheck and secret scanning pass; source maps/assets contain no privileged key.
 - [ ] A06 First production admin/intake organization setup is documented and does not reuse example credentials.
@@ -100,7 +100,7 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] F17 Original signed package is never rewritten when latest metadata becomes superseded.
 - [x] G01 Every cross-organization direct object/API/storage request is denied.
 - [ ] G02 Contributors cannot read private other-person media or internal evidence just by knowing an ID.
-- [ ] G03 Revoked membership immediately blocks new privileged operations and offline sync.
+- [x] G03 Revoked membership immediately blocks new privileged operations and offline sync.
 - [ ] G04 Public snapshot exposes only sanitized approved fields and generalized coordinates.
 - [ ] G05 RLS tests cover reads and writes, RPCs and direct REST; no service-role key in browser.
 - [x] G06 Role/capability self-upgrade is rejected.

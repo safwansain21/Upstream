@@ -1,9 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Brand } from "./brand";
+import { DocumentTitle } from "./document-title";
 
 export function PageIntro({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
-  return <div className="page-intro"><div><h1>{title}</h1>{children ? <div className="intro-copy">{children}</div> : null}</div>{action}</div>;
+  return <div className="page-intro"><DocumentTitle title={title}/><div><h1>{title}</h1>{children ? <div className="intro-copy">{children}</div> : null}</div>{action}</div>;
 }
 export function OriginBadge({ origin = "synthetic" }: { origin?: string }) {
   return <span className={`badge origin-${origin}`}>{origin === "synthetic" ? "Example data" : origin === "imported" ? "Imported evidence" : "Field observation"}</span>;

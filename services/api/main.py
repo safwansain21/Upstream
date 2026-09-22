@@ -1215,3 +1215,131 @@ def my_receipts(org: UUID, request: Request, user: Identity = Depends(identity))
     with transaction(worker=True) as db:
         return envelope(db.execute(RECEIPT_SQL + ' where x.org_id=%s and x.user_id=%s order by x.created_at desc limit 200',
                                    (org, user.user_id)).fetchall(), request)
+
+
+@app.get('/api/v1/orgs/{org}/cases/{case}/events')
+def case_events(org: UUID, case: UUID, request: Request, type: str = '', before: int | None = None, user: Identity = Depends(identity)):
+    """Immutable case activity, newest first, filterable by event type prefix; cursor = sequence."""
+    one(user, 'select id from cases where org_id=%s and id=%s', (org, case))
+    found = rows(user, '''select e.sequence,e.event_type,e.object_id,e.object_version,e.occurred_at,e.payload,coalesce(p.display_name,case when e.actor_id is null then 'System' else 'Organization member' end) actor
+        from case_events e left join profiles p on p.id=e.actor_id where e.org_id=%s and e.case_id=%s and e.event_type like %s
+        and (%s::bigint is null or e.sequence<%s) order by e.sequence desc limit 51''', (org, case, type + '%', before, before))
+    return envelope({'items': found[:50], 'next_before': found[49]['sequence'] if len(found) > 50 else None}, request)
+
+
+# ---- notifications, community, membership administration ----
+
+class CapabilityChange(StrictModel):
+    capability: str
+    grant: bool
+    reason: str
+
+
+class MembershipChange(StrictModel):
+    status: str
+    reason: str
+
+
+@app.get('/api/v1/orgs/{org}/notifications')
+def notifications(org: UUID, request: Request, user: Identity = Depends(identity)):
+    return envelope(rows(user, '''select id,type,object_id,object_version,message,read_at,created_at from notifications
+        where org_id=%s and user_id=auth.uid() order by created_at desc limit 100''', (org,)), request)
+
+
+@app.post('/api/v1/orgs/{org}/notifications/{nid}/read')
+def notification_read(org: UUID, nid: UUID, request: Request, user: Identity = Depends(identity)):
+    with transaction(worker=True) as db:  # ownership checked in the statement itself
+        n = db.execute('update notifications set read_at=coalesce(read_at,now()) where org_id=%s and id=%s and user_id=%s returning id,read_at',
+                       (org, nid, user.user_id)).fetchone()
+    if not n:
+        raise DomainError('NOT_FOUND', 'Record not found.', 404)
+    return envelope(n, request)
+
+
+@app.get('/api/v1/orgs/{org}/community')
+def community(org: UUID, request: Request, user: Identity = Depends(identity)):
+    """Local opportunities and published updates. No rankings by samples or discoveries."""
+    with transaction(user.user_id) as db:
+        if not db.execute('select private.is_member(%s) ok', (org,)).fetchone()['ok']:
+            raise DomainError('FORBIDDEN', 'Active organization membership is required.', 403)
+        available = db.execute("select count(*) n from tasks where org_id=%s and state='proposed' and assignee_id is null", (org,)).fetchone()['n']
+        mine = db.execute('''select (select count(*) from reports where org_id=%s and reporter_id=auth.uid()) reports,
+            (select count(*) from reading_versions where org_id=%s and operator_id=auth.uid()) readings''', (org, org)).fetchone()
+    with transaction(worker=True) as db:
+        info = db.execute('select name,contact,example,locale,timezone from organizations where id=%s', (org,)).fetchone()
+        updates = db.execute('''select c.id,c.title,c.workflow,c.updated_at from cases c where c.org_id=%s and c.current_assessment_id is not null
+            and c.merged_into is null order by c.updated_at desc limit 10''', (org,)).fetchall()
+    return envelope({'organization': info, 'available_tasks': available, 'my_contributions': mine, 'published_updates': updates}, request)
+
+
+@app.get('/api/v1/orgs/{org}/members')
+def members(org: UUID, request: Request, user: Identity = Depends(identity)):
+    capability(user, org, 'admin')
+    with transaction(worker=True) as db:
+        return envelope(db.execute('''select m.user_id,m.status,coalesce(p.display_name,'Member') display_name,
+            coalesce(array_agg(distinct c.capability) filter (where c.capability is not null),'{}') capabilities,
+            coalesce(array_agg(distinct q.task_type||' until '||to_char(q.valid_until,'YYYY-MM-DD')) filter (where q.task_type is not null),'{}') qualifications
+            from memberships m left join profiles p on p.id=m.user_id left join member_capabilities c on c.membership_id=m.id
+            left join qualifications q on q.membership_id=m.id where m.org_id=%s group by m.user_id,m.status,p.display_name
+            order by m.status,display_name''', (org,)).fetchall(), request)
+
+
+@app.post('/api/v1/orgs/{org}/members/{member}/capabilities')
+def change_capability(org: UUID, member: UUID, body: CapabilityChange, request: Request, user: Identity = Depends(identity)):
+    return envelope(rpc(user, 'select public.set_capability(%s,%s,%s,%s,%s)', (org, member, body.capability, body.grant, body.reason)), request)
+
+
+@app.post('/api/v1/orgs/{org}/members/{member}/status')
+def change_membership(org: UUID, member: UUID, body: MembershipChange, request: Request, user: Identity = Depends(identity)):
+    return envelope(rpc(user, 'select public.set_membership_status(%s,%s,%s,%s)', (org, member, body.status, body.reason)), request)
+
+
+# ---- public read-only examples (example organizations only) ----
+
+EXAMPLES = {  # slug -> seeded synthetic case title, walkthrough summary
+    'useful-evidence': ('Mill Brook', 'A reviewed network and a synthetic anchor let the exact engine exclude three upper reaches. The next visit at B2 cannot promise narrowing at this precision.'),
+    'revised-evidence': ('Mill Brook (revised evidence)', 'A B2 reading narrows the area; a later instrument check puts it under review, and excluding it expands the area again.'),
+    'unmapped': ('Allotment ditch', 'A report on an unnamed channel opens a useful case before any map, station or measurement exists.'),
+    'tidal': ('Harbour channel', 'The case works, but the steady directed-tree model does not apply to a tidal reach, so localization stays unsupported.'),
+}
+
+
+def example_case(db, slug):
+    if slug not in EXAMPLES:
+        return None
+    return db.execute('''select c.* from cases c join organizations o on o.id=c.org_id
+        where o.example and c.title=%s and c.merged_into is null order by c.created_at limit 1''', (EXAMPLES[slug][0],)).fetchone()
+
+
+@app.get('/api/v1/examples')
+def examples(request: Request):
+    with transaction(worker=True) as db:
+        found = [{'slug': s, 'title': t, 'summary': d} for s, (t, d) in EXAMPLES.items() if example_case(db, s)]
+    return envelope(found, request)
+
+
+@app.get('/api/v1/examples/{slug}')
+def example(slug: str, request: Request):
+    """Synthetic walkthrough. Hard guard: only cases in organizations flagged example; no contributor identities."""
+    with transaction(worker=True) as db:
+        c = example_case(db, slug)
+        if not c:
+            raise DomainError('NOT_FOUND', 'This example is not available.', 404)
+        net = None
+        if c['network_id']:
+            net = {'nodes': db.execute('select code,kind,extensions.st_x(point) lon,extensions.st_y(point) lat from network_nodes where network_id=%s', (c['network_id'],)).fetchall(),
+                   'edges': db.execute('''select e.id,e.code,f.code from_code,t.code to_code,e.length_m,e.flow_status from network_edges e join network_nodes f on f.id=e.from_node
+                        join network_nodes t on t.id=e.to_node where e.network_id=%s order by e.code''', (c['network_id'],)).fetchall(),
+                   'stations': db.execute('select code from stations where network_id=%s order by code', (c['network_id'],)).fetchall()}
+        a = db.execute('select * from assessments where case_id=%s order by revision desc limit 1', (c['id'],)).fetchone()
+        readings = db.execute('''select s.code station,r.mode,r.bounds->'enclosure'->>'lower' lower,r.bounds->'enclosure'->>'upper' upper,r.value,r.unit,r.measured_at,
+            (select disposition from quality_decisions q where q.reading_id=r.id order by created_at desc limit 1) quality
+            from reading_versions r join stations s on s.id=r.station_id where r.case_id=%s order by r.measured_at''', (c['id'],)).fetchall()
+        recs = db.execute('''select action->>'id' action_id,score_bound_m,rationale from recommendations where assessment_id=%s
+            order by (constraints->>'rank')::int limit 3''', (a['id'],)).fetchall() if a else []
+    result = a['result'] if a else None
+    return envelope({'slug': slug, 'title': c['title'], 'summary': EXAMPLES[slug][1], 'workflow': c['workflow'], 'locality': c['locality'], 'data_origin': c['data_origin'],
+                     'network': net, 'readings': readings, 'recommendations': recs,
+                     'assessment': None if not a else {'revision': a['revision'], 'retained_length_m': a['retained_length_m'], 'eligible': result['eligible'],
+                                                       'readiness_reasons': result['readiness_reasons'], 'retained_geometry_ids': result['retained_geometry_ids'],
+                                                       'classes': [{k: x[k] for k in ('id', 'reach_ids', 'length_m', 'status')} for x in result['classes']]}}, request)

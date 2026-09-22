@@ -7,6 +7,7 @@ import { NetworkDiagram, ReachLegend } from "../../../../../../components/networ
 import { CaseStatus, EmptyState, InlineError, LoadingState, PageIntro } from "../../../../../../components/ui";
 import { api } from "../../../../../../lib/api";
 import { schematic } from "../../../../../../lib/geo";
+import { CaseTabs } from "../../../../../../components/case-tabs";
 import { useOrg } from "../../../../../../lib/session";
 
 type VersionRow = { id: string; version: number; status: string; source: string; license: string; published_at: string | null; review_reason: string | null; current: boolean };
@@ -36,6 +37,7 @@ export default function MapSetup() {
 
   return <main id="main-content" className="page-shell">
     <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href={`/app/${org}/investigations/${caseId}`}>Investigation overview</Link> / <span aria-current="page">Map setup</span></nav>
+    <CaseTabs caseId={caseId} current="map-setup"/>
     <PageIntro title="Local map and readiness"><p>Imported or drawn linework is a proposal. Connectivity, flow direction and stations become usable for localization only after documented review and publication.</p></PageIntro>
     {error ? <InlineError>{error}</InlineError> : null}{status ? <p className="notice" role="status">{status}</p> : null}
     {versions.error ? <InlineError>{versions.error.message}</InlineError> : !versions.data ? <LoadingState/> : <>

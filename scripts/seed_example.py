@@ -190,6 +190,17 @@ def seed_revised_scenario(org, key='revised', title='Mill Brook (revised evidenc
     return report['case_id']
 
 
+def enqueue_analysis(org, cases):
+    from upstream_engine import canonical_hash
+    from services.worker.snapshot import build
+    with transaction(worker=True) as db:
+        for case in cases:
+            snapshot, deps, context = build(db, org, case)
+            db.execute('''insert into analysis_jobs(org_id,case_id,purpose,input_hash,snapshot) values(%s,%s,'assessment',%s,%s)
+                on conflict(purpose,input_hash,org_id) do nothing''', (org, case, canonical_hash(snapshot),
+                json.dumps({'engine': snapshot.model_dump(mode='json'), 'dependencies': deps, 'context': context}, default=str)))
+
+
 def submit(user_id, org, key, body):
     with transaction(user_id) as db:
         return db.execute('select public.submit_report(%s::uuid,%s::uuid,%s::jsonb) r', (org, sid(key), json.dumps(body))).fetchone()['r']
@@ -254,7 +265,8 @@ def main():
         seed_network(db, org, mill['case_id'], network1(), (0, 0), mixing=True)
         seed_evidence(db, org, mill['case_id'], ids['monitor@example.test'], ids['expert@example.test'])
         seed_network(db, org, tidal['case_id'], unsupported_networks()[1], (-.05, -.05))
-    seed_revised_scenario(org)
+    revised = seed_revised_scenario(org)
+    enqueue_analysis(org, [mill['case_id'], revised])  # the worker computes them; nothing is precomputed or hardcoded
     print(f'Seeded synthetic example workspace in organization {org}. Users: {", ".join(USERS)}; password: {PASSWORD}')
 
 

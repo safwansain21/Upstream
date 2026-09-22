@@ -4,6 +4,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { CaseAnalysis } from "../../../../../components/case-analysis";
+import { DocumentTitle } from "../../../../../components/document-title";
+import { CaseTabs } from "../../../../../components/case-tabs";
 import { CaseStatus, EmptyState, InlineError, LoadingState, OriginBadge } from "../../../../../components/ui";
 import { api } from "../../../../../lib/api";
 import { WORKFLOW } from "../../../../../lib/labels";
@@ -22,8 +24,8 @@ export default function CaseOverview() {
   const c = detail.data;
   return <main id="main-content" className="page-shell">
     <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href={`/app/${org}/investigations`}>Investigations</Link> / <span aria-current="page">{c.title}</span></nav>
-    <div className="page-intro"><div><h1>{c.title}</h1><p><CaseStatus>{WORKFLOW[c.workflow] ?? c.workflow}</CaseStatus> <span>Cause unconfirmed</span> <OriginBadge origin={c.data_origin}/></p><p className="muted">{c.locality || "Location to be confirmed"}</p></div></div>
-    <nav className="tab-nav" aria-label="Investigation sections"><Link className="active" aria-current="page" href={`/app/${org}/investigations/${id}`}>Overview</Link><Link href={`/app/${org}/investigations/${id}/tasks`}>Tasks</Link>{can("expert") || can("coordinate") || can("evidence_view") ? <><Link href={`/app/${org}/investigations/${id}/evidence`}>Evidence</Link><Link href={`/app/${org}/investigations/${id}/exports`}>Exports</Link></> : null}{can("coordinate") || can("network_verify") || can("expert") ? <Link href={`/app/${org}/investigations/${id}/map-setup`}>Map setup</Link> : null}</nav>
+    <div className="page-intro"><DocumentTitle title={c.title}/><div><h1>{c.title}</h1><p><CaseStatus>{WORKFLOW[c.workflow] ?? c.workflow}</CaseStatus> <span>Cause unconfirmed</span> <OriginBadge origin={c.data_origin}/></p><p className="muted">{c.locality || "Location to be confirmed"}</p></div></div>
+    <CaseTabs caseId={id} current=""/>
     {c.merged_into ? <p className="notice" role="status">This investigation was merged. Its reports are kept with their original records and now also appear in <Link className="text-link" href={`/app/${org}/investigations/${c.merged_into}`}>the combined investigation</Link>.</p> : null}
     <CaseAnalysis org={org} caseId={id} canAnalyse={can("coordinate") || can("expert")} canReview={can("coordinate") || can("expert") || can("evidence_view")}/>
     <div className="case-grid">

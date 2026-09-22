@@ -101,8 +101,8 @@ def test_directory_scopes_and_pagination():
     assert not {c['id'] for c in page2['items']} & {c['id'] for c in coordinator['items']}
     assert client.get(f'/api/v1/orgs/{ORG}/cases?q=Mill%20Brook', headers=as_('coordinator')).json()['data']['items'][0]['title'] == 'Mill Brook'
     # A monitor sees only cases with their assignments (need-to-know), not the org directory.
-    titles = [c['title'] for c in client.get(f'/api/v1/orgs/{ORG}/cases', headers=as_('monitor')).json()['data']['items']]
-    assert 'Mill Brook' in titles and 'Allotment ditch' not in titles
+    seen = lambda q: [c['title'] for c in client.get(f'/api/v1/orgs/{ORG}/cases', params={'q': q}, headers=as_('monitor')).json()['data']['items']]  # noqa: E731
+    assert 'Mill Brook' in seen('Mill Brook') and seen('Allotment ditch') == []
 
 
 def test_other_org_and_unknown_records_are_not_found():  # G01

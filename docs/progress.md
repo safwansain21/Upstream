@@ -199,3 +199,17 @@ Priority 5 DONE (B09, B12, B13):
 - Next: priority 6 (remaining routes, e2e, accessibility, release docs). Header links Community/Evidence: Evidence now exists;
   Community, notifications, settings/profile/organization/protocols, observations/history/decision case tabs, example scenarios
   and /onboarding org join remain.
+
+Priority 6 IN PROGRESS (routes, e2e, accessibility, release docs):
+- All PRD section 5 routes now exist: case tabs via `src/components/case-tabs.tsx` (Overview, Observations, Tasks, Map setup,
+  Evidence, History, Decision, Exports); `/app/[org]/notifications`, `/community`, `/settings/{profile,organization,protocols}`;
+  public `/example` (API-driven list) and `/example/[scenario]` (read-only, example orgs only).
+- Migration 202609210013: set_capability / set_membership_status RPCs (admin only, no self-grant, audit log), members can read
+  fellow members' display names. API: GET cases/{case}/events (filter + cursor), notifications (+read), community, members,
+  members/{id}/capabilities|status, public GET /examples and /examples/{slug}. Seed now enqueues example analyses.
+- Accessibility fixes from axe: unlabeled schematic node buttons removed from the station list; quiet button colour #2b6275
+  (6.1:1). DocumentTitle sets per-route titles via PageIntro.
+- Tests: tests/e2e/test_routes.py (route render + reload for expert/coordinator, dead-link crawl, axe serious/critical = 0),
+  tests/api/test_membership.py (G03, G06). Full suite 131 passed; 71 gates PASS.
+- Next in priority 6: A01 one-command setup check + README/runbook, A05 build/secret scan, A06 production admin doc,
+  I05 responsive viewport pass, I06 keyboard-only flows, I09 reduced motion, remaining partial gates. Then priority 7.

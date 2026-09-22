@@ -6,6 +6,7 @@ import { Suspense, useState } from "react";
 import { TASK_TYPES, TaskList } from "../../../../../../components/tasks";
 import { InlineError, PageIntro } from "../../../../../../components/ui";
 import { api } from "../../../../../../lib/api";
+import { CaseTabs } from "../../../../../../components/case-tabs";
 import { useOrg } from "../../../../../../lib/session";
 
 type Net = { stations: { id: string; code: string; status: string; access_status: string }[] } | null;
@@ -52,6 +53,7 @@ function Propose({ org, caseId }: { org: string; caseId: string }) {
 export default function CaseTasks() {
   const { org, can } = useOrg(); const { case: caseId } = useParams<{ case: string }>();
   return <main id="main-content" className="page-shell"><nav className="breadcrumbs" aria-label="Breadcrumb"><Link href={`/app/${org}/investigations/${caseId}`}>Investigation overview</Link> / <span aria-current="page">Tasks</span></nav>
+    <CaseTabs caseId={caseId} current="tasks"/>
     <PageIntro title="Case tasks"><p>Proposals are not assignments. Assignment checks qualification, instrument verification, booking and access on the server.</p></PageIntro>
     <TaskList org={org} caseId={caseId} filter="all"/>
     {can("coordinate") ? <Suspense><Propose org={org} caseId={caseId}/></Suspense> : null}</main>;
