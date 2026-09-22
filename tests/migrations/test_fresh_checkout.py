@@ -45,7 +45,8 @@ def test_fresh_checkout_starts_everything_and_shows_the_example():
     supabase = ROOT / 'node_modules/.bin' / ('supabase.CMD' if WIN else 'supabase')
     free_ports()
     sh(supabase, 'stop', '--no-backup', cwd=ROOT)  # no leftover database volume
-    shutil.rmtree(CLONE, ignore_errors=True)
+    if CLONE.exists():  # git object files are read-only on Windows
+        shutil.rmtree(CLONE, onexc=lambda f, p, _: (os.chmod(p, 0o700), f(p)))
     sh('git', 'clone', '--quiet', ROOT, CLONE, cwd=ROOT)  # the committed tree only; nothing local leaks in
     pnpm = ['pnpm'] if shutil.which('pnpm') else ['npx', '-y', 'pnpm@11.19.0']
     venv = CLONE / '.venv' / ('Scripts' if WIN else 'bin')
