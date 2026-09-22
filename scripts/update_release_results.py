@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 218 passed, 2 skipped (destructive), 2026-09-22, fresh `supabase db reset` + seed_example + seed_load')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 223 passed, 2 skipped (destructive), 2026-09-22, fresh `supabase db reset` + seed_example + seed_load')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
@@ -21,6 +21,7 @@ RC, RCE = 'tests/api/test_receipts.py::', 'tests/e2e/test_receipts_flow.py::'
 R, RE = 'tests/api/test_review.py::', 'tests/e2e/test_review_flow.py::'
 CA, RS = 'tests/test_content_audit.py::', 'tests/e2e/test_route_states.py::'
 WH = 'tests/api/test_webhooks.py::'
+OF = 'tests/e2e/test_offline.py::'
 X, XE = 'tests/api/test_exports.py::', 'tests/e2e/test_export_flow.py::test_package_send_and_recipient_acknowledgment'
 
 PASSES = {
@@ -147,6 +148,12 @@ PASSES = {
     'J09': ['tests/ops/test_backup_restore.py::test_backup_restores_into_an_isolated_stack_and_verifies'],
     'G10': [WH + 'test_signed_delivery_reaches_the_local_test_receiver_once', WH + 'test_private_and_non_https_destinations_are_refused', WH + 'test_redirects_are_not_followed', WH + 'test_dns_rebinding_is_refused_at_delivery_and_the_checked_address_is_used', WH + 'test_local_test_receiver_is_refused_in_production', WH + 'test_retry_schedule_then_failed_then_admin_retry_keeps_id_and_bytes'],
     'A01': ['tests/migrations/test_fresh_checkout.py::test_fresh_checkout_starts_everything_and_shows_the_example'],
+    'D12': [OF + 'test_offline_readings_keep_their_task_version_and_go_to_review', F + 'test_missing_metadata_meter_sc25_and_calibration_are_history_only'],
+    'H04': [OF + 'test_failed_upload_and_full_device_storage_stay_recoverable'],
+    'H06': [OF + 'test_offline_readings_keep_their_task_version_and_go_to_review', F + 'test_two_claims_yield_one_assignment_and_one_conflict', R + 'test_changed_dependency_blocks_approval'],
+    'H10': [OF + 'test_service_worker_update_keeps_unsent_work'],
+    'H11': [RE + 'test_late_poll_never_reverts_a_cancelled_analysis'],
+    'J12': ['tests/test_docs.py::test_handoff_report_matches_release_results_and_claims_no_field_validation'],
     'J03': ['tests/e2e/test_performance.py::test_ten_thousand_case_directory_reads_stay_fast', 'tests/e2e/test_performance.py::test_directory_and_map_render_are_bounded'],
 }
 PARTIAL = {
@@ -154,8 +161,7 @@ PARTIAL = {
     'I06': 'Partial: keyboard-only reporting with focus on each step heading (test_keyboard_only_report); task, measurement, map alternative, review and acknowledgment paths not yet keyboard-tested.',
     'I09': 'Partial: OS reduced motion sets reduced mode with no running entrance animation, and the application setting persists (test_reduced_motion_is_honoured); camera flight and shimmer not asserted per page.',
     'I08': 'Partial: automated axe finds zero serious/critical issues on key public and workspace pages (test_no_serious_accessibility_violations); 200% zoom, reflow and manual checks not done.',
-    'H07': 'Partial: no-basemap fallback is labelled (test_directory_map_and_list_show_precision); a failing configured provider is not tested.',
-    'D12': 'Partial: server side verified (test_missing_metadata_meter_sc25_and_calibration_are_history_only); the offline client now queues reports, but offline capture of task readings is not built yet.',
+    'H07': 'Partial: with no basemap configured the map is labelled and every map has a list or coordinate fields beside it (test_directory_map_and_list_show_precision); a failing configured basemap provider is not tested (needs a build with MAP_STYLE_URL).',
 }
 
 path = Path(__file__).resolve().parents[1] / 'docs/release-results.md'

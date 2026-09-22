@@ -316,3 +316,14 @@ Stragglers (J02, J11, B11, F11; A07 in progress):
   (same delivery id, stored payload bytes). Integrations page: webhook destination, secret shown once, delivery status + Retry.
   tests/api/test_webhooks.py (local receiver + the real worker).
 - Full suite 218 passed, 2 skipped (destructive); 124 gates PASS.
+- Offline leftovers: D12 (task readings saved on the device on network failure under their capture task version, sent on
+  reconnect by the same foreground sync; the server stores submitted_task_version and routes them to quality review = H06),
+  H04 (failed upload and IndexedDB quota stay recoverable), H10 (a real sw.js update waits, the draft survives, then sends),
+  H11 (fixed: a late poll response could revert a cancelled analysis to "queued"; state order guard). No streaming channel
+  exists; polling is the only status path.
+- H07 stays FAIL: a failing configured basemap is untested (needs a MAP_STYLE_URL build); caption no longer claims records
+  are shown when the basemap fails.
+- J12: docs/handoff.md (tests that exist, integrations unavailable/unverified, empirical limits, no field-validation claim);
+  tests/test_docs.py keeps its open-gate list and test inventory in sync with release-results and tests/.
+- Final full run on a fresh database: 223 passed, 2 skipped (destructive; A01 and A08 recorded separately); 130 gates PASS,
+  16 FAIL (H07 and the I gates reserved for the UI pass).

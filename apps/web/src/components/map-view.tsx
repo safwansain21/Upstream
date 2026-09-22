@@ -33,7 +33,7 @@ export function MapView({ label, points = [], pin, onPick, onSelect, height = 36
           zoom: points.length || pin ? 12 : 1, attributionControl: false });
         m.addControl(new AttributionControl({ compact: false, customAttribution: STYLE_URL ? "" : "Upstream records · no basemap configured" }));
         m.addControl(new NavigationControl({ showCompass: false }), "top-right");
-        m.on("error", (e: any) => { if (e?.error?.status || /style|tile/i.test(String(e?.error?.message))) setFailed("Basemap unavailable; showing Upstream records only."); });
+        m.on("error", (e: any) => { if (e?.error?.status || /style|tile/i.test(String(e?.error?.message))) setFailed("The background map is unavailable, so the map may be blank or incomplete. Use the list or coordinate fields, which hold the same information."); });
         m.on("load", () => {
           m.addSource("accuracy", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
           m.addSource("points", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
