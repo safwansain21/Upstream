@@ -33,12 +33,12 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] C03 Unknown relevant tributary/culvert does not become disconnected/no signal.
 - [x] C04 A map crossing without a junction is not automatically a confluence.
 - [x] C05 Flow reversal, cycle or split/rejoin is detected; case usable while localization unsupported.
-- [ ] C06 Station insertion splits reach; signatures recompute; row subdivision alone preserves results.
+- [x] C06 Station insertion splits reach; signatures recompute; row subdivision alone preserves results.
 - [x] C07 Network publish records reviewer/evidence and creates a new version; old assessments retain their original version.
 - [x] C08 Existing case on an unnamed waterway can later link to an external ID without changing report IDs.
 - [x] C09 Readiness shows missing background, calibration, transport and persistence independently.
 - [x] C10 Unknown boundary inflow remains explicit and prevents finite whole-source-area claims.
-- [ ] C11 A valid local domain can be investigated without claiming completeness of the whole watershed.
+- [x] C11 A valid local domain can be investigated without claiming completeness of the whole watershed.
 - [x] C12 Coordinate precision appears on map/list and does not silently snap to a nearby stream.
 - [x] D01 Assignment checks capability, access, time window and instrument; client override is rejected.
 - [x] D02 Two users claiming one task yield one assignment and one clear conflict.
@@ -73,13 +73,13 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] E17 McCormick outer relaxation contains generated exact configurations.
 - [x] E18 Witness-based oracle lower bound never exceeds planner upper bound.
 - [x] E19 Time-limited planner returns conservative bound/unscored; it does not quietly omit hard subsets.
-- [ ] E20 Future solver unresolved results cannot be dropped to make observed area match prediction.
+- [x] E20 Future solver unresolved results cannot be dropped to make observed area match prediction.
 - [x] E21 AI and simulator truth fields cannot enter scientific snapshots.
 - [x] E22 One Health context toggles do not change compatibility.
 - [x] E23 Claimed comparable readings have actual persistence/path/transport justification; timestamps alone insufficient.
 - [x] E24 Below-background events/negative load are outside the one-positive-input model, not mislocalized.
 - [x] E25 Background empirical coverage label is honest; chronological validation is separate from fitting.
-- [ ] E26 Multi-source/transient/misconnected cases report limitations without guaranteed fault-detection claims.
+- [x] E26 Multi-source/transient/misconnected cases report limitations without guaranteed fault-detection claims.
 - [x] E27 No live protocol is automatically populated with synthetic bounds.
 - [x] F01 Approved assessment is immutable; change creates draft and preserves predecessor.
 - [x] F02 Concurrent evidence change makes approval fail with dependency conflict.

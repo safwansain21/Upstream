@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 169 passed, 1 skipped (destructive), 2026-09-22')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 173 passed, 1 skipped (destructive), 2026-09-22')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
@@ -27,6 +27,10 @@ PASSES = {
     'D10': [F + 'test_invalid_instrument_at_measurement_time_is_held_and_logged'],
     'E08': ['tests/engine/test_threshold_equality.py::test_threshold_equality_is_ambiguous', 'tests/engine/test_threshold_equality.py::test_exact_planner_matches_threshold_on_both_sides', E + 'test_planner_ambiguous_outcomes_and_budget_safety'],
     'J04': [GU + 'test_origin_is_labelled_on_maps_observations_receipts_and_examples', X + 'test_export_contains_matching_versions_and_verifies'],
+    'C06': ['tests/engine/test_topology_and_limits.py::test_row_subdivision_alone_preserves_results', 'tests/engine/test_topology_and_limits.py::test_station_insertion_splits_reach_and_recomputes_signatures', M + 'test_station_splits_reach_without_snapping_and_preserves_length'],
+    'C11': [E + 'test_unknown_connectivity_and_open_boundary_are_explicit', M + 'test_publication_requires_verifier_evidence_and_freezes_version', 'tests/packages/test_packages.py::test_html_escapes_untrusted_prose_and_includes_review_and_limits'],
+    'E20': ['tests/engine/test_topology_and_limits.py::test_unresolved_results_are_never_dropped_to_match_a_prediction', P + 'test_planner_oracle_and_resource_limits'],
+    'E26': ['tests/engine/test_topology_and_limits.py::test_multi_source_case_states_limits_without_detection_claims'],
     'A02': [GM + 'test_core_workflow_runs_without_paid_providers', W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case', 'tests/e2e/test_export_flow.py::test_package_send_and_recipient_acknowledgment'],
     'B05': [GU + 'test_geolocation_denied_still_allows_landmark_report_without_land_assertion'],
     'B14': [GM + 'test_visibility_choice_never_exposes_other_records', H + 'test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent'],
@@ -126,7 +130,6 @@ PARTIAL = {
     'J11': 'Partial: no dead internal links (test_public_routes_and_links_resolve); unwired-button and content audit not automated.',
     'I08': 'Partial: automated axe finds zero serious/critical issues on key public and workspace pages (test_no_serious_accessibility_violations); 200% zoom, reflow and manual checks not done.',
     'B11': 'Partial: device-saved vs server-received shown in form and receipt; uploading/offline states not browser-tested.',
-    'C06': 'Partial: station insertion splits the reach and preserves length (test_station_splits_reach_without_snapping_and_preserves_length); signature recompute and row subdivision without a station not asserted.',
     'H07': 'Partial: no-basemap fallback is labelled (test_directory_map_and_list_show_precision); a failing configured provider is not tested.',
     'D12': 'Partial: only the server side is verified - a reading submitted under an older task version is kept and flagged (test_missing_metadata_meter_sc25_and_calibration_are_history_only); the offline client does not exist yet.',
     'G11': 'Partial: API access log contains no report text, coordinates or service key (test_access_log_has_no_report_text_or_coordinates); worker log not asserted.',

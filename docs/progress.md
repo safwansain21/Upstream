@@ -232,3 +232,7 @@ Priority 6 IN PROGRESS (routes, e2e, accessibility, release docs):
 - More gates: E08 equality + planner flips exactly at 105/23 (tests/engine/test_threshold_equality.py), C09 independent readiness
   checks (tests/api/test_readiness_checks.py; readiness matching now case-insensitive), D10 audit entry, J04 origin labels on
   map captions, readings table, receipts (OriginBadge also fixed to label replayed data). Full suite 169 passed; 95 gates PASS.
+- Engine gates: tests/engine/test_topology_and_limits.py (C06 subdivision/station insertion, E20, E26); C11 cited from existing
+  open-boundary tests. Full suite 173 passed; 99 gates PASS.
+- Remaining FAIL/partial gates now: A01 A07 B10 B11 D12 F11 F13 F14 G04 G07 G10 G11 H01-H12 I01-I14 I17 J01 J02 J03 J05 J07
+  J09 J11 J12. Offline (H*) and AI (B10, H08, G07 prompt injection) belong to priority 7.
