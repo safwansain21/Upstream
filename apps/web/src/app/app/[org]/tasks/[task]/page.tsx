@@ -4,8 +4,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { TASK_STATES, TASK_TYPES, type Task } from "../../../../../components/tasks";
-import { CaseStatus, InlineError, LoadingState, PageState } from "../../../../../components/ui";
-import { api } from "../../../../../lib/api";
+import { CaseStatus, EmptyState, InlineError, LoadingState, PageState } from "../../../../../components/ui";
+import { api, type ApiError } from "../../../../../lib/api";
 import { uuidv7 } from "../../../../../lib/drafts";
 import { useMe, useOrg } from "../../../../../lib/session";
 
@@ -33,7 +33,8 @@ export default function TaskDetail() {
     catch (e) { setError((e as Error).message); }
   }
 
-  if (q.error) return <PageState title="Field task" error={q.error} retry={() => q.refetch()}/>;
+  if (q.error) return (q.error as ApiError).status === 404 ? <PageState title="Field task"><EmptyState title="Task not found" action={<Link className="button button-outline" href={`/app/${org}/tasks`}>All tasks</Link>}><p>It may not exist, or it is not shared with you.</p></EmptyState></PageState>
+    : <PageState title="Field task" error={q.error} retry={() => q.refetch()}/>;
   if (!q.data) return <PageState title="Field task"/>;
   const t = q.data; const mine = t.assignee_id === me; const coordinator = can("coordinate");
   const reasonField = <div className="form-field"><label htmlFor="reason">Reason or access note</label><textarea id="reason" rows={2} value={reason} onChange={e => setReason(e.target.value)} aria-describedby="reason-help"/><p className="field-help" id="reason-help">Required to decline, block, cancel or report access. Refusing unsafe or inaccessible terrain is a valid outcome.</p></div>;

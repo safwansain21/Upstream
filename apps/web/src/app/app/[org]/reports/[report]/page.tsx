@@ -4,8 +4,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { ReceiptHistory } from "../../../../../components/receipts";
-import { CaseStatus, InlineError, LoadingState, OriginBadge, PageIntro } from "../../../../../components/ui";
-import { api } from "../../../../../lib/api";
+import { CaseStatus, EmptyState, InlineError, LoadingState, OriginBadge, PageIntro } from "../../../../../components/ui";
+import { api, type ApiError } from "../../../../../lib/api";
 import { WORKFLOW } from "../../../../../lib/labels";
 import { useOrg } from "../../../../../lib/session";
 
@@ -20,7 +20,9 @@ function Receipt() {
     try { await api(`/orgs/${org}/reports/${r.id}/visibility`, { method: "POST", json: { expected_version: r.version, public_visibility: !r.public_visibility } }); client.invalidateQueries({ queryKey: ["report", org, report] }); }
     catch (e) { setError((e as Error).message); }
   }
-  if (q.error) return <InlineError>{q.error.message}</InlineError>;
+  if (q.error) return (q.error as ApiError).status === 404
+    ? <EmptyState title="Report not found" action={<Link className="button button-outline" href={`/app/${org}/community`}>Your contributions</Link>}><p>It may not exist, or it belongs to someone else.</p></EmptyState>
+    : <InlineError>{q.error.message} <button type="button" className="button button-quiet" onClick={() => q.refetch()}>Retry</button></InlineError>;
   if (!q.data) return <LoadingState/>;
   const r = q.data;
   return <div className="stack">

@@ -10,11 +10,20 @@ from playwright.sync_api import expect
 
 from scripts.bootstrap_org import bootstrap
 from services.api.config import settings
+from services.api.db import transaction
 from tests.api.test_analysis import case_id
 from tests.api.test_http import ORG
 from tests.e2e.test_report_flow import BASE, page  # noqa: F401
 from tests.e2e.test_routes import CASE_TABS, WORKSPACE
 from tests.e2e.test_task_flow import open_as
+
+def detail_ids():
+    """A seeded report (the example contributor's) and task in the example workspace."""
+    with transaction(worker=True) as db:
+        report = db.execute("select r.id from reports r join auth.users u on u.id=r.reporter_id where r.org_id=%s and u.email='contributor@example.test' limit 1", (ORG,)).fetchone()['id']
+        task = db.execute('select id from tasks where org_id=%s order by created_at limit 1', (ORG,)).fetchone()['id']
+    return report, task
+
 
 FAILURE = json.dumps({'error': {'code': 'INTERNAL', 'message': 'The service could not answer (test).', 'retryable': True, 'request_id': 'test'}})
 
@@ -50,8 +59,9 @@ def test_every_workspace_route_shows_loading_then_error(page, role):  # A07 load
         loading_then_error(page, re.compile(r'.*/api/v1/orgs/.*'), [f'/app/{ORG}/settings/organization'])
         return
     mill = case_id('Mill Brook')
+    report, task = detail_ids()
     loading_then_error(page, re.compile(r'.*/api/v1/orgs/.*'), [f'/app/{ORG}{w}' for w in WORKSPACE if w not in ('/settings/profile', '/settings/organization')]
-                       + [f'/app/{ORG}/investigations/{mill}{t}' for t in CASE_TABS])
+                       + [f'/app/{ORG}/investigations/{mill}{t}' for t in CASE_TABS] + [f'/app/{ORG}/reports/{report}', f'/app/{ORG}/tasks/{task}'])
     # the profile page and the workspace shell read the account itself
     loading_then_error(page, re.compile(r'.*/api/v1/me$'), [f'/app/{ORG}/settings/profile'])
     expect(page.get_by_role('heading', name='Workspace')).to_be_visible()
@@ -67,7 +77,9 @@ def test_review_routes_show_a_permission_state_to_contributors(page):  # A07 per
                 f'/app/{ORG}/investigations/{mill}/exports': 'Evidence packages are for the review team',
                 f'/app/{ORG}/settings/organization': 'Membership is managed by organization administrators',
                 f'/app/{uuid4()}/investigations': 'This workspace is not available to you',
-                f'/app/{ORG}/investigations/{uuid4()}': 'Investigation not found'}
+                f'/app/{ORG}/investigations/{uuid4()}': 'Investigation not found',
+                f'/app/{ORG}/reports/{uuid4()}': 'Report not found',
+                f'/app/{ORG}/tasks/{uuid4()}': 'Task not found'}
     for path, heading in expected.items():
         page.goto(BASE + path)
         expect(page.get_by_role('heading', name=heading)).to_be_visible(timeout=15000)

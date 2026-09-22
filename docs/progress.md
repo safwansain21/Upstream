@@ -277,3 +277,19 @@ Results in docs/evaluation.md: nominal 0 incorrect exclusions for all policies; 
 12/60 (random) incorrect exclusions. Tests: tests/engine/test_evaluation.py.
 
 Next: A01, A07, B11, F11, G10, G11 leftovers, J01-J03 evidence, J09, J11, J12; then offline leftovers.
+
+## 2026-09-22 session 4
+
+Stragglers (J02, J11, B11, F11; A07 in progress):
+- J02: browser test clicks Cancel analysis on a queued job (the real POST response is held in the queue via the database,
+  then the real cancel endpoint runs); earlier approved revision stays current and the workspace stays navigable.
+- J11: tests/test_content_audit.py (route set equals PRD section 5; no placeholder/partner/"coming soon" copy; every button
+  and form has a handler); rendered pages are also scanned for placeholder copy.
+- A07: tests/e2e/test_route_states.py (slow-then-failing API on every workspace/case/public data route shows loading, then an
+  error with the page heading and header navigation; contributor permission states; empty states in a new real org).
+  Added `PageState` so page-level loading/error keeps the heading and a Retry. Fixed: a contributor on case Evidence saw
+  "No assessments yet" (RLS returned nothing) instead of the permission state; report/task detail now show "not found" states.
+- B11: browser test for device-saved -> "Uploading photo 1 of 1" -> server-received receipt.
+- F11: recipients carry admin-configured concerns (migration 202609210015); GET cases/{id}/context returns sourced layers,
+  attention level and recipient suggestions, each citing its source; Decision view shows them. Engine snapshot unchanged.
+- Full suite 212 passed, 1 skipped; 120 gates PASS.

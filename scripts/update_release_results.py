@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 199 passed, 1 skipped (destructive), 2026-09-22, fresh `supabase db reset` + seed_example + seed_load')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 212 passed, 1 skipped (destructive), 2026-09-22, fresh `supabase db reset` + seed_example + seed_load')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
@@ -19,6 +19,7 @@ RA, SEC = 'tests/e2e/test_responsive_a11y.py::', 'tests/security/test_secrets.py
 RT, MB = 'tests/e2e/test_routes.py::', 'tests/api/test_membership.py::'
 RC, RCE = 'tests/api/test_receipts.py::', 'tests/e2e/test_receipts_flow.py::'
 R, RE = 'tests/api/test_review.py::', 'tests/e2e/test_review_flow.py::'
+CA, RS = 'tests/test_content_audit.py::', 'tests/e2e/test_route_states.py::'
 X, XE = 'tests/api/test_exports.py::', 'tests/e2e/test_export_flow.py::test_package_send_and_recipient_acknowledgment'
 
 PASSES = {
@@ -137,6 +138,10 @@ PASSES = {
     'J01': ['tests/e2e/test_performance.py::test_public_landing_budgets'],
     'J05': ['tests/engine/test_evaluation.py::test_readings_are_paired_exogenous_values', 'tests/engine/test_evaluation.py::test_engine_never_receives_truth', 'tests/engine/test_evaluation.py::test_policies_share_inference_stopping_and_report_joint_metrics'],
     'J07': ['tests/engine/test_evaluation.py::test_policies_share_inference_stopping_and_report_joint_metrics', 'tests/engine/test_evaluation.py::test_misspecified_background_can_cause_incorrect_exclusion'],
+    'J02': [AN + 'test_worker_computes_fixture_assessment_and_conservative_plan', 'tests/api/test_public_and_cancel.py::test_analysis_can_be_cancelled_without_losing_completed_records', RE + 'test_cancel_analysis_button_stops_queued_work_and_keeps_results'],
+    'J11': [CA + 'test_every_route_is_required_scope', CA + 'test_no_placeholder_copy_or_partner_claims', CA + 'test_every_button_and_form_is_wired', RT + 'test_public_routes_and_links_resolve', RT + 'test_workspace_and_case_routes_render[expert]', RT + 'test_workspace_and_case_routes_render[coordinator]'],
+    'B11': ['tests/e2e/test_offline.py::test_receipt_states_move_from_device_to_uploading_to_server', 'tests/e2e/test_offline.py::test_offline_submission_is_queued_then_sent_once_with_photo', W + 'test_signed_in_photo_report_uploads_then_submits'],
+    'F11': ['tests/api/test_context.py::test_context_suggests_recipients_and_attention_with_sources_only', 'tests/api/test_context.py::test_recipient_concerns_are_a_closed_list', RE + 'test_decision_view_shows_sourced_context_and_suggestions', GM + 'test_context_layers_do_not_change_compatibility_inputs'],
     'J03': ['tests/e2e/test_performance.py::test_ten_thousand_case_directory_reads_stay_fast', 'tests/e2e/test_performance.py::test_directory_and_map_render_are_bounded'],
 }
 PARTIAL = {
@@ -144,13 +149,10 @@ PARTIAL = {
     'I05': 'Partial: 12 key public/workspace pages have no horizontal scroll at 1920-320 px (test_pages_reflow_without_horizontal_scroll[*]); not every page and no map-height/menu assertions.',
     'I06': 'Partial: keyboard-only reporting with focus on each step heading (test_keyboard_only_report); task, measurement, map alternative, review and acknowledgment paths not yet keyboard-tested.',
     'I09': 'Partial: OS reduced motion sets reduced mode with no running entrance animation, and the application setting persists (test_reduced_motion_is_honoured); camera flight and shimmer not asserted per page.',
-    'A07': 'Partial: every required route renders and all internal links resolve (test_public_routes_and_links_resolve, test_workspace_and_case_routes_render); loading/empty/error/permission states are implemented per page but not asserted route by route.',
-    'J11': 'Partial: no dead internal links (test_public_routes_and_links_resolve); unwired-button and content audit not automated.',
+    'A07': 'Partial: loading, error, permission and empty states are browser-tested on every workspace, case, public data route and the report/task detail routes (tests/e2e/test_route_states.py); the report/task detail additions are not yet in a recorded full run.',
     'I08': 'Partial: automated axe finds zero serious/critical issues on key public and workspace pages (test_no_serious_accessibility_violations); 200% zoom, reflow and manual checks not done.',
-    'B11': 'Partial: device-saved vs server-received shown in form and receipt; uploading/offline states not browser-tested.',
     'H07': 'Partial: no-basemap fallback is labelled (test_directory_map_and_list_show_precision); a failing configured provider is not tested.',
     'D12': 'Partial: server side verified (test_missing_metadata_meter_sc25_and_calibration_are_history_only); the offline client now queues reports, but offline capture of task readings is not built yet.',
-    'J02': 'Partial: analysis runs in the worker off the request path (test_worker_computes_fixture_assessment_and_conservative_plan); API cancellation keeps completed records (test_analysis_can_be_cancelled_without_losing_completed_records); the Cancel analysis button is not exercised in a browser.',
 }
 
 path = Path(__file__).resolve().parents[1] / 'docs/release-results.md'
