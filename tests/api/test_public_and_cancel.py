@@ -1,4 +1,4 @@
-"""G04 public snapshot; J02 cancellation off the request path; G10 no webhook recipients; G11 worker log hygiene."""
+"""G04 public snapshot; J02 cancellation off the request path; G11 worker log hygiene."""
 import os
 from pathlib import Path
 from uuid import uuid4
@@ -43,10 +43,6 @@ def test_analysis_can_be_cancelled_without_losing_completed_records():  # J02
     again = client.post(f'/api/v1/orgs/{ORG}/cases/{case}/analyses', headers=as_('coordinator')).json()['data']
     assert again['state'] in ('queued', 'running', 'done')  # can be requested again after cancelling
 
-
-def test_webhook_recipients_are_not_accepted():  # G10 (webhook delivery is not enabled; validator covers private addresses)
-    r = client.post(f'/api/v1/orgs/{ORG}/recipients', json={'name': 'Internal hook', 'method': 'webhook'}, headers=as_('admin'))
-    assert r.status_code == 422
 
 
 def test_worker_log_has_no_report_text_or_coordinates():  # G11 (worker)

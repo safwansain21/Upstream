@@ -96,3 +96,12 @@ editing an applied one. Approved assessments, packages and receipts are immutabl
 
 Run `python scripts/secret_scan.py` after every production build; it fails if the service key, signing key or database
 password appear in the browser bundle or tracked files. Rotate any key that was ever exposed.
+
+## Recipient webhooks
+
+Administrators add a webhook recipient on Settings > Integrations with an HTTPS destination on port 443 that resolves only
+to public addresses; the signing secret is shown once (stored in `recipient_secrets`, readable only by the worker).
+Each POST carries `Upstream-Delivery`, `Upstream-Timestamp` and `Upstream-Signature: sha256=HMAC(secret, timestamp + "." + body)`.
+The worker re-resolves and re-checks DNS at every attempt, connects to the checked address, never follows redirects, and
+retries at 1m, 5m, 30m, 2h and 12h before marking the delivery failed. Administrator Retry keeps the delivery ID and sends
+the stored payload bytes again. Plain `http://127.0.0.1`/`localhost` test receivers are accepted only outside production.

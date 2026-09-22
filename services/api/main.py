@@ -1,4 +1,5 @@
 """HTTP boundary: identity, envelopes and error mapping. Authority lives in database RPCs and RLS."""
+import base64
 import hashlib
 import io
 import json
@@ -27,7 +28,7 @@ from .auth import Identity, identity
 from .config import settings
 from .contracts import Assignment, CaseDecision, ProfilePatch, ReportCreate, StrictModel, TaskCreate, TaskTransition
 from .db import transaction
-from .security import DomainError, verify_origin
+from .security import DomainError, validate_webhook_url, verify_origin
 from .storage import storage
 
 app = FastAPI(title='Upstream API', version='1', openapi_url='/api/v1/openapi.json', docs_url=None, redoc_url=None)
@@ -972,7 +973,8 @@ CONTEXT_STATEMENT = ('Context layers inform attention and recipient suggestions 
 
 class RecipientCreate(StrictModel):
     name: str
-    method: str = 'portal'
+    method: Literal['portal', 'webhook'] = 'portal'
+    destination: str | None = Field(default=None, max_length=500)
     concerns: list[Literal['public_access', 'animal_access', 'habitat']] = Field(default_factory=list, max_length=3)
 
 
@@ -1072,18 +1074,49 @@ def verify_stored_package(org: UUID, pkg: UUID, request: Request, user: Identity
 
 @app.get('/api/v1/orgs/{org}/recipients')
 def recipients(org: UUID, request: Request, user: Identity = Depends(identity)):
-    return envelope(rows(user, 'select id,name,method,verified,scopes,concerns from recipients where org_id=%s order by name', (org,)), request)
+    return envelope(rows(user, 'select id,name,method,destination,verified,scopes,concerns from recipients where org_id=%s order by name', (org,)), request)
 
 
 @app.post('/api/v1/orgs/{org}/recipients', status_code=201)
 def add_recipient(org: UUID, body: RecipientCreate, request: Request, user: Identity = Depends(identity)):
+    """Portal recipients get scoped links; webhook recipients get a checked HTTPS destination and a signing secret shown once."""
     capability(user, org, 'admin')
-    if body.method != 'portal' or len(body.name.strip()) < 2:  # ponytail: webhook delivery needs SSRF-checked HTTPS config; portal only for now
-        raise DomainError('VALIDATION_FAILED', 'Provide a recipient name. Only scoped portal delivery is available in this deployment.')
+    if len(body.name.strip()) < 2:
+        raise DomainError('VALIDATION_FAILED', 'Provide a recipient name.')
+    webhook = body.method == 'webhook'
+    if webhook:  # HTTPS on 443 resolving only to public addresses; http to localhost only outside production (test receiver)
+        validate_webhook_url(body.destination or '', local_test=settings().environment != 'production')
+    secret = secrets.token_urlsafe(32) if webhook else None
     with transaction(worker=True) as db:
-        row = db.execute("insert into recipients(org_id,name,method,verified,concerns) values(%s,%s,'portal',true,%s) returning id,name,method,verified,concerns",
-                         (org, body.name.strip(), sorted(set(body.concerns)))).fetchone()
-    return envelope(row, request, 201)
+        row = db.execute('''insert into recipients(org_id,name,method,destination,verified,concerns) values(%s,%s,%s,%s,%s,%s)
+            returning id,name,method,destination,verified,concerns''',
+                         (org, body.name.strip(), body.method, body.destination if webhook else None, not webhook, sorted(set(body.concerns)))).fetchone()
+        if webhook:
+            db.execute('insert into recipient_secrets(recipient_id,org_id,secret) values(%s,%s,%s)', (row['id'], org, secret))
+    return envelope(row | ({'signing_secret': secret} if webhook else {}), request, 201)
+
+
+@app.get('/api/v1/orgs/{org}/deliveries')
+def delivery_status(org: UUID, request: Request, user: Identity = Depends(identity)):
+    """Transport status for administrators (no evidence content)."""
+    capability(user, org, 'admin')
+    with transaction(worker=True) as db:
+        return envelope(db.execute('''select d.id,r.name recipient,r.method,d.state,d.attempts,d.last_error,d.delivered_at,d.created_at,o.next_attempt_at
+            from deliveries d join recipients r on r.id=d.recipient_id left join webhook_outbox o on o.delivery_id=d.id
+            where d.org_id=%s order by d.created_at desc limit 100''', (org,)).fetchall(), request)
+
+
+@app.post('/api/v1/orgs/{org}/deliveries/{delivery}/retry')
+def retry_delivery(org: UUID, delivery: UUID, request: Request, user: Identity = Depends(identity)):
+    """Administrator retry of a failed webhook delivery: same delivery ID, same stored payload bytes."""
+    capability(user, org, 'admin')
+    with transaction(worker=True) as db:
+        row = db.execute('''update deliveries d set state='queued',attempts=0,last_error=null from webhook_outbox o
+            where o.delivery_id=d.id and d.org_id=%s and d.id=%s and d.state='failed' returning d.id,d.state''', (org, delivery)).fetchone()
+        if not row:
+            raise DomainError('VERSION_CONFLICT', 'Only a failed webhook delivery can be retried.', 409)
+        db.execute('update webhook_outbox set next_attempt_at=now() where delivery_id=%s', (delivery,))
+    return envelope(row, request)
 
 
 @app.get('/api/v1/orgs/{org}/cases/{case}/context')
@@ -1124,6 +1157,13 @@ def deliver(org: UUID, pkg: UUID, body: DeliveryCreate, request: Request, user: 
                 on conflict(prior_package_id,new_package_id,recipient_id) do update set delivery_state='delivered' returning id''', (org, prior['id'], pkg, r['id'])).fetchone()['id']
         db.execute('''insert into share_grants(org_id,package_id,notice_id,recipient_id,token_hash,scope,expires_at) values(%s,%s,%s,%s,%s,'package',%s)''',
                    (org, pkg, notice, r['id'], hashlib.sha256(token.encode()).hexdigest(), datetime.now(timezone.utc) + timedelta(days=SHARE_DAYS)))
+        if r['method'] == 'webhook':  # G10: the worker outbox sends these exact bytes now and on every retry
+            payload = json.dumps({'delivery_id': str(d['id']), 'package_id': str(pkg), 'manifest_hash': p['manifest_hash'],
+                                  'share_url': settings().app_url + f'/share/{token}', 'expires_in_days': SHARE_DAYS,
+                                  'artifacts': {n: base64.b64encode(b).decode() for n, b in package_artifacts(p).items()}}, sort_keys=True).encode()
+            d = db.execute("update deliveries set state='queued',delivered_at=null,attempts=0,last_error=null where id=%s returning *", (d['id'],)).fetchone()
+            db.execute('''insert into webhook_outbox(delivery_id,org_id,payload) values(%s,%s,%s)
+                on conflict(delivery_id) do update set payload=excluded.payload,next_attempt_at=now()''', (d['id'], org, payload))
         db.execute("insert into case_events(org_id,case_id,event_type,actor_id,object_id,payload) values(%s,%s,'package.delivered',%s,%s,%s)",
                    (org, p['case_id'], user.user_id, pkg, json.dumps({'recipient': str(r['id']), 'attempt': d['attempts'], 'revision_notice': str(notice) if notice else None})))
     # The raw token is shown once to the sender; only its hash is stored.

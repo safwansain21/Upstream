@@ -16,6 +16,7 @@ from upstream_engine import Snapshot, assess, plan, rank_actions  # noqa: E402
 
 from services.api.db import transaction  # noqa: E402
 from services.worker.exports import export  # noqa: E402
+from services.worker.outbox import send_due  # noqa: E402
 from services.worker.snapshot import candidate_actions  # noqa: E402
 
 WORKER = uuid4()
@@ -100,7 +101,7 @@ def main():
     print(f'worker {WORKER} polling analysis_jobs', flush=True)
     while True:
         try:
-            if not work_once():
+            if not work_once() and not send_due():
                 time.sleep(2)
         except Exception:  # noqa: BLE001 - e.g. database restart: leases make the retry safe, so keep polling
             traceback.print_exc()
