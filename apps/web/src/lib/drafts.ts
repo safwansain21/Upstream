@@ -28,13 +28,21 @@ export type Draft = {
   updatedAt: number;
 };
 
+/** Task readings captured without a connection (D12): the body keeps its client_id and the task version it was captured under. */
+export type ReadingSet = { id: string; account: string; org: string; task: string; body: { task_version: number } & Record<string, unknown>; error?: string; updatedAt: number };
+
 export type Photo = { id: string; name: string; type: string; size: number; blob: Blob; mediaId?: string; error?: string };
 export const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 export const MAX_PHOTO_BYTES = 15 * 1024 * 1024;
 
 class DraftDb extends Dexie {
   drafts!: Table<Draft, string>;
-  constructor() { super("upstream"); this.version(1).stores({ drafts: "id, account, updatedAt" }); }
+  readings!: Table<ReadingSet, string>;
+  constructor() {
+    super("upstream");
+    this.version(1).stores({ drafts: "id, account, updatedAt" });
+    this.version(2).stores({ drafts: "id, account, updatedAt", readings: "id, account, task" });
+  }
 }
 export const db = new DraftDb();
 

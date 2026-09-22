@@ -2,11 +2,11 @@
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TASK_STATES, TASK_TYPES, type Task } from "../../../../../components/tasks";
 import { CaseStatus, EmptyState, InlineError, LoadingState, PageState } from "../../../../../components/ui";
-import { api, type ApiError } from "../../../../../lib/api";
-import { uuidv7 } from "../../../../../lib/drafts";
+import { api, supabase, type ApiError } from "../../../../../lib/api";
+import { db, uuidv7, type ReadingSet } from "../../../../../lib/drafts";
 import { useMe, useOrg } from "../../../../../lib/session";
 
 type Reading = { id: string; mode: string; value: string; unit: string; temperature: string | null; measured_at: string; eligible: boolean; ineligibility_reasons: string[]; submitted_task_version: number; quality: string | null };
@@ -98,14 +98,24 @@ function CaptureForm({ org, task, onDone }: { org: string; task: Detail; onDone:
   const [mode, setMode] = useState("raw"); const [unit, setUnit] = useState("uS/cm");
   const [reps, setReps] = useState<Rep[]>([{ value: "", temperature: "", measured_at: now(), notes: "" }]);
   const [key] = useState(uuidv7); const [error, setError] = useState(""); const [result, setResult] = useState<{ readings: { eligible: boolean; reasons: string[] }[] } | null>(null);
+  const [saved, setSaved] = useState<ReadingSet[]>([]);
   const set = (i: number, patch: Partial<Rep>) => setReps(rs => rs.map((r, j) => j === i ? { ...r, ...patch } : r));
+  useEffect(() => { // reading sets for this task still on this device (unsent, or refused by the server)
+    const load = () => db.readings.where("task").equals(task.id).toArray().then(setSaved, () => undefined);
+    load(); window.addEventListener("upstream-drafts", load);
+    return () => window.removeEventListener("upstream-drafts", load);
+  }, [task.id]);
   async function submit() {
     setError("");
-    try {
-      const body = { client_id: key, task_version: task.version, started_at: new Date(reps[0].measured_at).toISOString(), mode, unit,
-        replicates: reps.map(r => ({ value: r.value, temperature: r.temperature || null, measured_at: new Date(r.measured_at).toISOString(), notes: r.notes })) };
-      setResult(await api(`/orgs/${org}/tasks/${task.id}/readings`, { method: "POST", json: body })); onDone();
-    } catch (e) { setError((e as Error).message); } // entered values stay in the form
+    const body = { client_id: key, task_version: task.version, started_at: new Date(reps[0].measured_at).toISOString(), mode, unit,
+      replicates: reps.map(r => ({ value: r.value, temperature: r.temperature || null, measured_at: new Date(r.measured_at).toISOString(), notes: r.notes })) };
+    try { setResult(await api(`/orgs/${org}/tasks/${task.id}/readings`, { method: "POST", json: body })); onDone(); }
+    catch (e) {
+      if ((e as ApiError).code !== "NETWORK") return setError((e as Error).message); // entered values stay in the form
+      const account = (await supabase.auth.getSession()).data.session?.user.id ?? "";
+      await db.readings.put({ id: key, account, org, task: task.id, body, updatedAt: Date.now() }) // D12: sent later under this task version
+        .then(() => window.dispatchEvent(new Event("upstream-drafts")), () => setError("No connection, and this browser could not save the readings. Keep this tab open."));
+    }
   }
   return <section className="surface stack" aria-labelledby="capture-heading"><h2 id="capture-heading">Record readings</h2>
     <p>Record each replicate separately exactly as displayed. Say what the number represents; the server decides eligibility.</p>
@@ -120,6 +130,8 @@ function CaptureForm({ org, task, onDone }: { org: string; task: Detail; onDone:
       {reps.length > 1 ? <button type="button" className="button button-quiet" onClick={() => setReps(rs => rs.filter((_, j) => j !== i))}>Remove replicate {i + 1}</button> : null}</div></fieldset>)}
     <div className="button-row"><button type="button" className="button button-outline" onClick={() => setReps(rs => [...rs, { value: "", temperature: "", measured_at: now(), notes: "" }])}>Add replicate</button>
       <button type="button" className="button button-primary" disabled={reps.some(r => !r.value)} onClick={submit}>Submit readings</button></div>
+    {saved.map(r => <div key={r.id} role="status" className="notice">{r.error ? `Not accepted by the server: ${r.error} The readings stay on this device.`
+      : `Saved on this device under task version ${r.body.task_version}. Not submitted yet; they are sent when you are back online while Upstream is open.`}</div>)}
     {result ? <div role="status" className="notice">Received, pending quality review. {result.readings.filter(r => !r.eligible).length ? `History only: ${[...new Set(result.readings.flatMap(r => r.reasons))].join("; ")}` : "All replicates can be considered after review."}</div> : null}
   </section>;
 }

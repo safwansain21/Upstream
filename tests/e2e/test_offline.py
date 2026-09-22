@@ -209,3 +209,27 @@ def test_service_worker_update_keeps_unsent_work():  # H10
         finally:
             sw.write_bytes(original)
             browser.close()
+
+
+def test_offline_readings_keep_their_task_version_and_go_to_review():  # D12 H06
+    from tests.api.test_field_work import accepted_task, transition
+    from tests.api.test_http import ORG
+    task = accepted_task()
+    with sync_playwright() as pw:
+        browser, context, p = start(pw)
+        signed_in(p, 'monitor@example.test')
+        p.goto(f"{BASE}/app/{ORG}/tasks/{task['id']}")
+        expect(p.locator('#v0')).to_be_visible()
+        context.set_offline(True)  # in the field without a connection
+        p.locator('#v0').fill('461')
+        p.locator('#t0').fill('13.9')
+        p.get_by_role('button', name='Submit readings').click()
+        expect(p.get_by_text(f"Saved on this device under task version {task['version']}.", exact=False)).to_be_visible()
+        expect(p.get_by_text(re.compile('1 reading set saved on this device'))).to_be_visible()
+        assert transition(task['id'], 'monitor', 'start', task['version']).status_code == 200  # the task changes on the server meanwhile
+        context.set_offline(False)
+        expect(p.get_by_text(re.compile('1 saved item was sent'))).to_be_visible(timeout=30000)
+        p.reload()  # kept under the version it was captured with and sent to quality review, not silently merged
+        expect(p.get_by_role('cell', name=re.compile(f"task revised after capture; submitted under task version {task['version']}"))).to_be_visible()
+        expect(p.get_by_role('cell', name='Pending review')).to_be_visible()
+        browser.close()

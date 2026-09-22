@@ -1,10 +1,23 @@
 "use client";
 import { api, ApiError } from "./api";
-import { db, toReportBody, type Draft, type Photo } from "./drafts";
+import { db, toReportBody, type Draft, type Photo, type ReadingSet } from "./drafts";
 
 export type Sent = { id: string; case_id: string; org_id: string };
 export const STALE_MS = 120_000;
 export const QUEUED_MESSAGE = "Saved on this device. Not submitted yet. It will be sent when you are back online while Upstream is open.";
+
+/** Send a reading set saved on this device with its original client_id and task version; the server decides eligibility (D12). */
+export async function sendReadings(r: ReadingSet) {
+  try {
+    const result = await api<{ readings: { eligible: boolean; reasons: string[] }[] }>(`/orgs/${r.org}/tasks/${r.task}/readings`, { method: "POST", json: r.body });
+    await db.readings.delete(r.id);
+    return { ok: true as const, result };
+  } catch (e) {
+    const err = e as ApiError;
+    if (err.code !== "NETWORK") await db.readings.update(r.id, { error: err.message, updatedAt: Date.now() }); // kept for the monitor to see
+    return { ok: false as const, error: err };
+  }
+}
 
 /** Claim a draft for sending exactly once across tabs/components (compare-and-set on its status). */
 export async function claim(id: string, from: Draft["status"][]) {

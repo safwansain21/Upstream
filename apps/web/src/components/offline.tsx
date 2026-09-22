@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/api";
 import { db, type Draft } from "../lib/drafts";
-import { claim, sendDraft, STALE_MS } from "../lib/submit";
+import { claim, sendDraft, sendReadings, STALE_MS } from "../lib/submit";
 
 /**
  * Connection banner and foreground sync of this account's queued drafts (H02, H03, H05, H12).
@@ -12,6 +12,7 @@ import { claim, sendDraft, STALE_MS } from "../lib/submit";
 export function OfflineStatus() {
   const [online, setOnline] = useState(true);
   const [queued, setQueued] = useState<Draft[]>([]);
+  const [readingSets, setReadingSets] = useState(0);
   const [message, setMessage] = useState("");
   const running = useRef(false);
 
@@ -21,6 +22,7 @@ export function OfflineStatus() {
     if (account) await db.drafts.where("account").equals(account).filter(d => d.status === "submitting" && Date.now() - d.updatedAt > STALE_MS)
       .modify({ status: "queued" }).catch(() => undefined);  // interrupted sends are retried, never lost
     setQueued(account ? await db.drafts.where("account").equals(account).filter(d => d.status === "queued").toArray().catch(() => []) : []);
+    setReadingSets(account ? await db.readings.where("account").equals(account).filter(r => !r.error).count().catch(() => 0) : 0);
     return account;
   }
 
@@ -42,7 +44,11 @@ export function OfflineStatus() {
         if (outcome.ok) sent++;
         else if (outcome.error.status === 403) stopped = "Automatic sending stopped: your membership or access changed. Your draft is kept on this device.";
       }
-      setMessage(stopped || (sent ? `${sent} saved report${sent === 1 ? " was" : "s were"} sent.` : ""));
+      for (const r of await db.readings.where("account").equals(account).filter(x => !x.error).toArray()) {
+        if ((await sendReadings(r)).ok) sent++;
+        window.dispatchEvent(new Event("upstream-drafts"));
+      }
+      setMessage(stopped || (sent ? `${sent} saved item${sent === 1 ? " was" : "s were"} sent.` : ""));
     } finally { running.current = false; load(); }
   }
 
@@ -53,11 +59,12 @@ export function OfflineStatus() {
     return () => { window.removeEventListener("online", update); window.removeEventListener("offline", update); window.removeEventListener("upstream-drafts", load); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (online && !queued.length && !message) return null;
+  if (online && !queued.length && !readingSets && !message) return null;
   return <div className="page-banner" role="status" aria-live="polite">
     {!online ? <p><strong>You are offline.</strong> Drafts save on this device. Approving, assigning, publishing maps and sending packages need a connection.</p> : null}
     {queued.length ? <p>{queued.length} report{queued.length === 1 ? "" : "s"} saved on this device, not submitted yet: {queued.map(d => <Link key={d.id} className="text-link" href={`/report/${d.id}/edit`}> open draft</Link>)}.
       {online ? <button className="button button-quiet" onClick={syncNow}>Send now</button> : null}</p> : null}
+    {readingSets ? <p>{readingSets} reading set{readingSets === 1 ? "" : "s"} saved on this device, not submitted yet.{online ? <button className="button button-quiet" onClick={syncNow}>Send now</button> : null}</p> : null}
     {message ? <p>{message}</p> : null}
   </div>;
 }
