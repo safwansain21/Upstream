@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError, supabase } from "../lib/api";
-import { claimGuestDrafts, db, toReportBody, validate, type Draft } from "../lib/drafts";
+import { claimGuestDrafts, db, MAX_PHOTO_BYTES, PHOTO_TYPES, toReportBody, uuidv7, validate, type Draft, type Photo } from "../lib/drafts";
 import { InlineError, LoadingState } from "./ui";
 
 const CATEGORIES: [string, string][] = [["unusual_foam", "Unusual foam"], ["colour_change", "Change in colour"], ["odour", "Odour noticed (without deliberately smelling)"],
@@ -55,13 +55,38 @@ export function ReportForm({ draftId }: { draftId: string }) {
       () => { setGeoBusy(false); setNotice("Location permission was not granted. You can still describe a landmark or enter coordinates."); },
       { enableHighAccuracy: true, timeout: 15000 });
   }
+  function addPhotos(files: FileList | null) {
+    if (!files) return;
+    const photos = [...(draft!.photos ?? [])];
+    for (const file of Array.from(files)) {
+      if (photos.length >= 5) { setNotice("You can attach up to 5 photos."); break; }
+      if (!PHOTO_TYPES.includes(file.type)) { setNotice(`${file.name} is not a JPEG, PNG or WebP photo.`); continue; }
+      if (file.size > MAX_PHOTO_BYTES) { setNotice(`${file.name} is larger than 15 MB.`); continue; }
+      photos.push({ id: uuidv7(), name: file.name, type: file.type, size: file.size, blob: file });
+    }
+    update({ photos });
+  }
+  async function uploadPhotos(current: Draft): Promise<Photo[] | null> {
+    const photos = [...(current.photos ?? [])];
+    for (let i = 0; i < photos.length; i++) {
+      if (photos[i].mediaId) continue;
+      update({ error: `Uploading photo ${i + 1} of ${photos.length}…` });
+      const form = new FormData(); form.append("file", photos[i].blob, photos[i].name); form.append("keep_original", String(current.keepOriginals));
+      try { const r = await api<{ id: string }>(`/orgs/${current.org}/uploads`, { method: "POST", body: form }); photos[i] = { ...photos[i], mediaId: r.id, error: undefined }; }
+      catch (e) { photos[i] = { ...photos[i], error: (e as Error).message }; update({ photos }); return null; }
+      update({ photos });
+    }
+    return photos;
+  }
   async function submit() {
     const found = validate(draft!, 3); setErrors(found);
     if (Object.keys(found).length) { requestAnimationFrame(() => summary.current?.focus()); return; }
     if (!account) { router.push(`/sign-in?next=${encodeURIComponent(`/report/${draftId}/edit`)}`); return; }
     update({ status: "submitting", error: undefined });
+    const photos = await uploadPhotos(draft!);
+    if (!photos) { update({ status: "device_saved", error: "A photo could not be uploaded. Retry, or remove it and submit without it. Nothing else was lost." }); return; }
     try {
-      const result = await api<{ id: string; case_id: string; org_id: string }>(`/orgs/${draft!.org}/reports`, { method: "POST", json: toReportBody(draft!), idempotencyKey: draft!.id });
+      const result = await api<{ id: string; case_id: string; org_id: string }>(`/orgs/${draft!.org}/reports`, { method: "POST", json: toReportBody({ ...draft!, photos }), idempotencyKey: draft!.id });
       update({ status: "server_received", result });
       router.push(`/app/${result.org_id}/reports/${result.id}?received=1`);
     } catch (e) {
@@ -81,7 +106,7 @@ export function ReportForm({ draftId }: { draftId: string }) {
 
   return <div className="stack">
     <ol className="tab-nav" aria-label="Report steps">{STEPS.map((label, i) => <li key={label} aria-current={draft.step === i + 1 ? "step" : undefined} className={draft.step === i + 1 ? "active" : undefined}>{i + 1}. {label}</li>)}</ol>
-    <p className="muted" role="status">{draft.status === "submitting" ? "Sending to Upstream…" : draft.error ? draft.error : "Saved on this device. Not submitted yet."}</p>
+    <p className="muted" role="status">{draft.status === "submitting" ? draft.error || "Sending to Upstream…" : draft.error || "Saved on this device. Not submitted yet."}</p>
     {notice ? <p className="notice" role="status">{notice}</p> : null}
     {Object.keys(errors).length ? <div className="inline-error" role="alert" tabIndex={-1} ref={summary}><strong>Please fix:</strong><ul>{Object.entries(errors).map(([k, v]) => <li key={k}><a href={`#${k}`}>{v}</a></li>)}</ul></div> : null}
 
@@ -89,7 +114,9 @@ export function ReportForm({ draftId }: { draftId: string }) {
       <fieldset id="categories"><legend>Choose any that fit (optional)</legend>{CATEGORIES.map(([code, label]) => <label className="checkbox-field" key={code}><input type="checkbox" checked={draft.categories.includes(code)} onChange={e => update({ categories: e.target.checked ? [...draft.categories, code] : draft.categories.filter(c => c !== code) })}/><span>{label}</span></label>)}</fieldset>
       <div className="form-field"><label htmlFor="description">Describe your observation</label><textarea id="description" rows={5} maxLength={2000} value={draft.description} aria-invalid={!!errors.description} aria-describedby={described("description", "description-help")} onChange={e => update({ description: e.target.value })}/><p className="field-help" id="description-help">{draft.description.length} / 2000. What did you see, where and when? A photo or description records what you saw; it does not establish the cause.</p>{err("description")}</div>
       <div className="form-field"><label htmlFor="observedAt">When did you observe it? <span className="muted">({draft.timezone})</span></label><input id="observedAt" type="datetime-local" value={draft.observedAt} aria-invalid={!!errors.observedAt} aria-describedby={described("observedAt")} onChange={e => update({ observedAt: e.target.value })}/>{err("observedAt")}</div>
-      <p className="field-help">Photos can be added once photo upload is enabled for this workspace. A text-only report is complete.</p>
+      <div className="form-field"><label htmlFor="photos">Photos (optional, up to 5)</label><input id="photos" type="file" accept={PHOTO_TYPES.join(",")} multiple onChange={e => { addPhotos(e.target.files); e.target.value = ""; }} aria-describedby="photos-help"/><p className="field-help" id="photos-help">JPEG, PNG or WebP, 15 MB each. Location data embedded in photos is removed from shared copies. A photo records what you saw; it does not establish the cause.</p></div>
+      {draft.photos?.length ? <ul aria-label="Attached photos">{draft.photos.map(p => <li key={p.id}>{p.name} · {(p.size / 1048576).toFixed(1)} MB{p.mediaId ? " · uploaded" : ""}{p.error ? <span className="field-error"> · {p.error}</span> : null} <button type="button" className="button button-quiet" onClick={() => update({ photos: draft.photos.filter(x => x.id !== p.id) })}>Remove<span className="visually-hidden"> {p.name}</span></button></li>)}</ul> : null}
+      {draft.photos?.length ? <label className="checkbox-field"><input type="checkbox" checked={draft.keepOriginals} onChange={e => update({ keepOriginals: e.target.checked })}/><span>Keep my original photo files privately for the review team</span></label> : null}
       <div className="button-row"><button type="button" className="button button-primary" onClick={() => go(2)}>Continue to location</button></div></section> : null}
 
     {draft.step === 2 ? <section className="surface stack" aria-labelledby="step-heading"><h2 id="step-heading" tabIndex={-1} ref={heading}>Where was it?</h2>
@@ -107,6 +134,7 @@ export function ReportForm({ draftId }: { draftId: string }) {
       <dl><dt>What you noticed</dt><dd>{draft.categories.map(c => CATEGORIES.find(([k]) => k === c)?.[1]).join(", ") || "No category selected"}</dd><dd>{draft.description || "No description"}</dd>
         <dt>When</dt><dd>{draft.observedAt.replace("T", " ")} ({draft.timezone})</dd>
         <dt>Location</dt><dd>{hasPoint ? `${draft.latitude}, ${draft.longitude}${draft.accuracy ? ` ±${draft.accuracy} m` : ""}` : "Coordinates not provided: location verification needed"}{draft.landmark ? ` · ${draft.landmark}` : ""}</dd>
+        <dt>Photos</dt><dd>{draft.photos?.length ? draft.photos.map(p => p.name).join(", ") : "None (text-only report)"}</dd>
         {draft.localName || draft.unmapped ? <><dt>Stream</dt><dd>{draft.localName || "Unnamed"}{draft.unmapped ? " · not on the map" : ""}</dd></> : null}</dl>
       <label className="checkbox-field"><input type="checkbox" checked={draft.publicVisibility} onChange={e => update({ publicVisibility: e.target.checked })}/><span>Allow a generalized public summary of this report</span></label>
       <p className="field-help">Private to the receiving organization by default. Precise location and your contact details are never public.</p>

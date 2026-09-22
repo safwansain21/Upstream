@@ -62,3 +62,25 @@ def test_directory_requires_sign_in_and_lists_example_cases(page):  # A03 G01
     expect(page.get_by_role('heading', name='Mill Brook')).to_be_visible()
     page.goto(BASE + '/app/00000000-0000-4000-8000-000000000000/investigations')
     expect(page.get_by_text('This workspace is not available to you')).to_be_visible()
+
+
+def test_signed_in_photo_report_uploads_then_submits(page, tmp_path):  # B06 H12
+    from PIL import Image
+    photo = tmp_path / 'foam.jpg'
+    Image.new('RGB', (320, 240), 'white').save(photo)
+    (tmp_path / 'notes.txt').write_text('not a photo')
+    page.goto(BASE + '/sign-in')
+    sign_in(page, 'contributor@example.test')
+    expect(page).to_have_url(re.compile('/investigations'))
+    page.goto(BASE + '/report/new')
+    page.get_by_label('Unusual foam').check()
+    page.get_by_label('Photos (optional, up to 5)').set_input_files(str(tmp_path / 'notes.txt'))
+    expect(page.get_by_text('is not a JPEG, PNG or WebP photo')).to_be_visible()
+    page.get_by_label('Photos (optional, up to 5)').set_input_files(str(photo))
+    expect(page.get_by_text('foam.jpg')).to_be_visible()
+    page.get_by_role('button', name='Continue to location').click()
+    page.get_by_label('Landmark or directions').fill('Weir below the park')
+    page.get_by_role('button', name='Continue to review').click()
+    page.get_by_role('button', name='Submit report').click()
+    expect(page).to_have_url(re.compile(r'/reports/[0-9a-f-]+'))
+    expect(page.get_by_text('The cause is not established')).to_be_visible()

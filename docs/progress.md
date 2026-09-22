@@ -53,5 +53,8 @@ sign-in) → `/report/[draft]/edit` 3 steps (categories/text/time; GPS on click,
 origin, involving-me filters, cursor "Show more"), case overview `/app/[org]/investigations/[case]`.
 Browser e2e: `tests/e2e/test_report_flow.py` (python Playwright; `pnpm test:e2e`) 2 passed — needs API on :8000 and
 `next start` on :3000. Chromium installed via `.venv/Scripts/python -m playwright install chromium`.
-Remaining in step 3: photo upload (B06/B07, /uploads + storage + EXIF strip), duplicate suggestions (B09),
+Photos DONE: `POST /orgs/{org}/uploads` (Pillow decode check, 15MB, 40MP, JPEG re-encode drops EXIF/GPS, originals kept
+only with consent) → Supabase storage via service key server-side; `GET /orgs/{org}/media/{id}[?original=true]` under RLS.
+Form uploads photos at submit, failed photo keeps draft (retry/remove). HEIC not converted yet (rejected with message).
+Remaining in step 3: duplicate suggestions (B09),
 map pin + directory map view (needs MapLibre, do with step 4), offline queue (step 9).

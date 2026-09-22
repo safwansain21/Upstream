@@ -20,10 +20,16 @@ export type Draft = {
   localName: string;
   unmapped: boolean;
   publicVisibility: boolean;
+  keepOriginals: boolean;
+  photos: Photo[];
   error?: string;
   result?: { id: string; case_id: string; org_id: string };
   updatedAt: number;
 };
+
+export type Photo = { id: string; name: string; type: string; size: number; blob: Blob; mediaId?: string; error?: string };
+export const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+export const MAX_PHOTO_BYTES = 15 * 1024 * 1024;
 
 class DraftDb extends Dexie {
   drafts!: Table<Draft, string>;
@@ -45,7 +51,7 @@ export function newDraft(org: string): Draft {
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   return { id: uuidv7(), account: "guest", org, step: 1, status: "device_saved", categories: [], description: "", observedAt: local,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, landmark: "", latitude: "", longitude: "", accuracy: "", method: "landmark",
-    localName: "", unmapped: false, publicVisibility: false, updatedAt: Date.now() };
+    localName: "", unmapped: false, publicVisibility: false, keepOriginals: false, photos: [], updatedAt: Date.now() };
 }
 
 /** Guest drafts become the signed-in account's on this device; another account's drafts are never touched (H03). */
@@ -66,7 +72,7 @@ export function toReportBody(d: Draft) {
     landmark: d.landmark.trim(), latitude: hasPoint ? Number(d.latitude) : null, longitude: hasPoint ? Number(d.longitude) : null,
     accuracy_m: hasPoint && d.accuracy ? Number(d.accuracy) : null, location_method: hasPoint ? d.method : "landmark",
     location_precision: hasPoint ? "approximate" : "unresolved", local_name: d.localName.trim() || null, unmapped: d.unmapped,
-    public_visibility: d.publicVisibility, media_ids: [], new_observation: true,
+    public_visibility: d.publicVisibility, media_ids: (d.photos ?? []).map(p => p.mediaId).filter(Boolean), new_observation: true,
   };
 }
 
