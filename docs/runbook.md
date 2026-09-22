@@ -46,10 +46,37 @@ channel. Existing packages keep their original signature and key id; they are ne
 
 ## Backups and restore
 
-- Enable daily database backups (and point-in-time recovery if your plan provides it).
-- Storage objects (photos and evidence packages under `packages/`) need a separate export policy.
-- Restore drill: restore the latest backup into an isolated project, apply pending migrations, point a staging API at it,
-  and verify a package with `GET /api/v1/orgs/{org}/packages/{id}/verify`. Record the date and result.
+Database backups alone are not enough: photos and evidence package bytes live in private object storage and are backed up
+separately. A restore is only accepted after the verification step below.
+
+Backup (hosted project; replace the connection string and keys with your own):
+
+1. Database, in three files (the documented Supabase dump format):
+   `supabase db dump --db-url "$DB_URL" --role-only -f roles.sql`,
+   `supabase db dump --db-url "$DB_URL" -f schema.sql`,
+   `supabase db dump --db-url "$DB_URL" --data-only --use-copy -f data.sql`.
+   Also enable the provider's daily backups and point-in-time recovery if the plan offers them.
+2. Objects: list `storage.objects` for bucket `evidence-private` (name and `metadata->>'mimetype'`), download each through
+   the storage API with the service key, and store a manifest with each object's SHA-256, size and MIME type.
+3. Keep the backup encrypted and outside the project; it contains personal data (auth users, report text, photos).
+
+Restore into an isolated project (never over the live one):
+
+1. Create a new, empty project. Run, as a superuser:
+   `psql -v ON_ERROR_STOP=1 -f roles.sql -f schema.sql`, then `psql -v ON_ERROR_STOP=1` with
+   `set session_replication_role = replica;` followed by `data.sql` in the same session.
+2. Upload every object to the new project's `evidence-private` bucket under its original name and MIME type.
+3. Verify before using it: row counts per table equal the source at backup time; each restored object's SHA-256 equals the
+   manifest; every evidence package verifies from restored storage (`verify_package` with the recorded manifest hash,
+   predecessor hash and, for signed packages, the public key - the same check as `GET /api/v1/orgs/{org}/packages/{id}/verify`);
+   an existing account can sign in. Record the date and result.
+
+Local drill (exercised): `.venv/Scripts/python.exe scripts/backup_restore.py drill [backup_dir]` does all of the above
+against the local stack. It starts a second, isolated Supabase stack (project id `UpstreamRestoreDrill`, ports 553xx, its
+own volumes), restores into it, verifies, then stops it and deletes its volumes. The source is only read. Test:
+`tests/ops/test_backup_restore.py`. Result on 2026-09-22 (seeded example + 10k load org): 20 table counts equal, 44 of 44
+objects hash-identical, 5 of 5 evidence packages verified, example sign-in accepted; under a minute with cached images.
+If a drill is interrupted, `python scripts/backup_restore.py cleanup` removes the isolated stack.
 
 ## Rollback
 

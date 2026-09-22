@@ -29,6 +29,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / 'packages/engine'))
 from services.api.config import settings  # noqa: E402
 from services.packages import verify_package  # noqa: E402
+from services.worker.exports import signing_key  # noqa: E402
 
 SUPABASE = str(ROOT / 'node_modules/.bin' / ('supabase.CMD' if os.name == 'nt' else 'supabase'))
 DRILL = Path(tempfile.gettempdir()) / 'upstream-restore-drill'
@@ -56,18 +57,19 @@ def backup(out: Path):
     for name, flags in (('roles.sql', ['--role-only']), ('schema.sql', []), ('data.sql', ['--data-only', '--use-copy'])):
         run(SUPABASE, 'db', 'dump', '--local', *flags, '-f', out / name, cwd=ROOT)
     with psycopg.connect(cfg.database_url, row_factory=dict_row) as db:
-        names = [r['name'] for r in db.execute('select name from storage.objects where bucket_id=%s order by name', (cfg.storage_bucket,))]
+        names = {r['name']: r['mimetype'] for r in db.execute(
+            "select name,metadata->>'mimetype' mimetype from storage.objects where bucket_id=%s order by name", (cfg.storage_bucket,))}
     headers = {'apikey': cfg.supabase_service_role_key, 'Authorization': f'Bearer {cfg.supabase_service_role_key}'}
     manifest = {}
     with httpx.Client(timeout=30, headers=headers) as http:
-        for name in names:
+        for name, mimetype in names.items():
             r = http.get(f'{cfg.supabase_url}/storage/v1/object/{cfg.storage_bucket}/{name}')
             r.raise_for_status()
             target = out / 'objects' / name
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(r.content)
             manifest[name] = {'sha256': hashlib.sha256(r.content).hexdigest(), 'size': len(r.content),
-                              'content_type': r.headers.get('content-type', 'application/octet-stream')}
+                              'content_type': mimetype}  # as stored; the download header is not the stored type
     (out / 'objects.json').write_text(json.dumps(manifest, indent=1, sort_keys=True), encoding='utf-8')
     (out / 'source-counts.json').write_text(json.dumps(counts(cfg.database_url), indent=1), encoding='utf-8')
     return manifest
@@ -91,8 +93,10 @@ def start_isolated():
 
 def psql(sql: str | Path, container=f'supabase_db_{PROJECT}'):
     body = sql.read_text(encoding='utf-8') if isinstance(sql, Path) else sql
-    subprocess.run(['docker', 'exec', '-i', container, 'psql', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-q'],
-                   input=body, text=True, encoding='utf-8', check=True, capture_output=True)
+    done = subprocess.run(['docker', 'exec', '-i', container, 'psql', '-U', 'supabase_admin', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-q'],
+                          input=body, text=True, encoding='utf-8', capture_output=True)
+    if done.returncode:
+        raise SystemExit(f'restore failed in {sql if isinstance(sql, Path) else "inline SQL"}: {done.stderr[-2000:]}')
 
 
 def restore(src: Path, status: dict):
@@ -126,9 +130,11 @@ def verify(src: Path, status: dict):
         with psycopg.connect(status['DB_URL'], row_factory=dict_row) as db:
             packages = db.execute('''select p.*,(select manifest_hash from evidence_packages x where x.id=p.predecessor_id) predecessor_hash
                 from evidence_packages p order by created_at''').fetchall()
+        key_pair = signing_key()[0]
         for p in packages:  # the same check as GET /packages/{id}/verify, against restored storage only
-            verify_package({n: get(k) for n, k in p['artifact_keys'].items()}, expected_manifest_hash=p['manifest_hash'],
-                           expected_predecessor_hash=p['predecessor_hash'])
+            signed = p['signing_status'] == 'signed'
+            verify_package({n: get(k) for n, k in p['artifact_keys'].items()}, public_key=key_pair.public_key() if signed else None,
+                           expected_manifest_hash=p['manifest_hash'], expected_predecessor_hash=p['predecessor_hash'], require_signature=signed)
         signed_in = httpx.post(f"{status['API_URL']}/auth/v1/token?grant_type=password", headers={'apikey': status['ANON_KEY']},
                                json={'email': 'expert@example.test', 'password': 'upstream-example-only'}, timeout=15).status_code == 200
     return {'tables': restored, 'objects': len(manifest), 'packages_verified': len(packages), 'example_sign_in': signed_in}
