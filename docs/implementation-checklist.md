@@ -36,7 +36,7 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [ ] C06 Station insertion splits reach; signatures recompute; row subdivision alone preserves results.
 - [x] C07 Network publish records reviewer/evidence and creates a new version; old assessments retain their original version.
 - [x] C08 Existing case on an unnamed waterway can later link to an external ID without changing report IDs.
-- [ ] C09 Readiness shows missing background, calibration, transport and persistence independently.
+- [x] C09 Readiness shows missing background, calibration, transport and persistence independently.
 - [x] C10 Unknown boundary inflow remains explicit and prevents finite whole-source-area claims.
 - [ ] C11 A valid local domain can be investigated without claiming completeness of the whole watershed.
 - [x] C12 Coordinate precision appears on map/list and does not silently snap to a nearby stream.
@@ -49,7 +49,7 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] D07 Required temperature/compensation metadata absent makes reading history-only/ineligible.
 - [x] D08 Rapid repeats do not shrink systematic bounds; individual readings and visit ID survive.
 - [x] D09 Instrument expiry after a valid reading leaves it valid.
-- [ ] D10 Instrument invalid at measurement time is handled by protocol and logged.
+- [x] D10 Instrument invalid at measurement time is handled by protocol and logged.
 - [x] D11 Later verification failure creates suspect/review states, not automatic universal deletion.
 - [ ] D12 Revised task/protocol while offline preserves reading as submitted under its actual version.
 - [x] D13 Access closure blocks affected tasks; no assignment to inaccessible station just because its score is best.
@@ -61,7 +61,7 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] E05 A3 alone preserves weak-source possibilities.
 - [x] E06 Alternative B2=600 and B2=452 fixtures yield 2.30km and 3.00km respectively.
 - [x] E07 Removing reviewed B2 evidence expands retained area back to 5.30km.
-- [ ] E08 Simple planner threshold is 105/23; equality ambiguous; U=5 cannot promise one-step narrowing.
+- [x] E08 Simple planner threshold is 105/23; equality ambiguous; U=5 cannot promise one-step narrowing.
 - [x] E09 Compensation range and independent-scale behavior match the exact equations.
 - [x] E10 All in-bounds generated truths are retained across property tests; unknown is retained.
 - [x] E11 Widening bounds/removing readings cannot shrink mathematical feasible set; eligibility assessed separately.
@@ -142,7 +142,7 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [ ] J01 Public LCP/CLS and JS budget measured using documented browser/network profile.
 - [ ] J02 Long scientific jobs run off request path; UI remains navigable/cancellable.
 - [ ] J03 Test directory with 10k records and map with 500 visible features; no unbounded browser render.
-- [ ] J04 Actual origin labels appear in maps, exports, observations, examples and receipts.
+- [x] J04 Actual origin labels appear in maps, exports, observations, examples and receipts.
 - [ ] J05 Evaluation compares policies using same inference/eligibility/stopping and exogenous paired episodes.
 - [x] J06 Independent-event count is separate from sample/replicate count.
 - [ ] J07 Report containment, incorrect exclusions, unresolved rate and effort together.

@@ -226,3 +226,12 @@ def test_reading_stays_valid_after_calibration_expires():  # D09
     q = client.post(f'/api/v1/orgs/{ORG}/readings/{rid}/quality', headers=as_('expert'),
                     json={'disposition': 'accepted', 'reason': 'Valid calibration at measurement time'})
     assert q.status_code == 200
+
+
+def test_invalid_instrument_at_measurement_time_is_held_and_logged():  # D10
+    from services.api.db import transaction
+    task = accepted_task()
+    r = readings(task, [rep(measured_at='2025-12-15T09:00:00+00:00')]).json()['data']['readings'][0]
+    assert not r['eligible'] and any('held for protocol review' in x for x in r['reasons'])
+    with transaction(worker=True) as db:
+        assert db.execute("select outcome from audit_log where action='reading.uncalibrated' and object_id=%s", (r['id'],)).fetchone()['outcome'] == 'held'

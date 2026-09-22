@@ -356,10 +356,10 @@ def readiness_for(org: UUID, case: UUID):
             snapshot, deps, context, reasons = None, [], None, exc.reasons
     checks = []
     for label, fragments in READINESS_CHECKS:
-        hits = [r for r in reasons if any(f in r for f in fragments)]
+        hits = [r for r in reasons if any(f.lower() in r.lower() for f in fragments)]
         state = 'missing' if hits else 'ready' if snapshot is not None else 'not_evaluated'  # unknown is never shown as ready
         checks.append({'label': label, 'state': state, 'ready': state == 'ready', 'reasons': hits})
-    unmatched = [r for r in reasons if not any(r in c['reasons'] for c in checks)]
+    unmatched = [r for r in reasons if not any(r in c['reasons'] for c in checks)]  # never silently dropped
     if unmatched:
         checks.append({'label': 'Other prerequisites', 'state': 'missing', 'ready': False, 'reasons': unmatched})
     return {'eligible': not reasons, 'reasons': reasons, 'checks': checks}, snapshot, deps, context
@@ -1207,7 +1207,7 @@ def merge_case(org: UUID, case: UUID, body: MergeCommand, request: Request, user
 
 
 RECEIPT_SQL = '''select x.id,x.effect,x.co_dependencies,x.retained_before_m,x.retained_after_m,x.created_at,x.report_id,x.reading_id,
-    a.revision,(a.result->>'eligible')::boolean eligible,private.publication_status(a.id) status,c.title case_title,c.id case_id
+    a.revision,(a.result->>'eligible')::boolean eligible,private.publication_status(a.id) status,c.title case_title,c.id case_id,c.data_origin
     from contribution_receipts x join assessments a on a.id=x.assessment_id join cases c on c.id=x.case_id'''
 
 

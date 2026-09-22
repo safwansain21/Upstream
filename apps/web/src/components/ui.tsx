@@ -7,7 +7,7 @@ export function PageIntro({ title, children, action }: { title: string; children
   return <div className="page-intro"><DocumentTitle title={title}/><div><h1>{title}</h1>{children ? <div className="intro-copy">{children}</div> : null}</div>{action}</div>;
 }
 export function OriginBadge({ origin = "synthetic" }: { origin?: string }) {
-  return <span className={`badge origin-${origin}`}>{origin === "synthetic" ? "Example data" : origin === "imported" ? "Imported evidence" : "Field observation"}</span>;
+  return <span className={`badge origin-${origin}`}>{origin === "synthetic" ? "Example data" : origin === "replayed" ? "Replayed data" : origin === "imported" ? "Imported evidence" : "Field observation"}</span>;
 }
 export function RoleBadge({ children }: { children: ReactNode }) { return <span className="badge">{children}</span>; }
 export function CaseStatus({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "warning" | "accepted" | "error" }) { return <span className={`badge status-${tone}`}><span aria-hidden="true">{tone === "accepted" ? "✓" : tone === "warning" ? "!" : "•"}</span>{children}</span>; }

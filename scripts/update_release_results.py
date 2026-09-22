@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 164 passed, 1 skipped (destructive), 2026-09-22')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 169 passed, 1 skipped (destructive), 2026-09-22')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
@@ -23,6 +23,10 @@ X, XE = 'tests/api/test_exports.py::', 'tests/e2e/test_export_flow.py::test_pack
 
 PASSES = {
     'A03': [RT + 'test_workspace_and_case_routes_render[expert]', RT + 'test_workspace_and_case_routes_render[coordinator]', W + 'test_directory_requires_sign_in_and_lists_example_cases'],
+    'C09': ['tests/api/test_readiness_checks.py::test_each_missing_prerequisite_is_reported_on_its_own', F + 'test_invalid_instrument_at_measurement_time_is_held_and_logged', AN + 'test_readiness_reports_missing_prerequisites_independently'],
+    'D10': [F + 'test_invalid_instrument_at_measurement_time_is_held_and_logged'],
+    'E08': ['tests/engine/test_threshold_equality.py::test_threshold_equality_is_ambiguous', 'tests/engine/test_threshold_equality.py::test_exact_planner_matches_threshold_on_both_sides', E + 'test_planner_ambiguous_outcomes_and_budget_safety'],
+    'J04': [GU + 'test_origin_is_labelled_on_maps_observations_receipts_and_examples', X + 'test_export_contains_matching_versions_and_verifies'],
     'A02': [GM + 'test_core_workflow_runs_without_paid_providers', W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case', 'tests/e2e/test_export_flow.py::test_package_send_and_recipient_acknowledgment'],
     'B05': [GU + 'test_geolocation_denied_still_allows_landmark_report_without_land_assertion'],
     'B14': [GM + 'test_visibility_choice_never_exposes_other_records', H + 'test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent'],
@@ -124,10 +128,7 @@ PARTIAL = {
     'B11': 'Partial: device-saved vs server-received shown in form and receipt; uploading/offline states not browser-tested.',
     'C06': 'Partial: station insertion splits the reach and preserves length (test_station_splits_reach_without_snapping_and_preserves_length); signature recompute and row subdivision without a station not asserted.',
     'H07': 'Partial: no-basemap fallback is labelled (test_directory_map_and_list_show_precision); a failing configured provider is not tested.',
-    'C09': 'Partial: test_readiness_reports_missing_prerequisites_independently covers mapping/flow-regime checks only.',
     'D12': 'Partial: only the server side is verified - a reading submitted under an older task version is kept and flagged (test_missing_metadata_meter_sc25_and_calibration_are_history_only); the offline client does not exist yet.',
-    'D10': 'Partial: held-for-review reason asserted (test_missing_metadata_meter_sc25_and_calibration_are_history_only); audit entry not asserted.',
-    'E08': 'Partial: 105/23 (test_independent_fraction_oracle) and U=5 bound 5300 (test_planner_ambiguous_outcomes_and_budget_safety); equality case not asserted.',
     'G11': 'Partial: API access log contains no report text, coordinates or service key (test_access_log_has_no_report_text_or_coordinates); worker log not asserted.',
     'G07': 'Partial: foreign Origin rejected (test_foreign_origin_rejected, test_origin_mismatch_rejected) and report HTML renders as inert text (test_report_html_is_rendered_as_text_not_executed); prompt-injection handling awaits the AI adapter.',
     'J02': 'Partial: analysis runs in the worker off the request path (test_worker_computes_fixture_assessment_and_conservative_plan); cancellation not tested.',

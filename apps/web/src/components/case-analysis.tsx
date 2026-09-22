@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "../lib/api";
 import { NetworkDiagram, ReachLegend } from "./network-diagram";
-import { CaseStatus, InlineError, LoadingState } from "./ui";
+import { CaseStatus, InlineError, LoadingState, OriginBadge } from "./ui";
 
 type Network = { version: number; status: string; source: string; license: string; flow_regime: string; boundary_treatment: string;
   nodes: { id: string; code: string; kind: string; lon: number; lat: number }[];
@@ -28,7 +28,7 @@ function segments(network: Network, retained: Set<string>) {
   return new Set(kept.map(e => find(e.from_code))).size;
 }
 
-export function CaseAnalysis({ org, caseId, canAnalyse, canReview }: { org: string; caseId: string; canAnalyse: boolean; canReview: boolean }) {
+export function CaseAnalysis({ org, caseId, canAnalyse, canReview, dataOrigin = "real" }: { org: string; caseId: string; canAnalyse: boolean; canReview: boolean; dataOrigin?: string }) {
   const client = useQueryClient();
   const network = useQuery({ queryKey: ["network", org, caseId], queryFn: () => api<Network | null>(`/orgs/${org}/cases/${caseId}/network`) });
   const assessment = useQuery({ queryKey: ["assessment", org, caseId], retry: false, enabled: canReview,
@@ -81,7 +81,7 @@ export function CaseAnalysis({ org, caseId, canAnalyse, canReview }: { org: stri
 
   return <div className="case-grid">
     <section className="surface stack" aria-labelledby="map-heading"><h2 id="map-heading">Local network</h2>
-      {network.isPending ? <LoadingState/> : net ? <>{diagram}<ReachLegend/><p className="muted">Schematic generated from network version {net.version} ({net.status}). Source: {net.source}. Licence: {net.license}. Not a satellite image.</p></>
+      {network.isPending ? <LoadingState/> : net ? <>{diagram}<ReachLegend/><p className="muted"><OriginBadge origin={dataOrigin}/> Schematic generated from network version {net.version} ({net.status}). Source: {net.source}. Licence: {net.license}. Not a satellite image.</p></>
         : <p><strong>Map verification needed.</strong> No local network is recorded for this case. The report remains a useful coordination record.</p>}
     </section>
 

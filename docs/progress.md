@@ -229,3 +229,6 @@ Priority 6 IN PROGRESS (routes, e2e, accessibility, release docs):
 - Gate batch: tests/api/test_gates_misc.py (B14 E14 E22 E27 G08 A02), tests/e2e/test_gates_ui.py (B05 B15 G07-html I15 I16),
   tests/test_docs.py (J10; found GEOCODER_BASE_URL undocumented - runbook now states no place search exists).
   Full suite 164 passed; 91 gates PASS.
+- More gates: E08 equality + planner flips exactly at 105/23 (tests/engine/test_threshold_equality.py), C09 independent readiness
+  checks (tests/api/test_readiness_checks.py; readiness matching now case-insensitive), D10 audit entry, J04 origin labels on
+  map captions, readings table, receipts (OriginBadge also fixed to label replayed data). Full suite 169 passed; 95 gates PASS.

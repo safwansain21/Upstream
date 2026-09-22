@@ -89,3 +89,29 @@ def test_back_and_forward_keep_case_identity():  # I16
         assert mill in p.url and p.title().startswith('Case history')
     finally:
         browser.close(); pw.stop()
+
+
+def test_origin_is_labelled_on_maps_observations_receipts_and_examples():  # J04 (exports: test_export_contains_matching_versions_and_verifies)
+    pw, browser, p = browser_page()
+    try:
+        p.goto(BASE + '/example/useful-evidence')
+        expect(p.get_by_text('Example data').first).to_be_visible()
+        p.goto(BASE + '/sign-in')
+        sign_in(p, 'expert@example.test')
+        expect(p).to_have_url(re.compile('/investigations'))
+        mill = case_id('Mill Brook')
+        p.goto(f'{BASE}/app/{ORG}/investigations/{mill}')
+        expect(p.locator('section', has=p.get_by_role('heading', name='Local network')).get_by_text('Example data')).to_be_visible()
+        p.goto(f'{BASE}/app/{ORG}/investigations/{mill}/observations')
+        expect(p.get_by_role('region', name='Readings').get_by_text('Example data').first).to_be_visible()
+        q = browser.new_context().new_page()
+        q.goto(BASE + '/sign-in')
+        sign_in(q, 'contributor@example.test')
+        expect(q).to_have_url(re.compile('/investigations'))
+        q.goto(f'{BASE}/app/{ORG}/community')
+        expect(q.get_by_role('heading', name='Your contributions')).to_be_visible()
+        report_id = client.get(f'/api/v1/orgs/{ORG}/cases/{mill}', headers=as_('coordinator')).json()['data']['reports'][0]['id']
+        q.goto(f'{BASE}/app/{ORG}/reports/{report_id}')
+        expect(q.get_by_text('Example data').first).to_be_visible()
+    finally:
+        browser.close(); pw.stop()

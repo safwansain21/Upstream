@@ -41,7 +41,7 @@ export default function Investigations() {
         <button type="button" className={`button ${view === "list" ? "button-primary" : "button-outline"}`} aria-pressed={view === "list"} onClick={() => setView("list")}>List</button></div>
     </form>
     {list.error ? <InlineError>{list.error.message} <button className="button button-quiet" onClick={() => list.refetch()}>Retry</button></InlineError> : null}
-    {view === "map" && rows.length ? <><MapView label={`Map of ${located.length} located investigations`} onSelect={setSelected}
+    {view === "map" && rows.length ? <><MapView label={`Map of ${located.length} located investigations${located.some(c => c.data_origin === "synthetic") ? " (includes example data)" : ""}`} onSelect={setSelected}
       points={located.map(c => ({ id: c.id, lon: c.location!.lon, lat: c.location!.lat, radiusM: c.location!.accuracy_m ? Number(c.location!.accuracy_m) : null, label: c.title, selected: c.id === selected }))}/>
       {rows.length > located.length ? <p className="muted">{rows.length - located.length} investigation(s) have no confirmed coordinates and appear only in the list.</p> : null}</> : null}
     {list.isPending ? <LoadingState/> : rows.length === 0 && !list.error ? <EmptyState title="No investigations match" action={<Link className="button button-primary" href="/report/new">Report an observation</Link>}><p>No records in this workspace match these filters. That does not mean nothing is happening at the stream.</p></EmptyState> :

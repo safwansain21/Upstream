@@ -27,7 +27,7 @@ export default function CaseOverview() {
     <div className="page-intro"><DocumentTitle title={c.title}/><div><h1>{c.title}</h1><p><CaseStatus>{WORKFLOW[c.workflow] ?? c.workflow}</CaseStatus> <span>Cause unconfirmed</span> <OriginBadge origin={c.data_origin}/></p><p className="muted">{c.locality || "Location to be confirmed"}</p></div></div>
     <CaseTabs caseId={id} current=""/>
     {c.merged_into ? <p className="notice" role="status">This investigation was merged. Its reports are kept with their original records and now also appear in <Link className="text-link" href={`/app/${org}/investigations/${c.merged_into}`}>the combined investigation</Link>.</p> : null}
-    <CaseAnalysis org={org} caseId={id} canAnalyse={can("coordinate") || can("expert")} canReview={can("coordinate") || can("expert") || can("evidence_view")}/>
+    <CaseAnalysis org={org} caseId={id} canAnalyse={can("coordinate") || can("expert")} canReview={can("coordinate") || can("expert") || can("evidence_view")} dataOrigin={c.data_origin}/>
     <div className="case-grid">
       <section className="surface stack" aria-labelledby="reports-heading"><h2 id="reports-heading">Reports</h2>
         <ul>{c.reports.map(r => <li key={r.id}><p>{r.description || r.categories.join(", ")}</p><p className="muted">Observed {new Date(r.observed_at).toLocaleString()} ({r.timezone}) · {r.latitude === null ? `Location unresolved: “${r.landmark}”` : `${r.latitude.toFixed(5)}, ${r.longitude!.toFixed(5)}${r.accuracy_m ? ` ±${r.accuracy_m} m` : ""} (${r.location_precision})`}</p></li>)}</ul>

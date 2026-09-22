@@ -1,10 +1,10 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
-import { CaseStatus, InlineError, LoadingState } from "./ui";
+import { CaseStatus, InlineError, LoadingState, OriginBadge } from "./ui";
 
 export type Receipt = { id: string; effect: string; co_dependencies: number; retained_before_m: string | null; retained_after_m: string | null; created_at: string;
-  revision: number; eligible: boolean; status: string; case_title: string; case_id: string; reading_id: string | null };
+  revision: number; eligible: boolean; status: string; case_title: string; case_id: string; reading_id: string | null; data_origin: string };
 const km = (m: string | null) => m === null ? null : `${(Number(m) / 1000).toFixed(2)} km`;
 
 /** Plain statement of what one contribution did in one approved assessment. Never credits a whole result to one person. */
@@ -27,7 +27,7 @@ export function ReceiptHistory({ path }: { path: string }) {
   if (!q.data.length) return <p><strong>What this changed:</strong> recorded for triage. No approved assessment has used this contribution yet.</p>;
   const [latest, ...older] = q.data;
   return <div className="stack">
-    <p><CaseStatus tone={latest.status === "approved" ? "accepted" : "warning"}>Based on assessment {latest.revision}</CaseStatus>{latest.status !== "approved" ? <strong> This assessment was revised{latest.status === "under_review" ? " and is under review" : ""}.</strong> : null}</p>
+    <p><CaseStatus tone={latest.status === "approved" ? "accepted" : "warning"}>Based on assessment {latest.revision}</CaseStatus> <OriginBadge origin={latest.data_origin}/>{latest.status !== "approved" ? <strong> This assessment was revised{latest.status === "under_review" ? " and is under review" : ""}.</strong> : null}</p>
     <p><strong>What this changed:</strong> {effectText(latest)}</p>
     {older.length ? <details><summary>Earlier receipts ({older.length})</summary><ul>{older.map(r => <li key={r.id}>Assessment {r.revision} · {r.status === "superseded" ? "This assessment was revised" : r.status} · {effectText(r)}</li>)}</ul></details> : null}
   </div>;
