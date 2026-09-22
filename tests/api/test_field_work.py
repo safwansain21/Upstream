@@ -23,7 +23,7 @@ def station(code, title=CASE):
 
 
 def new_task(task_type='conductance_reading', code='B2', start=None, hours=2, protocol=True):
-    start = start or next(WINDOWS)
+    start = start or free_window('SC-009')
     body = {'case_id': case_id(CASE), 'task_type': task_type, 'station_id': station(code) if code else None,
             'purpose': f'Example: measure at {code} to help distinguish retained reaches.',
             'window_start': start.isoformat(), 'window_end': (start + timedelta(hours=hours)).isoformat()}
@@ -78,12 +78,23 @@ def test_assignment_checks_qualification_instrument_version_and_limitations():  
     assert forged.status_code == 403  # monitors cannot assign
 
 
+def free_window(meter, hours=3):
+    """Bookings from earlier runs stay active; choose a window where this meter is still free."""
+    from services.api.db import transaction
+    while True:
+        start = next(WINDOWS)
+        with transaction(worker=True) as db:
+            if not db.execute('select 1 from instrument_bookings where instrument_id=%s and active and during && tstzrange(%s,%s)',
+                              (sid(f'instrument:{meter}'), start, start + timedelta(hours=hours))).fetchone():
+                return start
+
+
 def test_concurrent_instrument_bookings_admit_one():  # D03
-    start = next(WINDOWS)
+    start = free_window('SC-014')
     a, b = new_task(start=start), new_task(start=start + timedelta(minutes=30))
     with ThreadPoolExecutor(2) as pool:
-        codes = sorted(f.result().status_code for f in [pool.submit(assign, t, 'monitor', 'SC-014') for t in (a, b)])
-    assert codes == [200, 409]
+        results = [f.result() for f in [pool.submit(assign, t, 'monitor', 'SC-014') for t in (a, b)]]
+    assert sorted(r.status_code for r in results) == [200, 409], [r.text for r in results]
 
 
 def test_two_claims_yield_one_assignment_and_one_conflict():  # D02

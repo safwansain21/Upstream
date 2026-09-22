@@ -80,6 +80,8 @@ async def database_error(request: Request, exc: psycopg.Error):
         return error(request, code, detail, STATUS[code], code == 'RATE_LIMITED')
     if isinstance(exc, psycopg.errors.InsufficientPrivilege):
         return error(request, 'FORBIDDEN', 'You do not have access to this record.', 403)
+    if isinstance(exc, psycopg.errors.TransactionRollback):  # deadlock/serialization: a concurrent change won
+        return error(request, 'VERSION_CONFLICT', 'Another change happened at the same time. Reload and try again.', 409, True)
     if isinstance(exc, psycopg.errors.ExclusionViolation):
         return error(request, 'VERSION_CONFLICT', 'The instrument is already booked for that time.', 409)
     if isinstance(exc, (psycopg.errors.IntegrityError, psycopg.errors.DataError)):
@@ -289,9 +291,11 @@ async def upload(org: UUID, request: Request, file: UploadFile = File(...), keep
     out = io.BytesIO()
     derivative.save(out, 'JPEG', quality=85)  # re-encoding drops EXIF including GPS (B07)
     media_id = uuid4()
-    with transaction(user.user_id) as db:  # same intake/membership rule as submit_report
-        allowed = db.execute('''select exists(select 1 from organizations where id=%s and intake_enabled)
-            or private.is_member(%s) as ok''', (org, org)).fetchone()['ok']
+    with transaction(user.user_id) as db:  # same intake/membership rule as submit_report (which runs as definer)
+        member = db.execute('select private.is_member(%s) ok', (org,)).fetchone()['ok']
+    with transaction(worker=True) as db:  # a first-time reporter cannot read the org row under RLS yet
+        intake = db.execute('select intake_enabled from organizations where id=%s', (org,)).fetchone()
+    allowed = member or bool(intake and intake['intake_enabled'])
     if not allowed:
         raise DomainError('FORBIDDEN', 'This organization does not accept your uploads.', 403)
     base = f'{org}/{user.user_id}/{media_id}'

@@ -51,7 +51,7 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] D09 Instrument expiry after a valid reading leaves it valid.
 - [ ] D10 Instrument invalid at measurement time is handled by protocol and logged.
 - [x] D11 Later verification failure creates suspect/review states, not automatic universal deletion.
-- [x] D12 Revised task/protocol while offline preserves reading as submitted under its actual version.
+- [ ] D12 Revised task/protocol while offline preserves reading as submitted under its actual version.
 - [x] D13 Access closure blocks affected tasks; no assignment to inaccessible station just because its score is best.
 - [x] D14 Future sampling task includes purpose and limitations, not promised source discovery.
 - [x] E01 Network 1 has 8.50km, eight signature classes and .60km confluence group.

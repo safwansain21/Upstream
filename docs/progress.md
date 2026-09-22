@@ -174,3 +174,14 @@ Priority 3 DONE (exports and delivery, portal method end to end):
 - UI: `/app/[org]/investigations/[case]/exports`, public `/share/[token]`, `/app/[org]/settings/integrations`.
 - Tests: tests/api/test_exports.py (3), tests/e2e/test_export_flow.py (1). Full suite 119 passed; 67 gates PASS.
 - Next: priority 4 (B01 with photo; D12 note), then 5 (B09, B12, B13).
+
+Priority 4 DONE:
+- B01: guest e2e test now attaches a photo while signed out; photo survives sign-in, uploads, and the receipt shows "1 photo
+  attached". Found and fixed a real bug: uploads checked intake via RLS-hidden organizations row, so first-time reporters got 403
+  (regression test test_first_time_reporter_can_upload_before_any_report).
+- D12: release-results now marks it FAIL/partial - only the server side is verified until the offline client exists.
+- Reliability fixes found on the way: concurrent exclusion-constraint bookings could deadlock (-> 503). Migration
+  202609210011 serializes bookings per instrument (advisory lock); API maps psycopg TransactionRollback to 409 retryable.
+  Tests: shared `wait_job()` helper (background worker may hold the lease), `free_window()` for instrument bookings.
+- Full suite 120 passed; 66 gates PASS (D12 moved to partial).
+- Next: priority 5 (B09 duplicates, B12 contribution effect, B13 revised receipts).

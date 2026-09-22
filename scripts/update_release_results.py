@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 119 passed, 2026-09-21')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 120 passed, 2026-09-21')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
@@ -17,7 +17,7 @@ R, RE = 'tests/api/test_review.py::', 'tests/e2e/test_review_flow.py::'
 X, XE = 'tests/api/test_exports.py::', 'tests/e2e/test_export_flow.py::test_package_send_and_recipient_acknowledgment'
 
 PASSES = {
-    'B01': [W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case'],
+    'B01': [W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case', H + 'test_first_time_reporter_can_upload_before_any_report'],
     'B02': [H + 'test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent', W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case'],
     'B03': [H + 'test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent', W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case'],
     'B04': [M + 'test_not_on_map_keeps_pin_accuracy_and_local_name_as_provisional_waterway', MS + 'test_report_pin_is_placed_by_map_click_without_snapping'],
@@ -42,7 +42,6 @@ PASSES = {
     'D07': [F + 'test_missing_metadata_meter_sc25_and_calibration_are_history_only'],
     'D08': [F + 'test_replicates_are_individual_and_idempotent', P + 'test_raw_shared_scopes_and_independent_compensation', T],
     'D09': [F + 'test_reading_stays_valid_after_calibration_expires', F + 'test_calibration_events_are_append_only_and_expert_recorded'],
-    'D12': [F + 'test_missing_metadata_meter_sc25_and_calibration_are_history_only'],
     'D13': [F + 'test_access_closure_blocks_tasks_and_assignment'],
     'D14': [F + 'test_assignment_checks_qualification_instrument_version_and_limitations', T],
     'D11': [R + 'test_instrument_failure_review_exclusion_and_supersession'],
@@ -93,6 +92,7 @@ PARTIAL = {
     'C06': 'Partial: station insertion splits the reach and preserves length (test_station_splits_reach_without_snapping_and_preserves_length); signature recompute and row subdivision without a station not asserted.',
     'H07': 'Partial: no-basemap fallback is labelled (test_directory_map_and_list_show_precision); a failing configured provider is not tested.',
     'C09': 'Partial: test_readiness_reports_missing_prerequisites_independently covers mapping/flow-regime checks only.',
+    'D12': 'Partial: only the server side is verified - a reading submitted under an older task version is kept and flagged (test_missing_metadata_meter_sc25_and_calibration_are_history_only); the offline client does not exist yet.',
     'D10': 'Partial: held-for-review reason asserted (test_missing_metadata_meter_sc25_and_calibration_are_history_only); audit entry not asserted.',
     'E08': 'Partial: 105/23 (test_independent_fraction_oracle) and U=5 bound 5300 (test_planner_ambiguous_outcomes_and_budget_safety); equality case not asserted.',
     'G02': 'Partial: another member gets 404 for private media (test_photo_upload_strips_location_and_attaches_to_report); internal evidence by ID not tested.',

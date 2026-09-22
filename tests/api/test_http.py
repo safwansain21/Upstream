@@ -33,6 +33,20 @@ def fresh_contributor():
     return email
 
 
+def wait_job(job_id, timeout=120):
+    """Drive or await a durable job: this process may run it, or a background worker may already hold its lease."""
+    import time
+    from services.worker.__main__ import work_once
+    deadline = time.monotonic() + timeout
+    while True:
+        state = client.get(f'/api/v1/orgs/{ORG}/analyses/{job_id}', headers=as_('coordinator')).json()['data']
+        if state['state'] in ('done', 'failed'):
+            return state
+        assert time.monotonic() < deadline, state
+        if not work_once():
+            time.sleep(0.3)
+
+
 def as_(role):
     return token(fresh_contributor() if role == 'reporter' else f'{role}@example.test')
 
@@ -151,3 +165,10 @@ def test_upload_rejects_disguised_and_oversized_images():  # B06 G08
     out = io.BytesIO(); Image.new('1', (8000, 6000)).save(out, 'PNG')  # 48 MP, tiny file
     bomb = client.post(f'/api/v1/orgs/{ORG}/uploads', files={'file': ('b.png', out.getvalue(), 'image/png')}, headers=as_('contributor'))
     assert bomb.status_code == 422 and 'megapixels' in bomb.json()['error']['message']
+
+
+def test_first_time_reporter_can_upload_before_any_report():  # B01 regression: RLS hid the intake org from new users
+    import importlib
+    new = importlib.import_module('tests.api.test_http').fresh_contributor.__wrapped__()  # uncached: a brand-new account
+    r = client.post(f'/api/v1/orgs/{ORG}/uploads', files={'file': ('p.jpg', jpeg_with_gps(), 'image/jpeg')}, headers=token(new))
+    assert r.status_code == 201, r.text

@@ -28,7 +28,10 @@ def sign_in(page, email):
     page.get_by_role('button', name='Sign in', exact=True).click()
 
 
-def test_guest_landmark_report_survives_sign_in_and_opens_one_case(page):  # B01 B02 B03 B11
+def test_guest_landmark_report_survives_sign_in_and_opens_one_case(page, tmp_path):  # B01 B02 B03 B06 B11
+    from PIL import Image
+    photo = tmp_path / 'arch.jpg'
+    Image.new('RGB', (320, 240), 'grey').save(photo)
     page.goto(BASE + '/report/new')
     expect(page).to_have_url(re.compile(r'/report/[0-9a-f-]+/edit'))
     draft_url = page.url
@@ -36,6 +39,8 @@ def test_guest_landmark_report_survives_sign_in_and_opens_one_case(page):  # B01
     expect(page.locator('.inline-error')).to_contain_text('Choose what you noticed')  # error summary, nothing lost
     page.get_by_label('Change in colour').check()
     page.get_by_label('Describe your observation').fill('Grey water under the old railway arch.')
+    page.get_by_label('Photos (optional, up to 5)').set_input_files(str(photo))  # stored on this device while signed out
+    expect(page.get_by_text('arch.jpg')).to_be_visible()
     page.get_by_role('button', name='Continue to location').click()
     page.get_by_label('Landmark or directions').fill('Old railway arch, Station Road')
     page.get_by_label('This stream is not on the map').check()
@@ -46,10 +51,12 @@ def test_guest_landmark_report_survives_sign_in_and_opens_one_case(page):  # B01
     sign_in(page, fresh_contributor())
     expect(page).to_have_url(draft_url)
     expect(page.get_by_text('Old railway arch, Station Road')).to_be_visible()  # guest draft preserved after sign-in
+    expect(page.get_by_text('arch.jpg')).to_be_visible()  # the photo survived sign-in too
     page.get_by_role('button', name='Submit report').click()
     expect(page).to_have_url(re.compile(r'/app/[0-9a-f-]+/reports/[0-9a-f-]+'))
     expect(page.get_by_text('The cause is not established')).to_be_visible()
     expect(page.get_by_text('Location to be confirmed')).to_be_visible()
+    expect(page.get_by_text(re.compile('1 photo attached'))).to_be_visible()  # uploaded after sign-in and linked to the report
     page.get_by_role('link', name='Unnamed stream').click()
     expect(page.get_by_text('Map verification needed')).to_be_visible()
 

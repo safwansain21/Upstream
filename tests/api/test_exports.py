@@ -3,8 +3,7 @@ import json
 from uuid import uuid4
 
 from services.api.config import settings
-from services.worker.__main__ import work_once
-from tests.api.test_http import ORG, as_, client
+from tests.api.test_http import ORG, as_, client, wait_job
 from tests.api.test_review import approve, compute, readings, scenario
 from scripts.seed_example import sid
 
@@ -19,8 +18,7 @@ def approved_case():
 def export(aid):
     job = client.post(f'/api/v1/orgs/{ORG}/assessments/{aid}/exports', headers=as_('expert'))
     assert job.status_code == 202, job.text
-    while client.get(f"/api/v1/orgs/{ORG}/analyses/{job.json()['data']['id']}", headers=as_('coordinator')).json()['data']['state'] != 'done':
-        assert work_once()
+    assert wait_job(job.json()['data']['id'])['state'] == 'done'
     return job.json()['data']['id']
 
 

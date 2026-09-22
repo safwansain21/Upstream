@@ -1,8 +1,7 @@
 """Readiness, durable analysis jobs and stored engine results against the seeded example workspace."""
 from decimal import Decimal
 
-from services.worker.__main__ import work_once
-from tests.api.test_http import ORG, as_, client
+from tests.api.test_http import ORG, as_, client, wait_job
 
 
 def case_id(title):
@@ -42,11 +41,7 @@ def test_worker_computes_fixture_assessment_and_conservative_plan():  # E04 E08 
     again = client.post(f'/api/v1/orgs/{ORG}/cases/{mill}/analyses', headers=as_('coordinator'))
     assert again.json()['data']['id'] == job.json()['data']['id']  # same snapshot hash -> same durable job
     job_id = job.json()['data']['id']
-    for _ in range(5):
-        status = client.get(f'/api/v1/orgs/{ORG}/analyses/{job_id}', headers=as_('coordinator')).json()['data']
-        if status['state'] == 'done':
-            break
-        work_once()
+    status = wait_job(job_id)
     assert status['state'] == 'done', status
     a = client.get(f'/api/v1/orgs/{ORG}/cases/{mill}/assessment', headers=as_('expert')).json()['data']
     assert a['eligible'] and Decimal(a['retained_length_m']) == Decimal('5300')

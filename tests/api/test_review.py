@@ -4,8 +4,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 from scripts.seed_example import seed_revised_scenario, sid
-from services.worker.__main__ import work_once
-from tests.api.test_http import ORG, as_, client
+from tests.api.test_http import ORG, as_, client, wait_job
 
 
 def scenario():
@@ -16,8 +15,7 @@ def scenario():
 def compute(case):
     job = client.post(f'/api/v1/orgs/{ORG}/cases/{case}/analyses', headers=as_('coordinator'))
     assert job.status_code == 202, job.text
-    while client.get(f"/api/v1/orgs/{ORG}/analyses/{job.json()['data']['id']}", headers=as_('coordinator')).json()['data']['state'] != 'done':
-        assert work_once()
+    assert wait_job(job.json()['data']['id'])['state'] == 'done'
     return client.get(f'/api/v1/orgs/{ORG}/cases/{case}/assessment', headers=as_('expert')).json()['data']
 
 
