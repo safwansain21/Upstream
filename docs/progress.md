@@ -226,3 +226,6 @@ Priority 6 IN PROGRESS (routes, e2e, accessibility, release docs):
   tests/api/test_durability.py (A04). Upgrade migrations: tests/migrations/test_upgrade.py (A08) - destructive, runs only with
   UPSTREAM_RUN_DESTRUCTIVE=1, resets to an earlier schema, inserts data, upgrades, then fresh-resets and reseeds.
   Full suite 152 passed (1 destructive skipped); 79 gates PASS.
+- Gate batch: tests/api/test_gates_misc.py (B14 E14 E22 E27 G08 A02), tests/e2e/test_gates_ui.py (B05 B15 G07-html I15 I16),
+  tests/test_docs.py (J10; found GEOCODER_BASE_URL undocumented - runbook now states no place search exists).
+  Full suite 164 passed; 91 gates PASS.

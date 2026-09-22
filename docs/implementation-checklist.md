@@ -6,7 +6,7 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 ## Acceptance gates
 
 - [ ] A01 Fresh checkout + documented commands starts web/API/worker/database/auth/storage, applies migrations and shows seed example.
-- [ ] A02 No paid map/AI/email API key is needed for the example workspace and complete deterministic core workflow.
+- [x] A02 No paid map/AI/email API key is needed for the example workspace and complete deterministic core workflow.
 - [x] A03 Refreshing each required route retains server records and correct case/org identity.
 - [x] A04 Worker/API restart during a job does not lose data, duplicate a case, or approve a partial result.
 - [x] A05 Production build/typecheck and secret scanning pass; source maps/assets contain no privileged key.
@@ -17,7 +17,7 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] B02 Submit a report without waterway, station or case selection; one durable case opens.
 - [x] B03 Submit with landmark only and unknown coordinate; case says location verification needed, not fake map precision.
 - [x] B04 "This stream is not on the map" preserves pin/accuracy/local name and creates a provisional association.
-- [ ] B05 Geo-permission denial leaves manual location/landmark submission functional.
+- [x] B05 Geo-permission denial leaves manual location/landmark submission functional.
 - [x] B06 Text-only report works; malformed/oversize media fails locally/server-side without losing text.
 - [x] B07 Public derivatives have location EXIF removed; private original access remains authorized.
 - [x] B08 Duplicate submit with same idempotency key/body returns same report/case; altered body returns conflict.
@@ -26,8 +26,8 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [ ] B11 Submission receipt distinguishes device-saved, uploading and server-received.
 - [x] B12 Contributor can see actual effect or no-effect message and the assessment version used.
 - [x] B13 Superseded assessment marks its contribution receipt revised; original receipt history remains readable.
-- [ ] B14 Publication defaults private; a report's visibility choice does not expose other case records.
-- [ ] B15 Field access guidance never blocks a legitimate report with a forced assertion of permitted land.
+- [x] B14 Publication defaults private; a report's visibility choice does not expose other case records.
+- [x] B15 Field access guidance never blocks a legitimate report with a forced assertion of permitted land.
 - [x] C01 Import GeoJSON preserves license/source and defaults connectivity to unverified.
 - [x] C02 Proposed network cannot drive source exclusion until reviewed within a documented domain.
 - [x] C03 Unknown relevant tributary/culvert does not become disconnected/no signal.
@@ -67,7 +67,7 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] E11 Widening bounds/removing readings cannot shrink mathematical feasible set; eligibility assessed separately.
 - [x] E12 Shared offsets, visit effects and water-condition scopes are actual shared variables.
 - [x] E13 Unknown/timeout/out-of-memory never means incompatible.
-- [ ] E14 No fitted source likelihood, pollution probability or health score appears.
+- [x] E14 No fitted source likelihood, pollution probability or health score appears.
 - [x] E15 Every exclusion has versioned constraints and a reproducible problem hash.
 - [x] E16 Planner contains ambiguous outcomes and counts channel length, not reach rows.
 - [x] E17 McCormick outer relaxation contains generated exact configurations.
@@ -75,12 +75,12 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] E19 Time-limited planner returns conservative bound/unscored; it does not quietly omit hard subsets.
 - [ ] E20 Future solver unresolved results cannot be dropped to make observed area match prediction.
 - [x] E21 AI and simulator truth fields cannot enter scientific snapshots.
-- [ ] E22 One Health context toggles do not change compatibility.
+- [x] E22 One Health context toggles do not change compatibility.
 - [x] E23 Claimed comparable readings have actual persistence/path/transport justification; timestamps alone insufficient.
 - [x] E24 Below-background events/negative load are outside the one-positive-input model, not mislocalized.
 - [x] E25 Background empirical coverage label is honest; chronological validation is separate from fitting.
 - [ ] E26 Multi-source/transient/misconnected cases report limitations without guaranteed fault-detection claims.
-- [ ] E27 No live protocol is automatically populated with synthetic bounds.
+- [x] E27 No live protocol is automatically populated with synthetic bounds.
 - [x] F01 Approved assessment is immutable; change creates draft and preserves predecessor.
 - [x] F02 Concurrent evidence change makes approval fail with dependency conflict.
 - [x] F03 Admin without expert capability cannot approve from API or UI.
@@ -105,7 +105,7 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] G05 RLS tests cover reads and writes, RPCs and direct REST; no service-role key in browser.
 - [x] G06 Role/capability self-upgrade is rejected.
 - [ ] G07 CSRF/origin/unsafe HTML/prompt-injection input cannot execute actions.
-- [ ] G08 Media MIME mismatch/decompression bomb/oversize import is rejected.
+- [x] G08 Media MIME mismatch/decompression bomb/oversize import is rejected.
 - [x] G09 Arbitrary URLs in reports/AI/imports cannot trigger server-side network access.
 - [ ] G10 Recipient webhook private-address/redirect abuse is rejected outside local test mode.
 - [ ] G11 Logs omit secrets, photos, precise location and free-text report content.
@@ -136,18 +136,18 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [ ] I12 Map overlay transition waits for actual result; expansions and reductions equally clear.
 - [ ] I13 No numeric count-up through fabricated intermediate measurements.
 - [ ] I14 Upload percentage reflects actual progress or clearly indeterminate stage.
-- [ ] I15 No perpetual decorative movement, custom cursor, scroll hijacking or celebration of environmental damage.
-- [ ] I16 Browser back/forward and direct links preserve sensible focus, selection and case identity.
+- [x] I15 No perpetual decorative movement, custom cursor, scroll hijacking or celebration of environmental damage.
+- [x] I16 Browser back/forward and direct links preserve sensible focus, selection and case identity.
 - [ ] I17 Functional app screenshots are desktop web layouts, not phone mockups.
 - [ ] J01 Public LCP/CLS and JS budget measured using documented browser/network profile.
 - [ ] J02 Long scientific jobs run off request path; UI remains navigable/cancellable.
 - [ ] J03 Test directory with 10k records and map with 500 visible features; no unbounded browser render.
 - [ ] J04 Actual origin labels appear in maps, exports, observations, examples and receipts.
 - [ ] J05 Evaluation compares policies using same inference/eligibility/stopping and exogenous paired episodes.
-- [ ] J06 Independent-event count is separate from sample/replicate count.
+- [x] J06 Independent-event count is separate from sample/replicate count.
 - [ ] J07 Report containment, incorrect exclusions, unresolved rate and effort together.
 - [x] J08 Local test receiver demonstrates delivery and supersession acknowledgment without sending to real organizations.
 - [ ] J09 Database/object backup and isolated restore procedure exercised.
-- [ ] J10 Deployment guide, environment classification, key rotation and rollback procedures complete.
+- [x] J10 Deployment guide, environment classification, key rotation and rollback procedures complete.
 - [ ] J11 No unwired button, temporary screen, lorem ipsum, fake partner claim or "coming soon" route inside required scope.
 - [ ] J12 Final handoff reports actual tests, externally unavailable integrations and empirical limits without claiming field validation.

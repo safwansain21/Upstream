@@ -17,6 +17,7 @@ This describes how to run Upstream outside local development. No live deployment
 | `INTAKE_ORG_ID` | config | reports without a chosen organization have nowhere to go; the form says intake is not configured |
 | `EXAMPLE_MODE` | config | must be `false` in production (startup validation refuses otherwise) |
 | `MAP_STYLE_URL` | config, optional | maps show Upstream data on a plain labelled background |
+| `GEOCODER_BASE_URL` | config, optional | not used by this build: there is no place-name search; reporters use GPS, a map pin, coordinates or a landmark description |
 | `AI_API_KEY`, `AI_MODEL`, `AI_BASE_URL` | secret/config, optional | AI assistance shown as unavailable; all work continues manually |
 | `EXPORT_SIGNING_KEY_ID`, `EXPORT_SIGNING_PRIVATE_KEY` | secret, optional | packages are explicitly unsigned |
 | `FHIR_CANONICAL_BASE` | config | profile URLs in the optional FHIR adapter |

@@ -7,12 +7,13 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 152 passed, 1 skipped (destructive), 2026-09-22')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 164 passed, 1 skipped (destructive), 2026-09-22')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
 T = 'tests/e2e/test_task_flow.py::test_task_proposal_assignment_capture_and_review'
 M, MS = 'tests/api/test_mapping.py::', 'tests/e2e/test_map_setup.py::'
+GM, GU = 'tests/api/test_gates_misc.py::', 'tests/e2e/test_gates_ui.py::'
 SB = 'tests/security/test_boundaries.py::'
 RA, SEC = 'tests/e2e/test_responsive_a11y.py::', 'tests/security/test_secrets.py::'
 RT, MB = 'tests/e2e/test_routes.py::', 'tests/api/test_membership.py::'
@@ -22,6 +23,18 @@ X, XE = 'tests/api/test_exports.py::', 'tests/e2e/test_export_flow.py::test_pack
 
 PASSES = {
     'A03': [RT + 'test_workspace_and_case_routes_render[expert]', RT + 'test_workspace_and_case_routes_render[coordinator]', W + 'test_directory_requires_sign_in_and_lists_example_cases'],
+    'A02': [GM + 'test_core_workflow_runs_without_paid_providers', W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case', 'tests/e2e/test_export_flow.py::test_package_send_and_recipient_acknowledgment'],
+    'B05': [GU + 'test_geolocation_denied_still_allows_landmark_report_without_land_assertion'],
+    'B14': [GM + 'test_visibility_choice_never_exposes_other_records', H + 'test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent'],
+    'B15': [GU + 'test_geolocation_denied_still_allows_landmark_report_without_land_assertion'],
+    'E14': [GM + 'test_no_fitted_probability_or_health_score_in_results'],
+    'E22': [GM + 'test_context_layers_do_not_change_compatibility_inputs', E + 'test_truth_ai_float_and_bad_intervals_rejected'],
+    'E27': [GM + 'test_real_organizations_get_no_synthetic_protocol_bounds', 'tests/api/test_bootstrap.py::test_bootstrap_creates_real_org_with_admin_only'],
+    'G08': [H + 'test_upload_rejects_disguised_and_oversized_images', GM + 'test_oversize_media_and_imports_are_rejected'],
+    'I15': [GU + 'test_no_perpetual_decorative_motion_after_settling'],
+    'I16': [GU + 'test_back_and_forward_keep_case_identity'],
+    'J06': [B + 'test_chronological_evaluation_freezes_fit_and_counts_independent_events'],
+    'J10': ['tests/test_docs.py::test_runbook_classifies_every_env_var_and_covers_procedures', 'tests/test_docs.py::test_readme_lists_the_documented_local_commands'],
     'A04': ['tests/api/test_durability.py::test_crashed_worker_lease_is_reclaimed_without_duplicates', 'tests/api/test_durability.py::test_retried_submission_after_restart_does_not_duplicate_case', 'tests/api/test_durability.py::test_worker_loop_survives_database_interruption'],
     'A08': ['tests/migrations/test_upgrade.py::test_upgrade_from_earlier_schema_preserves_data_then_fresh_reset_works'],
     'A05': [SEC + 'test_production_build_and_repository_have_no_privileged_secrets', SEC + 'test_web_typecheck_passes', SEC + 'test_scanner_detects_planted_service_key_and_private_key'],
@@ -109,7 +122,6 @@ PARTIAL = {
     'J11': 'Partial: no dead internal links (test_public_routes_and_links_resolve); unwired-button and content audit not automated.',
     'I08': 'Partial: automated axe finds zero serious/critical issues on key public and workspace pages (test_no_serious_accessibility_violations); 200% zoom, reflow and manual checks not done.',
     'B11': 'Partial: device-saved vs server-received shown in form and receipt; uploading/offline states not browser-tested.',
-    'B14': 'Partial: default private asserted (test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent); cross-record exposure not tested.',
     'C06': 'Partial: station insertion splits the reach and preserves length (test_station_splits_reach_without_snapping_and_preserves_length); signature recompute and row subdivision without a station not asserted.',
     'H07': 'Partial: no-basemap fallback is labelled (test_directory_map_and_list_show_precision); a failing configured provider is not tested.',
     'C09': 'Partial: test_readiness_reports_missing_prerequisites_independently covers mapping/flow-regime checks only.',
@@ -117,8 +129,7 @@ PARTIAL = {
     'D10': 'Partial: held-for-review reason asserted (test_missing_metadata_meter_sc25_and_calibration_are_history_only); audit entry not asserted.',
     'E08': 'Partial: 105/23 (test_independent_fraction_oracle) and U=5 bound 5300 (test_planner_ambiguous_outcomes_and_budget_safety); equality case not asserted.',
     'G11': 'Partial: API access log contains no report text, coordinates or service key (test_access_log_has_no_report_text_or_coordinates); worker log not asserted.',
-    'G07': 'Partial: foreign Origin rejected (test_foreign_origin_rejected, test_origin_mismatch_rejected); unsafe HTML/prompt injection not tested.',
-    'G08': 'Partial: MIME mismatch and >40 MP rejected (test_upload_rejects_disguised_and_oversized_images); oversize import not tested.',
+    'G07': 'Partial: foreign Origin rejected (test_foreign_origin_rejected, test_origin_mismatch_rejected) and report HTML renders as inert text (test_report_html_is_rendered_as_text_not_executed); prompt-injection handling awaits the AI adapter.',
     'J02': 'Partial: analysis runs in the worker off the request path (test_worker_computes_fixture_assessment_and_conservative_plan); cancellation not tested.',
 }
 
