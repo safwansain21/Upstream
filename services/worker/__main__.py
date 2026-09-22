@@ -98,8 +98,12 @@ def work_once() -> bool:
 def main():
     print(f'worker {WORKER} polling analysis_jobs', flush=True)
     while True:
-        if not work_once():
-            time.sleep(2)
+        try:
+            if not work_once():
+                time.sleep(2)
+        except Exception:  # noqa: BLE001 - e.g. database restart: leases make the retry safe, so keep polling
+            traceback.print_exc()
+            time.sleep(5)
 
 
 if __name__ == '__main__':

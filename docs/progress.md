@@ -222,3 +222,7 @@ Priority 6 IN PROGRESS (routes, e2e, accessibility, release docs):
   GET /me/export and POST /me/deletion-request (disables account via auth ban + revokes memberships, withdraws public
   visibility, keeps evidence pseudonymized; admin completes erasure per runbook); profile page buttons.
   tests/security/test_boundaries.py (G02 G05 G09 G11 G12). Full suite 149 passed; 77 gates PASS.
+- Durability: worker main loop now survives database interruptions (found when a DB reset killed the worker);
+  tests/api/test_durability.py (A04). Upgrade migrations: tests/migrations/test_upgrade.py (A08) - destructive, runs only with
+  UPSTREAM_RUN_DESTRUCTIVE=1, resets to an earlier schema, inserts data, upgrades, then fresh-resets and reseeds.
+  Full suite 152 passed (1 destructive skipped); 79 gates PASS.

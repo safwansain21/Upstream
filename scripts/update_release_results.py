@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 149 passed, 2026-09-22')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 152 passed, 1 skipped (destructive), 2026-09-22')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
@@ -22,6 +22,8 @@ X, XE = 'tests/api/test_exports.py::', 'tests/e2e/test_export_flow.py::test_pack
 
 PASSES = {
     'A03': [RT + 'test_workspace_and_case_routes_render[expert]', RT + 'test_workspace_and_case_routes_render[coordinator]', W + 'test_directory_requires_sign_in_and_lists_example_cases'],
+    'A04': ['tests/api/test_durability.py::test_crashed_worker_lease_is_reclaimed_without_duplicates', 'tests/api/test_durability.py::test_retried_submission_after_restart_does_not_duplicate_case', 'tests/api/test_durability.py::test_worker_loop_survives_database_interruption'],
+    'A08': ['tests/migrations/test_upgrade.py::test_upgrade_from_earlier_schema_preserves_data_then_fresh_reset_works'],
     'A05': [SEC + 'test_production_build_and_repository_have_no_privileged_secrets', SEC + 'test_web_typecheck_passes', SEC + 'test_scanner_detects_planted_service_key_and_private_key'],
     'A06': ['tests/api/test_bootstrap.py::test_bootstrap_creates_real_org_with_admin_only'],
     'B01': [W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case', H + 'test_first_time_reporter_can_upload_before_any_report'],
@@ -106,7 +108,6 @@ PARTIAL = {
     'A07': 'Partial: every required route renders and all internal links resolve (test_public_routes_and_links_resolve, test_workspace_and_case_routes_render); loading/empty/error/permission states are implemented per page but not asserted route by route.',
     'J11': 'Partial: no dead internal links (test_public_routes_and_links_resolve); unwired-button and content audit not automated.',
     'I08': 'Partial: automated axe finds zero serious/critical issues on key public and workspace pages (test_no_serious_accessibility_violations); 200% zoom, reflow and manual checks not done.',
-    'A08': 'Partial: fresh `supabase db reset --local` applies all migrations and the seed; upgrade from a prior schema not tested.',
     'B11': 'Partial: device-saved vs server-received shown in form and receipt; uploading/offline states not browser-tested.',
     'B14': 'Partial: default private asserted (test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent); cross-record exposure not tested.',
     'C06': 'Partial: station insertion splits the reach and preserves length (test_station_splits_reach_without_snapping_and_preserves_length); signature recompute and row subdivision without a station not asserted.',
@@ -125,10 +126,13 @@ path = Path(__file__).resolve().parents[1] / 'docs/release-results.md'
 text = path.read_text(encoding='utf-8')
 
 
+COMMANDS = {'A08': '`UPSTREAM_RUN_DESTRUCTIVE=1 .venv/Scripts/python.exe -m pytest tests/migrations -q -p no:cacheprovider -rA` (resets the local database, then reseeds) - 1 passed, 2026-09-22'}
+
+
 def row(match):
     gate = match.group(1)
     if gate in PASSES:
-        return f'| {gate} | PASS | {CMD} | ' + '; '.join(PASSES[gate]) + ' |'
+        return f'| {gate} | PASS | {COMMANDS.get(gate, CMD)} | ' + '; '.join(PASSES[gate]) + ' |'
     if gate in PARTIAL:
         return f'| {gate} | FAIL | {CMD} | {PARTIAL[gate]} |'
     return match.group(0)

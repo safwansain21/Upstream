@@ -8,11 +8,11 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [ ] A01 Fresh checkout + documented commands starts web/API/worker/database/auth/storage, applies migrations and shows seed example.
 - [ ] A02 No paid map/AI/email API key is needed for the example workspace and complete deterministic core workflow.
 - [x] A03 Refreshing each required route retains server records and correct case/org identity.
-- [ ] A04 Worker/API restart during a job does not lose data, duplicate a case, or approve a partial result.
+- [x] A04 Worker/API restart during a job does not lose data, duplicate a case, or approve a partial result.
 - [x] A05 Production build/typecheck and secret scanning pass; source maps/assets contain no privileged key.
 - [x] A06 First production admin/intake organization setup is documented and does not reuse example credentials.
 - [ ] A07 All required routes have loading, empty, error and permission states; zero dead-end navigation items.
-- [ ] A08 Fresh migrations and upgrade migrations pass against isolated databases.
+- [x] A08 Fresh migrations and upgrade migrations pass against isolated databases.
 - [x] B01 Guest starts text/photo draft, signs in, returns with all data preserved.
 - [x] B02 Submit a report without waterway, station or case selection; one durable case opens.
 - [x] B03 Submit with landmark only and unknown coordinate; case says location verification needed, not fake map precision.
