@@ -33,11 +33,13 @@ def main(command):
         run(PNPM, 'exec', 'supabase', 'start')
         run(PNPM, 'exec', 'supabase', 'migration', 'up', '--local')
         print('Local Supabase started. Run pnpm exec supabase status to inspect local-only credentials.')
-    elif command in {'seed', 'reset'}:
-        script = ROOT / 'scripts' / ('seed_example.py' if command == 'seed' else 'reset_example.py')
-        if not script.exists():
-            raise SystemExit('Example database commands are pending implementation; no records were modified.')
-        run(PYTHON, script)
+    elif command == 'seed':
+        run(PYTHON, ROOT / 'scripts/seed_example.py')
+    elif command == 'reset':
+        # ponytail: reset = rebuild the local database; seed_example.py's guard refuses non-local/production targets.
+        run(PYTHON, '-c', 'import sys; sys.path.insert(0, "."); import scripts.seed_example as s; s.guard()')
+        run(PNPM, 'exec', 'supabase', 'db', 'reset', '--local')
+        run(PYTHON, ROOT / 'scripts/seed_example.py')
     elif command == 'dev':
         api = ROOT / 'services/api/main.py'
         if not api.exists():
