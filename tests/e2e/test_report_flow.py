@@ -66,9 +66,12 @@ def test_directory_requires_sign_in_and_lists_example_cases(page):  # A03 G01
     expect(page).to_have_url(re.compile('/sign-in'))
     sign_in(page, 'coordinator@example.test')
     expect(page).to_have_url(re.compile('/investigations'))
-    expect(page.get_by_role('heading', name='Mill Brook')).to_be_visible()
+    expect(page.get_by_role('list', name='Investigations').locator('> li').first).to_be_visible()
+    page.get_by_label('Search a stream, place or case number').fill('Mill Brook')  # other tests add cases; don't rely on page 1
+    expect(page.get_by_role('heading', name='Mill Brook', exact=True)).to_be_visible()
     page.reload()  # direct load/refresh retains server records and org identity
-    expect(page.get_by_role('heading', name='Mill Brook')).to_be_visible()
+    page.get_by_label('Search a stream, place or case number').fill('Mill Brook')
+    expect(page.get_by_role('heading', name='Mill Brook', exact=True)).to_be_visible()
     page.goto(BASE + '/app/00000000-0000-4000-8000-000000000000/investigations')
     expect(page.get_by_text('This workspace is not available to you')).to_be_visible()
 
@@ -99,7 +102,8 @@ def test_coordinator_runs_analysis_and_sees_engine_result(page):  # E04 E08 C09 
     page.goto(BASE + '/sign-in')
     sign_in(page, 'coordinator@example.test')
     expect(page).to_have_url(re.compile('/investigations'))
-    page.get_by_role('link', name=re.compile('Mill Brook')).first.click()
+    page.get_by_label('Search a stream, place or case number').fill('Mill Brook')
+    page.get_by_role('heading', name='Mill Brook', exact=True).click()
     expect(page.get_by_role('heading', name='Readiness')).to_be_visible()
     page.get_by_role('button', name=re.compile('Run analysis|Recompute')).click()
     expect(page.get_by_text('Analysis complete.')).to_be_visible(timeout=60000)

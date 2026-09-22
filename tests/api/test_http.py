@@ -40,7 +40,7 @@ def wait_job(job_id, timeout=120):
     deadline = time.monotonic() + timeout
     while True:
         state = client.get(f'/api/v1/orgs/{ORG}/analyses/{job_id}', headers=as_('coordinator')).json()['data']
-        if state['state'] in ('done', 'failed'):
+        if state['state'] in ('done', 'failed', 'cancelled'):
             return state
         assert time.monotonic() < deadline, state
         if not work_once():
@@ -99,7 +99,7 @@ def test_directory_scopes_and_pagination():
     page2 = client.get(f'/api/v1/orgs/{ORG}/cases', params={'limit': 2, 'cursor': coordinator['next_cursor']},
                        headers=as_('coordinator')).json()['data']
     assert not {c['id'] for c in page2['items']} & {c['id'] for c in coordinator['items']}
-    assert client.get(f'/api/v1/orgs/{ORG}/cases?q=Mill%20Brook', headers=as_('coordinator')).json()['data']['items'][0]['title'] == 'Mill Brook'
+    assert 'Mill Brook' in [c['title'] for c in client.get(f'/api/v1/orgs/{ORG}/cases?q=Mill%20Brook', headers=as_('coordinator')).json()['data']['items']]
     # A monitor sees only cases with their assignments (need-to-know), not the org directory.
     seen = lambda q: [c['title'] for c in client.get(f'/api/v1/orgs/{ORG}/cases', params={'q': q}, headers=as_('monitor')).json()['data']['items']]  # noqa: E731
     assert 'Mill Brook' in seen('Mill Brook') and seen('Allotment ditch') == []

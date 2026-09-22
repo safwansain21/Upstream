@@ -58,6 +58,8 @@ def test_no_serious_accessibility_violations(page):  # I08 (automated part)
     findings = {}
     for path in ['/', '/how-it-works', '/example', '/example/useful-evidence', '/sign-in', '/status']:
         rendered(page, path)
+        if path == '/status':  # scan after the live check settles; mid-scan the button flips from disabled to enabled
+            expect(page.locator('section[aria-busy="false"]')).to_be_visible(timeout=15000)
         if v := axe(page):
             findings[path] = v
     open_as(page, 'expert@example.test')

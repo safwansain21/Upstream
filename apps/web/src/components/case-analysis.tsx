@@ -46,7 +46,7 @@ export function CaseAnalysis({ org, caseId, canAnalyse, canReview, dataOrigin = 
   }, [assessment.data]);
 
   useEffect(() => { // polling fallback for job status; the displayed result changes only when the complete server result exists
-    if (!job || job.state === "done" || job.state === "failed") return;
+    if (!job || job.state === "done" || job.state === "failed" || job.state === "cancelled") return;
     const timer = setTimeout(async () => {
       try {
         const next = await api<Job>(`/orgs/${org}/analyses/${job.id}`);
@@ -100,8 +100,9 @@ export function CaseAnalysis({ org, caseId, canAnalyse, canReview, dataOrigin = 
           {blocker ? <p>Next prerequisite: <strong>{blocker.label}</strong>{blocker.reasons.length ? ` (${blocker.reasons.join("; ")})` : ""}</p> : null}
         </>}
       {canAnalyse ? <div className="button-row">
-        <button className="button button-outline" disabled={!!job && job.state !== "done" && job.state !== "failed"} onClick={run}>{a ? "Recompute with current evidence" : "Run analysis"}</button>
-        {job ? <p role="status" className="muted">{job.state === "done" ? "Analysis complete." : job.state === "failed" ? `Analysis failed: ${job.last_error}` : `${job.progress_stage} · ${job.elapsed_seconds}s elapsed${a ? " · showing previous assessment until the new one is complete" : ""}`}</p> : null}
+        <button className="button button-outline" disabled={!!job && (job.state === "queued" || job.state === "running")} onClick={run}>{a ? "Recompute with current evidence" : "Run analysis"}</button>
+        {job && (job.state === "queued" || job.state === "running") ? <button className="button button-quiet" onClick={() => api<Job>(`/orgs/${org}/analyses/${job.id}/cancel`, { method: "POST" }).then(setJob, e => setError((e as Error).message))}>Cancel analysis</button> : null}
+        {job ? <p role="status" className="muted">{job.state === "done" ? "Analysis complete." : job.state === "cancelled" ? "Analysis cancelled. Earlier results are unchanged." : job.state === "failed" ? `Analysis failed: ${job.last_error}` : `${job.progress_stage} · ${job.elapsed_seconds}s elapsed${a ? " · showing previous assessment until the new one is complete" : ""}`}</p> : null}
       </div> : null}
     </section>
 

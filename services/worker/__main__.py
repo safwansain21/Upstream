@@ -82,15 +82,16 @@ def work_once() -> bool:
             return True
         snapshot, result, ranked = run(job)
         with transaction(worker=True) as db:
-            if db.execute('select lease_owner from analysis_jobs where id=%s for update', (job['id'],)).fetchone()['lease_owner'] != WORKER:
-                return True  # lease lost to another worker; its result wins, ours is discarded
+            current = db.execute('select lease_owner,cancelled_at from analysis_jobs where id=%s for update', (job['id'],)).fetchone()
+            if current['lease_owner'] != WORKER or current['cancelled_at']:
+                return True  # lease lost or cancelled while computing: nothing is stored
             store(db, job, snapshot, result, ranked)
     except Exception as exc:  # noqa: BLE001 - every failure is recorded, never reported as success
         traceback.print_exc()
         dead = job['attempts'] >= MAX_ATTEMPTS
         with transaction(worker=True) as db:
             db.execute(f'''update analysis_jobs set state=%s, last_error=%s, lease_until=null,
-                available_at=now()+interval '30 seconds' * attempts where id=%s''',
+                available_at=now()+interval '30 seconds' * attempts where id=%s and cancelled_at is null''',
                        ('failed' if dead else 'queued', type(exc).__name__ + ': ' + str(exc)[:500], job['id']))
     return True
 

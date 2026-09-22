@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { OfflineStatus } from "../../../components/offline";
 import { AppHeader } from "../../../components/app-header";
 import { InlineError, LoadingState } from "../../../components/ui";
 import { db, newDraft } from "../../../lib/drafts";
@@ -17,5 +18,5 @@ export default function NewReport() {
     db.drafts.put(draft).then(() => router.replace(`/report/${draft.id}/edit`),
       () => setError("This browser cannot store drafts (private mode or storage full). Reporting needs device storage in this version."));
   }, [router]);
-  return <><AppHeader/><main id="main-content" className="page-shell">{error ? <InlineError>{error}</InlineError> : <LoadingState label="Starting a new observation…"/>}</main></>;
+  return <><OfflineStatus/><AppHeader/><main id="main-content" className="page-shell">{error ? <InlineError>{error}</InlineError> : <LoadingState label="Starting a new observation…"/>}</main></>;
 }

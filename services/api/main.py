@@ -380,8 +380,12 @@ def enqueue_analysis(org: UUID, case: UUID, request: Request, user: Identity = D
     payload = json.dumps({'engine': snapshot.model_dump(mode='json'), 'dependencies': deps, 'context': context}, default=str)
     with transaction(worker=True) as db:
         job = db.execute('''insert into analysis_jobs(org_id,case_id,purpose,input_hash,snapshot) values(%s,%s,'assessment',%s,%s)
-            on conflict(purpose,input_hash,org_id) do update set purpose=excluded.purpose returning id,state,progress_stage,result_id''',
-                         (org, case, canonical_hash(snapshot), payload)).fetchone()
+            on conflict(purpose,input_hash,org_id) do update set purpose=excluded.purpose,
+              state=case when analysis_jobs.state='cancelled' then 'queued' else analysis_jobs.state end,
+              cancelled_at=case when analysis_jobs.state='cancelled' then null else analysis_jobs.cancelled_at end,
+              progress_stage=case when analysis_jobs.state='cancelled' then 'Queued' else analysis_jobs.progress_stage end,
+              attempts=case when analysis_jobs.state='cancelled' then 0 else analysis_jobs.attempts end
+            returning id,state,progress_stage,result_id''', (org, case, canonical_hash(snapshot), payload)).fetchone()
         db.execute("insert into case_events(org_id,case_id,event_type,actor_id,object_id) values(%s,%s,'analysis.requested',%s,%s)",
                    (org, case, user.user_id, job['id']))
     return envelope(job, request, 202)
@@ -1456,4 +1460,40 @@ def ai_review(org: UUID, run: UUID, body: SuggestionReview, request: Request, us
                          (json.dumps({'accepted_codes': body.accepted_codes, 'edited': body.edited}), org, run, user.user_id)).fetchone()
     if not row:
         raise DomainError('NOT_FOUND', 'Record not found.', 404)
+    return envelope(row, request)
+
+
+# ---- public case snapshot (G04) and analysis cancellation (J02) ----
+
+@app.get('/api/v1/public/cases/{case}')
+def public_case(case: UUID, request: Request):
+    """Anonymous, sanitized view: only cases with a report its author made public; coordinates generalized to ~1 km;
+    no report text, photos, people, readings or private fields."""
+    with transaction(worker=True) as db:
+        c = db.execute('''select c.id,c.title,c.workflow,c.data_origin,c.updated_at,c.current_assessment_id from cases c
+            where c.id=%s and c.merged_into is null and exists(select 1 from case_reports cr join reports r on r.id=cr.report_id
+            where cr.case_id=c.id and r.public_visibility)''', (case,)).fetchone()
+        if not c:
+            raise DomainError('NOT_FOUND', 'Record not found.', 404)
+        point = db.execute('''select round(extensions.st_y(r.location)::numeric,2) lat,round(extensions.st_x(r.location)::numeric,2) lon
+            from case_reports cr join reports r on r.id=cr.report_id where cr.case_id=%s and r.public_visibility and r.location is not null
+            order by r.created_at limit 1''', (case,)).fetchone()
+        approved = db.execute("select revision,retained_length_m,(result->>'eligible')::boolean eligible from assessments where id=%s and private.publication_status(id)='approved'",
+                              (c['current_assessment_id'],)).fetchone() if c['current_assessment_id'] else None
+    return envelope({'id': c['id'], 'title': c['title'], 'workflow': c['workflow'], 'data_origin': c['data_origin'], 'updated_at': c['updated_at'],
+                     'approximate_location': point and {'lat': str(point['lat']), 'lon': str(point['lon']), 'precision': 'generalized to about 1 km'},
+                     'approved_assessment': approved and {'revision': approved['revision'], 'retained_length_m': approved['retained_length_m'] if approved['eligible'] else None},
+                     'note': 'Public summary. The cause is not established; this is not a water safety assessment.'}, request)
+
+
+@app.post('/api/v1/orgs/{org}/analyses/{job}/cancel')
+def cancel_analysis(org: UUID, job: UUID, request: Request, user: Identity = Depends(identity)):
+    """Stops queued or not-yet-committed work; completed assessments are never deleted."""
+    j = one(user, 'select case_id,state from analysis_jobs where org_id=%s and id=%s', (org, job))
+    case_access(user, org, j['case_id'], ('coordinate', 'expert'))
+    with transaction(worker=True) as db:
+        row = db.execute("""update analysis_jobs set cancelled_at=now(),state='cancelled',progress_stage='Cancelled',lease_until=null
+            where id=%s and state in ('queued','running') returning id,state""", (job,)).fetchone()
+    if not row:
+        raise DomainError('VERSION_CONFLICT', f"The analysis is already {j['state']}; nothing was changed.", 409)
     return envelope(row, request)
