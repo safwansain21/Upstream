@@ -218,3 +218,7 @@ Priority 6 IN PROGRESS (routes, e2e, accessibility, release docs):
   README rewritten with setup/test commands, docs/runbook.md (env classification, first production setup, key rotation,
   backup/restore drill, rollback, queue retry, solver limits). Full suite 144 passed; 73 gates PASS.
 - Remaining after this: priority 7 (offline sync, AI adapter) and the long tail of partial/untested gates (see release-results).
+- Security batch: duplicate suggestions moved to POST (precise coordinates were reaching access logs - G11 fix);
+  GET /me/export and POST /me/deletion-request (disables account via auth ban + revokes memberships, withdraws public
+  visibility, keeps evidence pseudonymized; admin completes erasure per runbook); profile page buttons.
+  tests/security/test_boundaries.py (G02 G05 G09 G11 G12). Full suite 149 passed; 77 gates PASS.

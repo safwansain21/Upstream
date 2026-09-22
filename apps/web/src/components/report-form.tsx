@@ -154,8 +154,8 @@ type Suggestion = { case_id: string; title: string; distance_m: number; days_apa
 function Duplicates({ draft, onChoose }: { draft: Draft; onChoose: (id: string | undefined) => void }) {
   const [items, setItems] = useState<Suggestion[] | null>(null);
   useEffect(() => {
-    const params = new URLSearchParams({ lat: draft.latitude, lon: draft.longitude, observed_at: toReportBody(draft).observed_at });
-    api<Suggestion[]>(`/orgs/${draft.org}/duplicate-suggestions?${params}`).then(setItems, () => setItems([]));
+    api<Suggestion[]>(`/orgs/${draft.org}/duplicate-suggestions`, { method: "POST", json: { lat: Number(draft.latitude), lon: Number(draft.longitude), observed_at: toReportBody(draft).observed_at } })
+      .then(setItems, () => setItems([]));
   }, [draft.org, draft.latitude, draft.longitude]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!items?.length) return null;
   return <fieldset><legend>Possibly related investigations nearby</legend>

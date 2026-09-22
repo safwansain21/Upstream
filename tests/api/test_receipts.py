@@ -16,8 +16,8 @@ def submit(**extra):
 def test_duplicate_suggestion_can_be_rejected_and_merge_preserves_both_reports():  # B09
     lat, lon = 51.47 + (uuid4().int % 1000) / 1e6, -2.61  # fresh spot per run
     first = submit(latitude=lat, longitude=lon, accuracy_m=10, location_method='gps', location_precision='approximate')
-    s = client.get(f'/api/v1/orgs/{ORG}/duplicate-suggestions', params={'lat': lat + .0005, 'lon': lon, 'observed_at': '2026-09-20T12:00:00+01:00'},
-                   headers=as_('reporter')).json()['data']
+    s = client.post(f'/api/v1/orgs/{ORG}/duplicate-suggestions', json={'lat': lat + .0005, 'lon': lon, 'observed_at': '2026-09-20T12:00:00+01:00'},
+                    headers=as_('reporter')).json()['data']
     assert first['case_id'] in [x['case_id'] for x in s] and all('description' not in x for x in s)
     # The citizen says "this is a new observation": a separate case is created, nothing merged automatically.
     second = submit(latitude=lat + .0005, longitude=lon, new_observation=True, suggested_case_id=first['case_id'])

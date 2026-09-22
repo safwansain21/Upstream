@@ -99,17 +99,17 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] F16 Exporting does not require sending. Configured delivery requires explicit action.
 - [x] F17 Original signed package is never rewritten when latest metadata becomes superseded.
 - [x] G01 Every cross-organization direct object/API/storage request is denied.
-- [ ] G02 Contributors cannot read private other-person media or internal evidence just by knowing an ID.
+- [x] G02 Contributors cannot read private other-person media or internal evidence just by knowing an ID.
 - [x] G03 Revoked membership immediately blocks new privileged operations and offline sync.
 - [ ] G04 Public snapshot exposes only sanitized approved fields and generalized coordinates.
-- [ ] G05 RLS tests cover reads and writes, RPCs and direct REST; no service-role key in browser.
+- [x] G05 RLS tests cover reads and writes, RPCs and direct REST; no service-role key in browser.
 - [x] G06 Role/capability self-upgrade is rejected.
 - [ ] G07 CSRF/origin/unsafe HTML/prompt-injection input cannot execute actions.
 - [ ] G08 Media MIME mismatch/decompression bomb/oversize import is rejected.
-- [ ] G09 Arbitrary URLs in reports/AI/imports cannot trigger server-side network access.
+- [x] G09 Arbitrary URLs in reports/AI/imports cannot trigger server-side network access.
 - [ ] G10 Recipient webhook private-address/redirect abuse is rejected outside local test mode.
 - [ ] G11 Logs omit secrets, photos, precise location and free-text report content.
-- [ ] G12 Personal-data export/visibility withdrawal/deletion-request workflow works without corrupting scientific references.
+- [x] G12 Personal-data export/visibility withdrawal/deletion-request workflow works without corrupting scientific references.
 - [ ] H01 Offline draft survives tab close/reopen on same device/account.
 - [ ] H02 Queued photo+report synchronize in dependency order and create one submission.
 - [ ] H03 Sign-out/account switch does not submit another user's queued draft.

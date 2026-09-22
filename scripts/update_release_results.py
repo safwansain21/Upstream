@@ -7,12 +7,13 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 144 passed, 2026-09-22')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 149 passed, 2026-09-22')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
 T = 'tests/e2e/test_task_flow.py::test_task_proposal_assignment_capture_and_review'
 M, MS = 'tests/api/test_mapping.py::', 'tests/e2e/test_map_setup.py::'
+SB = 'tests/security/test_boundaries.py::'
 RA, SEC = 'tests/e2e/test_responsive_a11y.py::', 'tests/security/test_secrets.py::'
 RT, MB = 'tests/e2e/test_routes.py::', 'tests/api/test_membership.py::'
 RC, RCE = 'tests/api/test_receipts.py::', 'tests/e2e/test_receipts_flow.py::'
@@ -91,6 +92,10 @@ PASSES = {
     'F10': [R + 'test_request_more_evidence_and_inspection_decision_coexist_with_limits'],
     'J08': [X + 'test_supersession_sends_distinct_revision_notice_and_keeps_old_bytes', XE],
     'G01': [H + 'test_other_org_and_unknown_records_are_not_found', 'tests/security/test_database.py::test_cross_tenant_relationship_is_rejected'],
+    'G02': [SB + 'test_contributor_cannot_read_internal_evidence_or_others_media_by_id', H + 'test_photo_upload_strips_location_and_attaches_to_report'],
+    'G05': [SB + 'test_direct_rest_and_rpc_cannot_bypass_policies', 'tests/security/test_database.py::test_all_domain_tables_have_rls', SEC + 'test_production_build_and_repository_have_no_privileged_secrets'],
+    'G09': [SB + 'test_urls_in_reports_and_imports_are_never_fetched'],
+    'G12': [SB + 'test_personal_data_export_and_deletion_request', H + 'test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent'],
     'G03': [MB + 'test_revoked_membership_blocks_privileged_operations_immediately'],
     'G06': ['tests/api/test_contracts.py::test_profile_cannot_upgrade_capabilities', H + 'test_me_lists_capabilities_not_client_roles', MB + 'test_capabilities_cannot_be_self_granted_or_granted_by_non_admins'],
 }
@@ -110,7 +115,7 @@ PARTIAL = {
     'D12': 'Partial: only the server side is verified - a reading submitted under an older task version is kept and flagged (test_missing_metadata_meter_sc25_and_calibration_are_history_only); the offline client does not exist yet.',
     'D10': 'Partial: held-for-review reason asserted (test_missing_metadata_meter_sc25_and_calibration_are_history_only); audit entry not asserted.',
     'E08': 'Partial: 105/23 (test_independent_fraction_oracle) and U=5 bound 5300 (test_planner_ambiguous_outcomes_and_budget_safety); equality case not asserted.',
-    'G02': 'Partial: another member gets 404 for private media (test_photo_upload_strips_location_and_attaches_to_report); internal evidence by ID not tested.',
+    'G11': 'Partial: API access log contains no report text, coordinates or service key (test_access_log_has_no_report_text_or_coordinates); worker log not asserted.',
     'G07': 'Partial: foreign Origin rejected (test_foreign_origin_rejected, test_origin_mismatch_rejected); unsafe HTML/prompt injection not tested.',
     'G08': 'Partial: MIME mismatch and >40 MP rejected (test_upload_rejects_disguised_and_oversized_images); oversize import not tested.',
     'J02': 'Partial: analysis runs in the worker off the request path (test_worker_computes_fixture_assessment_and_conservative_plan); cancellation not tested.',

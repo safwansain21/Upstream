@@ -1177,9 +1177,17 @@ class MergeCommand(StrictModel):
     reason: str
 
 
-@app.get('/api/v1/orgs/{org}/duplicate-suggestions')
-def duplicate_suggestions(org: UUID, request: Request, lat: float, lon: float, observed_at: str, user: Identity = Depends(identity)):
-    """Nearby recent investigations, generalized (rounded distance, no report content). Never merges anything (B09)."""
+class DuplicateQuery(StrictModel):
+    lat: float
+    lon: float
+    observed_at: str
+
+
+@app.post('/api/v1/orgs/{org}/duplicate-suggestions')
+def duplicate_suggestions(org: UUID, body: DuplicateQuery, request: Request, user: Identity = Depends(identity)):
+    """Nearby recent investigations, generalized (rounded distance, no report content). Never merges anything (B09).
+    POST so precise coordinates never appear in URLs or access logs (G11)."""
+    lat, lon, observed_at = body.lat, body.lon, body.observed_at
     if not (-90 <= lat <= 90 and -180 <= lon <= 180):
         raise DomainError('VALIDATION_FAILED', 'Coordinates are outside WGS84 ranges.')
     with transaction(worker=True) as db:
@@ -1343,3 +1351,50 @@ def example(slug: str, request: Request):
                      'assessment': None if not a else {'revision': a['revision'], 'retained_length_m': a['retained_length_m'], 'eligible': result['eligible'],
                                                        'readiness_reasons': result['readiness_reasons'], 'retained_geometry_ids': result['retained_geometry_ids'],
                                                        'classes': [{k: x[k] for k in ('id', 'reach_ids', 'length_m', 'status')} for x in result['classes']]}}, request)
+
+
+# ---- personal data: export and deletion request (G12) ----
+
+class DeletionRequest(StrictModel):
+    confirm: bool
+
+
+@app.get('/api/v1/me/export')
+def export_my_data(request: Request, user: Identity = Depends(identity)):
+    """Everything Upstream holds that identifies this person (their own records only)."""
+    with transaction(worker=True) as db:
+        data = {
+            'profile': db.execute('select display_name,locale,motion_preference,simplify_map,deletion_requested_at from profiles where id=%s', (user.user_id,)).fetchone(),
+            'email': db.execute('select email from auth.users where id=%s', (user.user_id,)).fetchone()['email'],
+            'memberships': db.execute('select o.name,m.status,m.created_at from memberships m join organizations o on o.id=m.org_id where m.user_id=%s', (user.user_id,)).fetchall(),
+            'reports': db.execute('''select id,case_id,categories,description,observed_at,timezone,landmark,location_precision,
+                extensions.st_y(location) latitude,extensions.st_x(location) longitude,public_visibility,created_at from reports where reporter_id=%s''', (user.user_id,)).fetchall(),
+            'readings': db.execute('select id,case_id,mode,value,unit,temperature,measured_at from reading_versions where operator_id=%s', (user.user_id,)).fetchall(),
+            'receipts': db.execute('select assessment_id,effect,created_at from contribution_receipts where user_id=%s', (user.user_id,)).fetchall(),
+            'photos': db.execute('select id,mime,bytes,created_at from media_assets where owner_id=%s', (user.user_id,)).fetchall(),
+        }
+    return envelope(data, request)
+
+
+@app.post('/api/v1/me/deletion-request')
+def request_deletion(body: DeletionRequest, request: Request, user: Identity = Depends(identity)):
+    """Immediately disables the account and public identity; scientific evidence and audit are kept pseudonymized.
+    Removal of remaining contact data and non-essential media is completed after administrator review (docs/runbook.md)."""
+    if not body.confirm:
+        raise DomainError('VALIDATION_FAILED', 'Confirm the deletion request.')
+    cfg = settings()
+    with transaction(worker=True) as db:
+        db.execute('''insert into profiles(id) values(%s) on conflict(id) do nothing''', (user.user_id,))
+        db.execute('''update profiles set deletion_requested_at=coalesce(deletion_requested_at,now()),display_name='Former contributor',
+            privacy_defaults='{}' where id=%s''', (user.user_id,))
+        db.execute('update reports set public_visibility=false,version=version+1 where reporter_id=%s and public_visibility', (user.user_id,))
+        db.execute("update memberships set status='revoked' where user_id=%s", (user.user_id,))
+        for org in db.execute('select distinct org_id from memberships where user_id=%s', (user.user_id,)).fetchall():
+            db.execute("insert into audit_log(org_id,actor_id,action,object_id,outcome) values(%s,%s,'privacy.deletion_requested',%s,'accepted')",
+                       (org['org_id'], user.user_id, user.user_id))
+    try:  # block new sessions; existing tokens are refused because membership is revoked
+        httpx.put(f'{cfg.supabase_url}/auth/v1/admin/users/{user.user_id}', json={'ban_duration': '876000h'}, timeout=15,
+                  headers={'apikey': cfg.supabase_service_role_key, 'Authorization': f'Bearer {cfg.supabase_service_role_key}'}).raise_for_status()
+    except httpx.HTTPError:
+        raise DomainError('PROVIDER_UNAVAILABLE', 'Your request was recorded, but sign-in could not be disabled yet. An administrator will complete it.', 503, True)
+    return envelope({'requested': True, 'note': 'Your account is disabled and your public identity removed. Evidence you contributed stays, without your name.'}, request)

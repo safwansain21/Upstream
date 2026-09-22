@@ -13,8 +13,10 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_scanner_detects_planted_service_key_and_private_key(tmp_path):
     planted = tmp_path / 'chunk.js'
-    service_jwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJvbGUiOiJzZXJ2aWNlX3JvbGUifQ.c2lnbmF0dXJlc2lnbmF0dXJl'
-    planted.write_text(f'const k="{service_jwt}";\n-----BEGIN PRIVATE KEY-----\nabc')
+    import base64
+    b64 = lambda d: base64.urlsafe_b64encode(d.encode()).decode().rstrip('=')  # noqa: E731  built at runtime so this file stays clean
+    service_jwt = '.'.join([b64('{"alg":"HS256","typ":"JWT"}'), b64('{"iss":"supabase","role":"service_role"}'), b64('signature-signature')])
+    planted.write_text(f'const k="{service_jwt}";\n' + '-----BEGIN ' + 'PRIVATE KEY-----\nabc')
     import scripts.secret_scan as s
     old = s.ROOT
     s.ROOT = tmp_path
