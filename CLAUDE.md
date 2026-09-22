@@ -5,7 +5,8 @@ Spec: `docs/specification/` (UPSTREAM-PRD.md, SCIENTIFIC-ENGINE.md, ACCEPTANCE.m
 ## Git
 - Only commit and push to `build/upstream`. Never push to `main`.
 - Commit and push after every working chunk. Sessions can end without warning.
-- Commit style: one lowercase imperative line describing the change (e.g. `add optional AI suggestion panel to the report form and record AI gate evidence`). No Co-Authored-By trailer or tool attribution anywhere in the repo.
+- Commit style: one lowercase imperative line describing the change (e.g. `add optional AI suggestion panel to the report form and record AI gate evidence`).
+- Never include "built with Claude Code", "Generated with Claude Code", a Co-Authored-By trailer, or any other tool attribution in commits, pushes, PRs, or repo files.
 
 ## Evidence
 - After each step, update `docs/release-results.md` via `scripts/update_release_results.py` (edit its PASSES/PARTIAL maps, rerun the full suite, update the pass count in `CMD`, run the script).
@@ -13,8 +14,12 @@ Spec: `docs/specification/` (UPSTREAM-PRD.md, SCIENTIFIC-ENGINE.md, ACCEPTANCE.m
 - Update `docs/progress.md` as you go.
 
 ## Priorities
-- Functionality over UI polish. Leave the I gates for a later UI pass.
-- Remaining order: J05, J07 → A01, A07, B11, F11, G04, G10, G11, J01, J02, J03, J09, J11, J12 → offline leftovers D12, H04, H06, H07, H10, H11 (skip if short on time; mark honestly).
+- Functionality over UI polish. Skip the I gates (I01-I14, I17); they are for a later UI pass.
+- Remaining order:
+  1. Quick stragglers: J02 (browser test for Cancel analysis), J11, A07, B11, F11, A01 (clean-clone check + README steps), J09 (backup and isolated restore).
+  2. G10: signed HTTPS webhook outbox per PRD 14 and 15.4 (SSRF checks, DNS revalidation at delivery, no redirects, HMAC, retry schedule 1m/5m/30m/2h/12h, admin retry keeping delivery ID and bytes).
+  3. Offline leftovers: D12, H04, H06, H07, H10, H11 (skip if short on time; mark honestly).
+  4. J12 last: final handoff report reflecting the true final state.
 
 ## Local stack (Windows)
 - Docker Desktop running; `node_modules/.bin/supabase migration up --local`; `.venv/Scripts/python.exe scripts/seed_example.py` (+ `scripts/seed_load.py` for J03).
