@@ -115,3 +115,24 @@ def test_origin_is_labelled_on_maps_observations_receipts_and_examples():  # J04
         expect(q.get_by_text('Example data').first).to_be_visible()
     finally:
         browser.close(); pw.stop()
+
+
+def test_ai_unavailable_is_labelled_and_manual_reporting_continues():  # H08 B10 (browser)
+    pw, browser, p = browser_page()
+    try:
+        p.goto(BASE + '/sign-in')
+        sign_in(p, fresh_contributor())
+        expect(p).to_have_url(re.compile('/investigations|/onboarding'))
+        p.goto(BASE + '/report/new')
+        p.get_by_label('Describe your observation').fill('White foam building up against the weir')
+        p.get_by_text(re.compile('Optional: suggest wording')).click()
+        p.get_by_role('button', name='Suggest wording').click()
+        expect(p.get_by_text('AI assistance is unavailable; you can continue manually.')).to_be_visible()
+        expect(p.get_by_label('Describe your observation')).to_have_value('White foam building up against the weir')  # nothing changed
+        p.get_by_role('button', name='Continue to location').click()
+        p.get_by_label('Landmark or directions').fill('Weir by the mill')
+        p.get_by_role('button', name='Continue to review').click()
+        p.get_by_role('button', name='Submit report').click()
+        expect(p).to_have_url(re.compile(r'/reports/[0-9a-f-]+'))
+    finally:
+        browser.close(); pw.stop()

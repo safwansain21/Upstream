@@ -248,3 +248,13 @@ Priority 7 (offline) DONE for reports:
 - tests/e2e/test_offline.py (H01 H02 H03 H05 H09 H12). Full suite 179 passed; 107 gates PASS.
 - Not built: offline capture of task readings (D12 client side), cached task packets, H04 quota handling test, H10 update
   prompt test. Next: AI adapter (B10, H08, G07 prompt injection), then remaining partial gates.
+
+Priority 7 (AI) DONE:
+- `services/api/ai.py`: disabled by default (no key) and an OpenAI Responses adapter (AI_API_KEY/AI_MODEL/AI_BASE_URL; https only,
+  or a localhost test provider outside production), strict json_schema output, closed code list, report text passed as quoted
+  data, no tools, whole answer rejected on extra keys/unknown codes/invented references, 20 s timeout.
+- API: POST ai/describe (photos only with explicit consent, 10/hour, every run logged in ai_runs; failure -> 503 "AI assistance is
+  unavailable; you can continue manually."), POST ai/runs/{id}/review (records what was accepted).
+- UI: optional "Suggest wording" panel in step 1; nothing is added unless the person clicks "Add to my report".
+- Tests: tests/api/test_ai.py (8, fake local provider), H08 browser test. Full suite 188 passed; 110 gates PASS.
+- The OpenAI adapter is verified only against a local fake provider; it has not been tested against the real service.

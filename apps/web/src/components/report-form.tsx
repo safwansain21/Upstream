@@ -110,6 +110,7 @@ export function ReportForm({ draftId }: { draftId: string }) {
       <div className="form-field"><label htmlFor="photos">Photos (optional, up to 5)</label><input id="photos" type="file" accept={PHOTO_TYPES.join(",")} multiple onChange={e => { addPhotos(e.target.files); e.target.value = ""; }} aria-describedby="photos-help"/><p className="field-help" id="photos-help">JPEG, PNG or WebP, 15 MB each. Location data embedded in photos is removed from shared copies. A photo records what you saw; it does not establish the cause.</p></div>
       {draft.photos?.length ? <ul aria-label="Attached photos">{draft.photos.map(p => <li key={p.id}>{p.name} · {(p.size / 1048576).toFixed(1)} MB{p.mediaId ? " · uploaded" : ""}{p.error ? <span className="field-error"> · {p.error}</span> : null} <button type="button" className="button button-quiet" onClick={() => update({ photos: draft.photos.filter(x => x.id !== p.id) })}>Remove<span className="visually-hidden"> {p.name}</span></button></li>)}</ul> : null}
       {draft.photos?.length ? <label className="checkbox-field"><input type="checkbox" checked={draft.keepOriginals} onChange={e => update({ keepOriginals: e.target.checked })}/><span>Keep my original photo files privately for the review team</span></label> : null}
+      {account ? <AiAssist draft={draft} onAccept={patch => update(patch)}/> : null}
       <div className="button-row"><button type="button" className="button button-primary" onClick={() => go(2)}>Continue to location</button></div></section> : null}
 
     {draft.step === 2 ? <section className="surface stack" aria-labelledby="step-heading"><h2 id="step-heading" tabIndex={-1} ref={heading}>Where was it?</h2>
@@ -153,4 +154,39 @@ function Duplicates({ draft, onChoose }: { draft: Draft; onChoose: (id: string |
     <label className="checkbox-field"><input type="radio" name="dup" checked={!draft.suggestedCaseId} onChange={() => onChoose(undefined)}/><span>This is a new observation</span></label>
     {items.map(i => <label key={i.case_id} className="checkbox-field"><input type="radio" name="dup" checked={draft.suggestedCaseId === i.case_id} onChange={() => onChoose(i.case_id)}/>
       <span>It may be the same as “{i.title}” (about {i.distance_m} m away, {i.days_apart} day(s) apart)</span></label>)}</fieldset>;
+}
+
+type AiSuggestion = { observation_candidates: { code: string; description: string; input_reference: string }[]; suggested_questions: { code: string; text: string }[]; abstained: boolean };
+const AI_CATEGORY: Record<string, string> = { foam_visible: "unusual_foam", colour_change_visible: "colour_change", visible_discharge_feature: "visible_discharge" };
+
+/** Optional helper: proposes observable wording only. Nothing is added unless the person accepts it (B10). */
+function AiAssist({ draft, onAccept }: { draft: Draft; onAccept: (patch: Partial<Draft>) => void }) {
+  const [consent, setConsent] = useState(false); const [busy, setBusy] = useState(false); const [note, setNote] = useState("");
+  const [result, setResult] = useState<{ run_id: string; suggestion: AiSuggestion } | null>(null); const [accepted, setAccepted] = useState<string[]>([]);
+  async function ask() {
+    setBusy(true); setNote(""); setResult(null);
+    try {
+      const media = (draft.photos ?? []).map(p => p.mediaId).filter(Boolean) as string[];
+      setResult(await api(`/orgs/${draft.org}/ai/describe`, { method: "POST", json: { text: draft.description, media_ids: consent ? media : [], consent_photos: consent && media.length > 0 } }));
+    } catch (e) { setNote((e as Error).message || "AI assistance is unavailable; you can continue manually."); }
+    finally { setBusy(false); }
+  }
+  function accept(c: AiSuggestion["observation_candidates"][number]) {
+    const category = AI_CATEGORY[c.code];
+    onAccept({ description: (draft.description ? draft.description + " " : "") + c.description,
+      categories: category && !draft.categories.includes(category) ? [...draft.categories, category] : draft.categories });
+    const next = [...accepted, c.code]; setAccepted(next);
+    api(`/orgs/${draft.org}/ai/runs/${result!.run_id}/review`, { method: "POST", json: { accepted_codes: next, edited: true } }).catch(() => undefined);
+  }
+  const uploaded = (draft.photos ?? []).some(p => p.mediaId);
+  return <details className="surface stack"><summary>Optional: suggest wording from your text{uploaded ? " and photos" : ""}</summary>
+    <p className="field-help">Suggestions describe only what is visible or written. They never identify a pollutant, a cause or a safety risk, and nothing is added unless you accept it.</p>
+    {uploaded ? <label className="checkbox-field"><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}/><span>Send my uploaded photos (location data removed) to the AI provider for this suggestion</span></label> : null}
+    <button type="button" className="button button-outline" disabled={busy || (!draft.description.trim() && !consent)} onClick={ask}>{busy ? "Asking…" : "Suggest wording"}</button>
+    {note ? <p role="status" className="notice">{note}</p> : null}
+    {result ? <div role="status">{result.suggestion.abstained || !result.suggestion.observation_candidates.length ? <p>No suggestion. You can continue manually.</p> :
+      <ul>{result.suggestion.observation_candidates.map((c, i) => <li key={i}>{c.description} <span className="muted">(from {c.input_reference === "text" ? "your text" : "a photo"})</span>{" "}
+        {accepted.includes(c.code) ? <strong>Added</strong> : <button type="button" className="button button-quiet" onClick={() => accept(c)}>Add to my report</button>}</li>)}</ul>}
+      {result.suggestion.suggested_questions.map((q, i) => <p key={i} className="muted">{q.text}</p>)}</div> : null}
+  </details>;
 }

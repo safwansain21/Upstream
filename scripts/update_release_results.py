@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 179 passed, 1 skipped (destructive), 2026-09-22')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 188 passed, 1 skipped (destructive), 2026-09-22')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
@@ -39,6 +39,9 @@ PASSES = {
     'H05': ['tests/e2e/test_offline.py::test_offline_submission_is_queued_then_sent_once_with_photo'],
     'H09': ['tests/e2e/test_offline.py::test_expired_session_keeps_the_form_and_resumes_after_sign_in'],
     'H12': ['tests/e2e/test_offline.py::test_offline_submission_is_queued_then_sent_once_with_photo', W + 'test_signed_in_photo_report_uploads_then_submits'],
+    'B10': ['tests/api/test_ai.py::test_unavailable_ai_is_labelled_and_never_blocks_the_report', 'tests/api/test_ai.py::test_valid_suggestion_requires_review_and_photos_need_consent', GU + 'test_ai_unavailable_is_labelled_and_manual_reporting_continues'],
+    'H08': ['tests/api/test_ai.py::test_unavailable_ai_is_labelled_and_never_blocks_the_report', 'tests/api/test_ai.py::test_provider_timeout_falls_back_quickly', GU + 'test_ai_unavailable_is_labelled_and_manual_reporting_continues'],
+    'G07': [H + 'test_foreign_origin_rejected', 'tests/api/test_contracts.py::test_origin_mismatch_rejected', GU + 'test_report_html_is_rendered_as_text_not_executed', 'tests/api/test_ai.py::test_prompt_injection_in_report_text_cannot_act', 'tests/api/test_ai.py::test_invalid_or_overreaching_output_is_rejected_whole[extra_key]'],
     'A02': [GM + 'test_core_workflow_runs_without_paid_providers', W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case', 'tests/e2e/test_export_flow.py::test_package_send_and_recipient_acknowledgment'],
     'B05': [GU + 'test_geolocation_denied_still_allows_landmark_report_without_land_assertion'],
     'B14': [GM + 'test_visibility_choice_never_exposes_other_records', H + 'test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent'],
@@ -141,7 +144,6 @@ PARTIAL = {
     'H07': 'Partial: no-basemap fallback is labelled (test_directory_map_and_list_show_precision); a failing configured provider is not tested.',
     'D12': 'Partial: server side verified (test_missing_metadata_meter_sc25_and_calibration_are_history_only); the offline client now queues reports, but offline capture of task readings is not built yet.',
     'G11': 'Partial: API access log contains no report text, coordinates or service key (test_access_log_has_no_report_text_or_coordinates); worker log not asserted.',
-    'G07': 'Partial: foreign Origin rejected (test_foreign_origin_rejected, test_origin_mismatch_rejected) and report HTML renders as inert text (test_report_html_is_rendered_as_text_not_executed); prompt-injection handling awaits the AI adapter.',
     'J02': 'Partial: analysis runs in the worker off the request path (test_worker_computes_fixture_assessment_and_conservative_plan); cancellation not tested.',
 }
 

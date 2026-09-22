@@ -22,7 +22,7 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] B07 Public derivatives have location EXIF removed; private original access remains authorized.
 - [x] B08 Duplicate submit with same idempotency key/body returns same report/case; altered body returns conflict.
 - [x] B09 Nearby duplicate suggestion can be rejected; merge preserves both reports and immutable attribution.
-- [ ] B10 AI suggestions require acceptance/edit; refusal or provider failure does not block report.
+- [x] B10 AI suggestions require acceptance/edit; refusal or provider failure does not block report.
 - [ ] B11 Submission receipt distinguishes device-saved, uploading and server-received.
 - [x] B12 Contributor can see actual effect or no-effect message and the assessment version used.
 - [x] B13 Superseded assessment marks its contribution receipt revised; original receipt history remains readable.
@@ -104,7 +104,7 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [ ] G04 Public snapshot exposes only sanitized approved fields and generalized coordinates.
 - [x] G05 RLS tests cover reads and writes, RPCs and direct REST; no service-role key in browser.
 - [x] G06 Role/capability self-upgrade is rejected.
-- [ ] G07 CSRF/origin/unsafe HTML/prompt-injection input cannot execute actions.
+- [x] G07 CSRF/origin/unsafe HTML/prompt-injection input cannot execute actions.
 - [x] G08 Media MIME mismatch/decompression bomb/oversize import is rejected.
 - [x] G09 Arbitrary URLs in reports/AI/imports cannot trigger server-side network access.
 - [ ] G10 Recipient webhook private-address/redirect abuse is rejected outside local test mode.
@@ -117,7 +117,7 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] H05 Offline approve/assign/network-publish controls explain unavailability.
 - [ ] H06 Protocol/task/server-version conflicts show review path, not last-write-wins scientific overwrite.
 - [ ] H07 Map-provider failure yields labelled schematic/list, no blank critical workspace.
-- [ ] H08 AI unavailable uses manual workflow and labelled state, not fake "AI" text.
+- [x] H08 AI unavailable uses manual workflow and labelled state, not fake "AI" text.
 - [x] H09 Expired session preserves form and resumes after sign-in.
 - [ ] H10 Service-worker update does not discard unsent work.
 - [ ] H11 Streaming failure uses polling; duplicate/reordered events do not revert to older state.
