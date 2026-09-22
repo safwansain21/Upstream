@@ -18,7 +18,7 @@ Active independent work: scientific_engine owns packages/engine, fixtures, tests
 
 Next parent work: Supabase configuration/migrations and RLS integration tests, API transaction endpoints, report/offline/auth integration. Do not substitute client-only persistence. Continue all eleven stages from checklist, with periodic verified commits to build/upstream.
 
-## 2026-09-21 session 2 (Claude Code)
+## 2026-09-21 session 2
 
 Order of work agreed with user (functionality first, UI images as layout reference only):
 1 API skeleton + seed → 2 auth/org shell → 3 report flow + directory → 4 case workspace/readiness/network →
@@ -123,7 +123,7 @@ Step 6 DONE (tasks, instruments, readings, task board):
 6. Remaining routes, end-to-end tests, accessibility, release docs (old step 11). Header links Evidence/Community are
    currently dead routes - fix here at the latest.
 7. Offline sync and AI adapter last (optional if time runs short).
-Rules: commit+push build/upstream after every working chunk (never main, no Claude attribution); update release-results
+Rules: commit+push build/upstream after every working chunk (never main, no tool attribution); update release-results
 after each step with command + passing test IDs (scripts/update_release_results.py); every new page needs loading, empty
 and error states.
 
@@ -258,3 +258,22 @@ Priority 7 (AI) DONE:
 - UI: optional "Suggest wording" panel in step 1; nothing is added unless the person clicks "Add to my report".
 - Tests: tests/api/test_ai.py (8, fake local provider), H08 browser test. Full suite 188 passed; 110 gates PASS.
 - The OpenAI adapter is verified only against a local fake provider; it has not been tested against the real service.
+
+## 2026-09-22 session 3
+
+Performance, cancellation and public snapshot (finished the chunk left uncommitted by the restart):
+- J01/J03 measured in docs/performance.md (hero WebP + preload, OfflineStatus only on report/workspace routes, set-wise
+  `case_read` RLS policy in 202609210014_fast_case_policy.sql, scripts/seed_load.py 10k-case load org).
+- G04 `/api/v1/public/cases/{id}`: only cases with a report its author made public; ~1 km coordinates; no text/people/readings.
+- J02 `POST analyses/{id}/cancel` + Cancel analysis button; worker discards results of cancelled jobs. Fixed: the worker's
+  failure path overwrote a cancelled job's state. Still partial: the button is not browser-tested.
+- G11 worker log hygiene test. G10 stays FAIL: webhooks are refused; the signed HTTPS outbox with SSRF checks is not built.
+- Test hygiene: directory tests search for Mill Brook instead of assuming it is on page 1; /status axe scan waits for the
+  live check to settle (the button flipped disabled->enabled mid-scan).
+
+Evaluation (J05, J07): fixtures/evaluation.py simulator (truth stays outside the engine), paired hash-indexed exogenous
+values, three policies through one shared inference/eligibility/stopping loop, nominal and biased-background scenarios.
+Results in docs/evaluation.md: nominal 0 incorrect exclusions for all policies; biased background 10/60 (planner) and
+12/60 (random) incorrect exclusions. Tests: tests/engine/test_evaluation.py.
+
+Next: A01, A07, B11, F11, G10, G11 leftovers, J01-J03 evidence, J09, J11, J12; then offline leftovers.

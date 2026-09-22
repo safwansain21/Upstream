@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 188 passed, 1 skipped (destructive), 2026-09-22')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 199 passed, 1 skipped (destructive), 2026-09-22, fresh `supabase db reset` + seed_example + seed_load')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
@@ -132,8 +132,15 @@ PASSES = {
     'G12': [SB + 'test_personal_data_export_and_deletion_request', H + 'test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent'],
     'G03': [MB + 'test_revoked_membership_blocks_privileged_operations_immediately'],
     'G06': ['tests/api/test_contracts.py::test_profile_cannot_upgrade_capabilities', H + 'test_me_lists_capabilities_not_client_roles', MB + 'test_capabilities_cannot_be_self_granted_or_granted_by_non_admins'],
+    'G04': ['tests/api/test_public_and_cancel.py::test_public_snapshot_is_sanitized_and_generalized'],
+    'G11': [SB + 'test_access_log_has_no_report_text_or_coordinates', 'tests/api/test_public_and_cancel.py::test_worker_log_has_no_report_text_or_coordinates'],
+    'J01': ['tests/e2e/test_performance.py::test_public_landing_budgets'],
+    'J05': ['tests/engine/test_evaluation.py::test_readings_are_paired_exogenous_values', 'tests/engine/test_evaluation.py::test_engine_never_receives_truth', 'tests/engine/test_evaluation.py::test_policies_share_inference_stopping_and_report_joint_metrics'],
+    'J07': ['tests/engine/test_evaluation.py::test_policies_share_inference_stopping_and_report_joint_metrics', 'tests/engine/test_evaluation.py::test_misspecified_background_can_cause_incorrect_exclusion'],
+    'J03': ['tests/e2e/test_performance.py::test_ten_thousand_case_directory_reads_stay_fast', 'tests/e2e/test_performance.py::test_directory_and_map_render_are_bounded'],
 }
 PARTIAL = {
+    'G10': 'Partial: webhook recipients are refused and only scoped portal delivery exists (test_webhook_recipients_are_not_accepted); the signed HTTPS outbox with private-address, redirect and DNS-rebinding checks is not built.',
     'I05': 'Partial: 12 key public/workspace pages have no horizontal scroll at 1920-320 px (test_pages_reflow_without_horizontal_scroll[*]); not every page and no map-height/menu assertions.',
     'I06': 'Partial: keyboard-only reporting with focus on each step heading (test_keyboard_only_report); task, measurement, map alternative, review and acknowledgment paths not yet keyboard-tested.',
     'I09': 'Partial: OS reduced motion sets reduced mode with no running entrance animation, and the application setting persists (test_reduced_motion_is_honoured); camera flight and shimmer not asserted per page.',
@@ -143,8 +150,7 @@ PARTIAL = {
     'B11': 'Partial: device-saved vs server-received shown in form and receipt; uploading/offline states not browser-tested.',
     'H07': 'Partial: no-basemap fallback is labelled (test_directory_map_and_list_show_precision); a failing configured provider is not tested.',
     'D12': 'Partial: server side verified (test_missing_metadata_meter_sc25_and_calibration_are_history_only); the offline client now queues reports, but offline capture of task readings is not built yet.',
-    'G11': 'Partial: API access log contains no report text, coordinates or service key (test_access_log_has_no_report_text_or_coordinates); worker log not asserted.',
-    'J02': 'Partial: analysis runs in the worker off the request path (test_worker_computes_fixture_assessment_and_conservative_plan); cancellation not tested.',
+    'J02': 'Partial: analysis runs in the worker off the request path (test_worker_computes_fixture_assessment_and_conservative_plan); API cancellation keeps completed records (test_analysis_can_be_cancelled_without_losing_completed_records); the Cancel analysis button is not exercised in a browser.',
 }
 
 path = Path(__file__).resolve().parents[1] / 'docs/release-results.md'
