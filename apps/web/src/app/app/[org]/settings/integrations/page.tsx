@@ -5,7 +5,8 @@ import { CaseStatus, EmptyState, InlineError, LoadingState, PageIntro } from "..
 import { api } from "../../../../../lib/api";
 import { useOrg } from "../../../../../lib/session";
 
-type Recipient = { id: string; name: string; method: string; verified: boolean };
+type Recipient = { id: string; name: string; method: string; verified: boolean; concerns: string[] };
+const CONCERNS: [string, string][] = [["public_access", "Public access"], ["animal_access", "Animal access"], ["habitat", "Habitat"]];
 type Key = { configured: boolean; key_id?: string; public_key_sha256?: string; note?: string };
 type Status = Record<string, string>;
 
@@ -14,10 +15,10 @@ export default function Integrations() {
   const recipients = useQuery({ queryKey: ["recipients", org], queryFn: () => api<Recipient[]>(`/orgs/${org}/recipients`) });
   const key = useQuery({ queryKey: ["signing-key"], queryFn: () => api<Key>("/signing-key") });
   const status = useQuery({ queryKey: ["status"], queryFn: () => api<Status>("/status") });
-  const [name, setName] = useState(""); const [error, setError] = useState("");
+  const [name, setName] = useState(""); const [concerns, setConcerns] = useState<string[]>([]); const [error, setError] = useState("");
   async function add(e: React.FormEvent) {
     e.preventDefault(); setError("");
-    try { await api(`/orgs/${org}/recipients`, { method: "POST", json: { name } }); setName(""); client.invalidateQueries({ queryKey: ["recipients", org] }); }
+    try { await api(`/orgs/${org}/recipients`, { method: "POST", json: { name, concerns } }); setName(""); setConcerns([]); client.invalidateQueries({ queryKey: ["recipients", org] }); }
     catch (err) { setError((err as Error).message); }
   }
   return <main id="main-content" className="page-shell"><PageIntro title="Integrations"><p>Configured, unavailable and unsigned states are shown as they are. Citizens are never asked for API keys.</p></PageIntro>
@@ -35,9 +36,11 @@ export default function Integrations() {
     <section className="surface stack" aria-labelledby="recipients-heading"><h2 id="recipients-heading">Recipients</h2>
       {recipients.error ? <InlineError>{recipients.error.message}</InlineError> : !recipients.data ? <LoadingState/> : !recipients.data.length
         ? <EmptyState title="No recipients configured"><p>Packages can still be exported and downloaded. Nothing is sent automatically.</p></EmptyState>
-        : <ul>{recipients.data.map(r => <li key={r.id}>{r.name} · scoped portal link</li>)}</ul>}
+        : <ul>{recipients.data.map(r => <li key={r.id}>{r.name} · scoped portal link{r.concerns.length ? ` · suggested for ${r.concerns.map(c => CONCERNS.find(x => x[0] === c)?.[1] ?? c).join(", ").toLowerCase()} context` : ""}</li>)}</ul>}
       {can("admin") ? <form className="stack" onSubmit={add}>{error ? <InlineError>{error}</InlineError> : null}
         <div className="form-field"><label htmlFor="rname">Recipient organization or role</label><input id="rname" value={name} onChange={e => setName(e.target.value)}/></div>
+        <fieldset><legend>Suggest this recipient when a case has context layers for</legend>{CONCERNS.map(([id, label]) => <label key={id} className="checkbox-field">
+          <input type="checkbox" checked={concerns.includes(id)} onChange={e => setConcerns(c => e.target.checked ? [...c, id] : c.filter(x => x !== id))}/><span>{label}</span></label>)}</fieldset>
         <p className="field-help">Recipients receive a scoped, expiring link to one package and can acknowledge it. Webhook delivery is not enabled in this deployment.</p>
         <button className="button button-outline" disabled={name.trim().length < 2}>Add recipient</button></form> : null}
     </section></main>;

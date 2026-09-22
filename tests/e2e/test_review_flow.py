@@ -76,3 +76,22 @@ def test_cancel_analysis_button_stops_queued_work_and_keeps_results(page):  # J0
     assert [r for r, a in history(case).items() if a['current']] == [first['revision']]
     page.get_by_role('link', name='History', exact=True).click()  # the workspace stays navigable
     expect(page).to_have_url(re.compile(f'/investigations/{case}/history'))
+
+
+def test_decision_view_shows_sourced_context_and_suggestions(page):  # F11 (browser path)
+    from uuid import uuid4
+    from tests.api.test_context import add_layers, recipient
+    case = scenario()
+    compute(case)
+    name = f'Farm liaison {uuid4().hex[:6]}'
+    recipient(name, ['animal_access'])
+    add_layers(case)
+    open_as(page, 'expert@example.test')
+    page.goto(f'{BASE}/app/{ORG}/investigations/{case}/decision')
+    cattle = 'Animal access (source: Example cattle drinking point (synthetic), synthetic)'
+    expect(page.get_by_text(f'{cattle} · licence CC0-1.0')).to_be_visible()
+    expect(page.get_by_text('Habitat (source: Example otter holt register (synthetic), synthetic) · licence CC0-1.0')).to_be_visible()
+    expect(page.get_by_text('Attention: elevated')).to_be_visible()
+    expect(page.get_by_text(f'{name}: handles {cattle}')).to_be_visible()
+    expect(page.get_by_text('The expert chooses recipients and purpose.', exact=False)).to_be_visible()
+    expect(page.get_by_text('No health outcome is established or assessed by Upstream.')).to_be_visible()

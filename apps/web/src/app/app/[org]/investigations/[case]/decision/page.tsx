@@ -4,19 +4,25 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { CaseTabs } from "../../../../../../components/case-tabs";
-import { EmptyState, InlineError, PageIntro, PageState } from "../../../../../../components/ui";
+import { EmptyState, InlineError, LoadingState, PageIntro, PageState } from "../../../../../../components/ui";
 import { api } from "../../../../../../lib/api";
 import { WORKFLOW } from "../../../../../../lib/labels";
 import { useOrg } from "../../../../../../lib/session";
 
 type Case = { title: string; version: number; workflow: string; current_assessment_id: string | null };
 type Assessment = { id: string; revision: number; retained_length_m: string; eligible: boolean; classes: { id: string; reach_ids: string[]; length_m: string; status: string }[] };
+type Cite = { kind: string; source: string; data_origin: string };
+type Context = { layers: (Cite & { id: string; license: string; sensitive: boolean })[]; attention: { level: "elevated" | "routine"; because: Cite[] };
+  suggestions: { recipient_id: string; name: string; because: Cite[] }[]; statement: string };
+const LAYER: Record<string, string> = { public_access: "Public access", animal_access: "Animal access", habitat: "Habitat" };
+const cite = (c: Cite) => `${LAYER[c.kind] ?? c.kind} (source: ${c.source}${c.data_origin === "synthetic" ? ", synthetic" : ""})`;
 const km = (m: string) => `${(Number(m) / 1000).toFixed(2)} km`;
 
 export default function Decision() {
   const { org, can } = useOrg(); const { case: caseId } = useParams<{ case: string }>(); const client = useQueryClient();
   const c = useQuery({ queryKey: ["case", org, caseId], queryFn: () => api<Case>(`/orgs/${org}/cases/${caseId}`) });
   const a = useQuery({ queryKey: ["assessment", org, caseId, "latest"], queryFn: () => api<Assessment>(`/orgs/${org}/cases/${caseId}/assessment`).catch(() => null) });
+  const ctx = useQuery({ queryKey: ["context", org, caseId], queryFn: () => api<Context>(`/orgs/${org}/cases/${caseId}/context`) });
   const [action, setAction] = useState("inspection_recommended"); const [reason, setReason] = useState(""); const [segments, setSegments] = useState<string[]>([]);
   const [error, setError] = useState(""); const [done, setDone] = useState("");
   async function decide(e: React.FormEvent) {
@@ -36,7 +42,13 @@ export default function Decision() {
       <section className="surface stack" aria-labelledby="obs-heading"><h2 id="obs-heading">Environmental observations</h2>
         {a.data ? <p>Assessment {a.data.revision}: {a.data.eligible ? `${km(a.data.retained_length_m)} retained under stated assumptions.` : "localization not eligible."} The cause is not established.</p> : <p>No assessment yet.</p>}</section>
       <section className="surface stack" aria-labelledby="exp-heading"><h2 id="exp-heading">Potential exposure and access</h2>
-        <p>No public-access, animal-access or habitat layers are recorded for this case. Context layers can inform attention and recipient suggestions only; they never change source compatibility.</p></section>
+        {ctx.error ? <InlineError>{ctx.error.message}</InlineError> : !ctx.data ? <LoadingState/> : <>
+          {ctx.data.layers.length ? <ul>{ctx.data.layers.map(l => <li key={l.id}>{cite(l)} · licence {l.license}</li>)}</ul>
+            : <p>No public-access, animal-access or habitat layers are recorded for this case.</p>}
+          <p><strong>Attention: {ctx.data.attention.level}</strong>{ctx.data.attention.because.length ? ` because of ${ctx.data.attention.because.map(cite).join("; ")}` : ""}.</p>
+          {ctx.data.suggestions.length ? <><h3>Suggested recipients</h3><ul>{ctx.data.suggestions.map(r => <li key={r.recipient_id}>{r.name}: handles {r.because.map(cite).join("; ")}</li>)}</ul>
+            <p className="muted">Suggestions come from recipients your administrators configured. The expert chooses recipients and purpose.</p></> : null}
+          <p className="muted">{ctx.data.statement}</p></>}</section>
       <section className="surface stack" aria-labelledby="health-heading"><h2 id="health-heading">Health outcomes</h2><p>No health outcome is established or assessed by Upstream.</p></section>
     </div>
     {can("expert") ? <form className="surface stack" onSubmit={decide} aria-labelledby="decide-heading"><h2 id="decide-heading">Record a decision</h2>

@@ -131,3 +131,26 @@ def test_send_interrupted_by_closing_the_tab_is_retried():  # H02 (recovery path
         expect(p).to_have_url(re.compile(r'/reports/[0-9a-f-]+'), timeout=30000)
         expect(p.get_by_text('The cause is not established')).to_be_visible()
         browser.close()
+
+
+def test_receipt_states_move_from_device_to_uploading_to_server(tmp_path):  # B11
+    import time
+    photo = tmp_path / 'foam.jpg'
+    Image.new('RGB', (200, 150), 'white').save(photo)
+    with sync_playwright() as pw:
+        browser, context, p = start(pw)
+        signed_in(p, fresh_contributor())
+        fill_report(p, 'Foam below the footbridge', photo)
+        expect(p.get_by_text('Saved on this device. Not submitted yet.')).to_be_visible()  # device-saved
+
+        def slow(route):  # the real upload, held long enough to observe the uploading state
+            time.sleep(1.5)
+            route.continue_()
+        p.route(re.compile(r'.*/api/v1/orgs/[^/]+/uploads$'), slow)
+        p.get_by_role('button', name='Submit report').click()
+        expect(p.get_by_text('Uploading photo 1 of 1…')).to_be_visible()
+        expect(p.get_by_text(re.compile('received for review'))).to_have_count(0)  # uploading is not received
+        expect(p).to_have_url(re.compile(r'/reports/[0-9a-f-]+\?received=1'), timeout=30000)
+        expect(p.get_by_text('Your report has been received for review. The cause is not established.')).to_be_visible()  # server-received
+        expect(p.get_by_text(re.compile('1 photo attached'))).to_be_visible()
+        browser.close()

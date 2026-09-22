@@ -5,6 +5,7 @@ import json
 import sys
 from pathlib import Path
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID, uuid4
 
 import httpx
@@ -14,6 +15,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from PIL import Image, ImageOps
+from pydantic import Field
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'packages/engine'))
 from upstream_engine import canonical_hash  # noqa: E402
@@ -964,9 +966,14 @@ from services.worker.exports import MIME, signing_key  # noqa: E402
 SHARE_DAYS = 30
 
 
+CONTEXT_STATEMENT = ('Context layers inform attention and recipient suggestions only. They do not change source compatibility '
+                     'and do not establish any health outcome.')
+
+
 class RecipientCreate(StrictModel):
     name: str
     method: str = 'portal'
+    concerns: list[Literal['public_access', 'animal_access', 'habitat']] = Field(default_factory=list, max_length=3)
 
 
 class DeliveryCreate(StrictModel):
@@ -1065,7 +1072,7 @@ def verify_stored_package(org: UUID, pkg: UUID, request: Request, user: Identity
 
 @app.get('/api/v1/orgs/{org}/recipients')
 def recipients(org: UUID, request: Request, user: Identity = Depends(identity)):
-    return envelope(rows(user, 'select id,name,method,verified,scopes from recipients where org_id=%s order by name', (org,)), request)
+    return envelope(rows(user, 'select id,name,method,verified,scopes,concerns from recipients where org_id=%s order by name', (org,)), request)
 
 
 @app.post('/api/v1/orgs/{org}/recipients', status_code=201)
@@ -1074,9 +1081,26 @@ def add_recipient(org: UUID, body: RecipientCreate, request: Request, user: Iden
     if body.method != 'portal' or len(body.name.strip()) < 2:  # ponytail: webhook delivery needs SSRF-checked HTTPS config; portal only for now
         raise DomainError('VALIDATION_FAILED', 'Provide a recipient name. Only scoped portal delivery is available in this deployment.')
     with transaction(worker=True) as db:
-        row = db.execute("insert into recipients(org_id,name,method,verified) values(%s,%s,'portal',true) returning id,name,method,verified",
-                         (org, body.name.strip())).fetchone()
+        row = db.execute("insert into recipients(org_id,name,method,verified,concerns) values(%s,%s,'portal',true,%s) returning id,name,method,verified,concerns",
+                         (org, body.name.strip(), sorted(set(body.concerns)))).fetchone()
     return envelope(row, request, 201)
+
+
+@app.get('/api/v1/orgs/{org}/cases/{case}/context')
+def case_context(org: UUID, case: UUID, request: Request, user: Identity = Depends(identity)):
+    """F11: context layers raise attention and suggest configured recipients, each influence naming its source.
+    They are read here only; the engine snapshot never includes them (E22)."""
+    case_access(user, org, case)
+    layers = rows(user, 'select id,kind,source,license,data_origin,sensitive from context_features where org_id=%s and case_id=%s order by kind,source', (org, case))
+
+    def cite(layer):
+        return {'kind': layer['kind'], 'source': layer['source'], 'data_origin': layer['data_origin']}
+    access = [cite(layer) for layer in layers if layer['kind'] in ('public_access', 'animal_access')]
+    suggestions = [{'recipient_id': r['id'], 'name': r['name'], 'because': because}
+                   for r in rows(user, 'select id,name,concerns from recipients where org_id=%s order by name', (org,))
+                   if (because := [cite(layer) for layer in layers if layer['kind'] in r['concerns']])]
+    return envelope({'layers': layers, 'attention': {'level': 'elevated' if access else 'routine', 'because': access},
+                     'suggestions': suggestions, 'statement': CONTEXT_STATEMENT}, request)
 
 
 @app.post('/api/v1/orgs/{org}/packages/{pkg}/deliveries', status_code=201)
