@@ -93,8 +93,8 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [x] F10 Expert inspection decision can coexist with structural resolution limit.
 - [ ] F11 Context layers influence recipient suggestions/priority only with source and no health claim.
 - [x] F12 Export JSON/GeoJSON/PDF contains matching assessment version, geometry, origins and assumptions.
-- [ ] F13 FHIR validator reports zero errors; no Patient/RelatedPerson/Practitioner fiction; DocumentReference subject is not Location.
-- [ ] F14 Adapter retains quality/attribution semantics and resolves references.
+- [x] F13 FHIR validator reports zero errors; no Patient/RelatedPerson/Practitioner fiction; DocumentReference subject is not Location.
+- [x] F14 Adapter retains quality/attribution semantics and resolves references.
 - [x] F15 Detached signature verifies; changed artifact/wrong key/broken predecessor fails. Unsigned package explicitly unsigned.
 - [x] F16 Exporting does not require sending. Configured delivery requires explicit action.
 - [x] F17 Original signed package is never rewritten when latest metadata becomes superseded.

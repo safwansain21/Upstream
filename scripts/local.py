@@ -55,11 +55,11 @@ def main(command):
         finally:
             for process in processes:
                 process.terminate()
-    elif command == 'fhir':
-        script = ROOT / 'exports/fhir/validate.py'
-        if not script.exists():
-            raise SystemExit('Official FHIR validation runner has not been installed; check is not passing.')
-        run(PYTHON, script)
+    elif command == 'fhir':  # installs the checksum-pinned official validator once, then validates a real export bundle
+        jar = ROOT / 'exports/fhir/.cache/validator_cli.jar'
+        if not jar.exists():
+            run(PYTHON, ROOT / 'exports/fhir/validate.py', ROOT / 'exports/fhir/example-bundle.json', '--download')
+        run(PYTHON, '-m', 'pytest', 'tests/packages/test_fhir_official.py', 'tests/packages/test_fhir.py', '-q', '-p', 'no:cacheprovider')
     elif command == 'release':
         for stage in ['test', 'engine', 'security', 'fhir']:
             main(stage)

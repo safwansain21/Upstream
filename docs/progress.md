@@ -236,3 +236,4 @@ Priority 6 IN PROGRESS (routes, e2e, accessibility, release docs):
   open-boundary tests. Full suite 173 passed; 99 gates PASS.
 - Remaining FAIL/partial gates now: A01 A07 B10 B11 D12 F11 F13 F14 G04 G07 G10 G11 H01-H12 I01-I14 I17 J01 J02 J03 J05 J07
   J09 J11 J12. Offline (H*) and AI (B10, H08, G07 prompt injection) belong to priority 7.
+- FHIR: official validator 0 errors on a bundle from a real approved assessment (tests/packages/test_fhir_official.py; warnings documented in docs/fhir-validation.md); pnpm verify:fhir runs it. 101 gates PASS.
