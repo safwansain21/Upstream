@@ -110,18 +110,18 @@ Unchecked means not yet demonstrated. See release-results.md for actual test evi
 - [ ] G10 Recipient webhook private-address/redirect abuse is rejected outside local test mode.
 - [ ] G11 Logs omit secrets, photos, precise location and free-text report content.
 - [x] G12 Personal-data export/visibility withdrawal/deletion-request workflow works without corrupting scientific references.
-- [ ] H01 Offline draft survives tab close/reopen on same device/account.
-- [ ] H02 Queued photo+report synchronize in dependency order and create one submission.
-- [ ] H03 Sign-out/account switch does not submit another user's queued draft.
+- [x] H01 Offline draft survives tab close/reopen on same device/account.
+- [x] H02 Queued photo+report synchronize in dependency order and create one submission.
+- [x] H03 Sign-out/account switch does not submit another user's queued draft.
 - [ ] H04 Storage quota and failed individual uploads leave recoverable draft/error state.
-- [ ] H05 Offline approve/assign/network-publish controls explain unavailability.
+- [x] H05 Offline approve/assign/network-publish controls explain unavailability.
 - [ ] H06 Protocol/task/server-version conflicts show review path, not last-write-wins scientific overwrite.
 - [ ] H07 Map-provider failure yields labelled schematic/list, no blank critical workspace.
 - [ ] H08 AI unavailable uses manual workflow and labelled state, not fake "AI" text.
-- [ ] H09 Expired session preserves form and resumes after sign-in.
+- [x] H09 Expired session preserves form and resumes after sign-in.
 - [ ] H10 Service-worker update does not discard unsent work.
 - [ ] H11 Streaming failure uses polling; duplicate/reordered events do not revert to older state.
-- [ ] H12 Failed submission button offers retry; it never shows server-success toast before server acceptance.
+- [x] H12 Failed submission button offers retry; it never shows server-success toast before server acceptance.
 - [ ] I01 Side-by-side inspect 1440×900 landing/workspace against the two primary hybrid references.
 - [ ] I02 Palette orange/ice-blue, organic river curves, expressive display type and normal-width body text are consistent across every page.
 - [ ] I03 No screenshot flattened into application background with overlaid pretend controls.

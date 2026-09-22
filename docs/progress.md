@@ -237,3 +237,14 @@ Priority 6 IN PROGRESS (routes, e2e, accessibility, release docs):
 - Remaining FAIL/partial gates now: A01 A07 B10 B11 D12 F11 F13 F14 G04 G07 G10 G11 H01-H12 I01-I14 I17 J01 J02 J03 J05 J07
   J09 J11 J12. Offline (H*) and AI (B10, H08, G07 prompt injection) belong to priority 7.
 - FHIR: official validator 0 errors on a bundle from a real approved assessment (tests/packages/test_fhir_official.py; warnings documented in docs/fhir-validation.md); pnpm verify:fhir runs it. 101 gates PASS.
+
+Priority 7 (offline) DONE for reports:
+- `src/lib/submit.ts` (claim with compare-and-set; photos first, then report with the draft's idempotency key; network failure
+  -> status "queued"; stale "submitting" older than 2 min is reclaimable), `src/components/offline.tsx` (offline banner that
+  explains which actions need a connection; foreground sync of the signed-in account's queued drafts on reconnect after a
+  session refresh; stops with a message on 403), `public/sw.js` + `src/components/service-worker.tsx` (app-shell cache for
+  static assets and visited pages, never /api; updates wait for all tabs to close - no forced refresh).
+- Found and fixed: sends interrupted by a closed tab stayed "submitting" forever. Session lives in cookies (@supabase/ssr).
+- tests/e2e/test_offline.py (H01 H02 H03 H05 H09 H12). Full suite 179 passed; 107 gates PASS.
+- Not built: offline capture of task readings (D12 client side), cached task packets, H04 quota handling test, H10 update
+  prompt test. Next: AI adapter (B10, H08, G07 prompt injection), then remaining partial gates.

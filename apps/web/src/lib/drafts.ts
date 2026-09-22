@@ -7,7 +7,7 @@ export type Draft = {
   account: string;       // auth user id, or "guest" until sign-in
   org: string;
   step: 1 | 2 | 3;
-  status: "device_saved" | "submitting" | "server_received" | "failed";
+  status: "device_saved" | "queued" | "submitting" | "server_received" | "failed"; // queued = waiting for a connection
   categories: string[];
   description: string;
   observedAt: string;    // local datetime-local value

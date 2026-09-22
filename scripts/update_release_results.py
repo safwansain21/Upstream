@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 174 passed, 1 skipped (destructive), 2026-09-22')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 179 passed, 1 skipped (destructive), 2026-09-22')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
@@ -33,6 +33,12 @@ PASSES = {
     'E26': ['tests/engine/test_topology_and_limits.py::test_multi_source_case_states_limits_without_detection_claims'],
     'F13': ['tests/packages/test_fhir_official.py::test_official_validator_zero_errors_on_real_export', 'tests/packages/test_fhir.py::test_environmental_bundle_preserves_semantics_and_uses_correct_document_context'],
     'F14': ['tests/packages/test_fhir.py::test_raw_and_compensated_readings_are_distinct_and_linked', 'tests/packages/test_fhir.py::test_fhir_reference_validation_rejects_broken_link', 'tests/packages/test_fhir.py::test_exact_decimal_version_attribution_and_custom_canonical_survive'],
+    'H01': ['tests/e2e/test_offline.py::test_draft_survives_closing_the_tab'],
+    'H02': ['tests/e2e/test_offline.py::test_offline_submission_is_queued_then_sent_once_with_photo', 'tests/e2e/test_offline.py::test_send_interrupted_by_closing_the_tab_is_retried'],
+    'H03': ['tests/e2e/test_offline.py::test_account_switch_never_sends_another_users_draft'],
+    'H05': ['tests/e2e/test_offline.py::test_offline_submission_is_queued_then_sent_once_with_photo'],
+    'H09': ['tests/e2e/test_offline.py::test_expired_session_keeps_the_form_and_resumes_after_sign_in'],
+    'H12': ['tests/e2e/test_offline.py::test_offline_submission_is_queued_then_sent_once_with_photo', W + 'test_signed_in_photo_report_uploads_then_submits'],
     'A02': [GM + 'test_core_workflow_runs_without_paid_providers', W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case', 'tests/e2e/test_export_flow.py::test_package_send_and_recipient_acknowledgment'],
     'B05': [GU + 'test_geolocation_denied_still_allows_landmark_report_without_land_assertion'],
     'B14': [GM + 'test_visibility_choice_never_exposes_other_records', H + 'test_landmark_only_report_opens_one_unresolved_case_and_is_idempotent'],
@@ -133,7 +139,7 @@ PARTIAL = {
     'I08': 'Partial: automated axe finds zero serious/critical issues on key public and workspace pages (test_no_serious_accessibility_violations); 200% zoom, reflow and manual checks not done.',
     'B11': 'Partial: device-saved vs server-received shown in form and receipt; uploading/offline states not browser-tested.',
     'H07': 'Partial: no-basemap fallback is labelled (test_directory_map_and_list_show_precision); a failing configured provider is not tested.',
-    'D12': 'Partial: only the server side is verified - a reading submitted under an older task version is kept and flagged (test_missing_metadata_meter_sc25_and_calibration_are_history_only); the offline client does not exist yet.',
+    'D12': 'Partial: server side verified (test_missing_metadata_meter_sc25_and_calibration_are_history_only); the offline client now queues reports, but offline capture of task readings is not built yet.',
     'G11': 'Partial: API access log contains no report text, coordinates or service key (test_access_log_has_no_report_text_or_coordinates); worker log not asserted.',
     'G07': 'Partial: foreign Origin rejected (test_foreign_origin_rejected, test_origin_mismatch_rejected) and report HTML renders as inert text (test_report_html_is_rendered_as_text_not_executed); prompt-injection handling awaits the AI adapter.',
     'J02': 'Partial: analysis runs in the worker off the request path (test_worker_computes_fixture_assessment_and_conservative_plan); cancellation not tested.',

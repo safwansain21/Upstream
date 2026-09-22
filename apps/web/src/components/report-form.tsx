@@ -3,8 +3,9 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { api, ApiError, supabase } from "../lib/api";
-import { claimGuestDrafts, db, MAX_PHOTO_BYTES, PHOTO_TYPES, toReportBody, uuidv7, validate, type Draft, type Photo } from "../lib/drafts";
+import { api, supabase } from "../lib/api";
+import { claimGuestDrafts, db, MAX_PHOTO_BYTES, PHOTO_TYPES, toReportBody, uuidv7, validate, type Draft } from "../lib/drafts";
+import { claim, sendDraft } from "../lib/submit";
 import { InlineError, LoadingState } from "./ui";
 
 const MapView = dynamic(() => import("./map-view").then(m => m.MapView), { ssr: false, loading: () => <LoadingState label="Loading map…"/> });
@@ -35,6 +36,13 @@ export function ReportForm({ draftId }: { draftId: string }) {
       else setDraft(found);
     })();
   }, [draftId]);
+
+  useEffect(() => { // the global sync queue may send this draft; follow its stored state
+    const refresh = () => db.drafts.get(draftId).then(d => { if (d) setDraft(d); });
+    window.addEventListener("upstream-drafts", refresh);
+    return () => window.removeEventListener("upstream-drafts", refresh);
+  }, [draftId]);
+  useEffect(() => { if (draft?.status === "server_received" && draft.result) router.push(`/app/${draft.result.org_id}/reports/${draft.result.id}?received=1`); }, [draft?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function update(patch: Partial<Draft>) {
     setDraft(current => {
@@ -69,35 +77,17 @@ export function ReportForm({ draftId }: { draftId: string }) {
     }
     update({ photos });
   }
-  async function uploadPhotos(current: Draft): Promise<Photo[] | null> {
-    const photos = [...(current.photos ?? [])];
-    for (let i = 0; i < photos.length; i++) {
-      if (photos[i].mediaId) continue;
-      update({ error: `Uploading photo ${i + 1} of ${photos.length}…` });
-      const form = new FormData(); form.append("file", photos[i].blob, photos[i].name); form.append("keep_original", String(current.keepOriginals));
-      try { const r = await api<{ id: string }>(`/orgs/${current.org}/uploads`, { method: "POST", body: form }); photos[i] = { ...photos[i], mediaId: r.id, error: undefined }; }
-      catch (e) { photos[i] = { ...photos[i], error: (e as Error).message }; update({ photos }); return null; }
-      update({ photos });
-    }
-    return photos;
-  }
   async function submit() {
     const found = validate(draft!, 3); setErrors(found);
     if (Object.keys(found).length) { requestAnimationFrame(() => summary.current?.focus()); return; }
     if (!account) { router.push(`/sign-in?next=${encodeURIComponent(`/report/${draftId}/edit`)}`); return; }
-    update({ status: "submitting", error: undefined });
-    const photos = await uploadPhotos(draft!);
-    if (!photos) { update({ status: "device_saved", error: "A photo could not be uploaded. Retry, or remove it and submit without it. Nothing else was lost." }); return; }
-    try {
-      const result = await api<{ id: string; case_id: string; org_id: string }>(`/orgs/${draft!.org}/reports`, { method: "POST", json: toReportBody({ ...draft!, photos }), idempotencyKey: draft!.id });
-      update({ status: "server_received", result });
-      router.push(`/app/${result.org_id}/reports/${result.id}?received=1`);
-    } catch (e) {
-      const err = e as ApiError;
-      if (err.fieldErrors) setErrors(err.fieldErrors);
-      update({ status: err.retryable || err.code === "NETWORK" ? "device_saved" : "failed", error: err.code === "NETWORK" ? "Saved on this device. Not submitted yet." : err.message });
-      if (err.code === "AUTH_REQUIRED") router.push(`/sign-in?next=${encodeURIComponent(`/report/${draftId}/edit`)}`);
-    }
+    const claimed = await claim(draftId, ["device_saved", "queued", "failed"]);
+    if (!claimed) return; // already being sent (another tab or the sync queue)
+    setDraft(claimed);
+    const outcome = await sendDraft(claimed, patch => { update(patch); });
+    if (outcome.ok) { router.push(`/app/${outcome.result.org_id}/reports/${outcome.result.id}?received=1`); return; }
+    if (outcome.error.fieldErrors) setErrors(outcome.error.fieldErrors);
+    if (outcome.error.code === "AUTH_REQUIRED") router.push(`/sign-in?next=${encodeURIComponent(`/report/${draftId}/edit`)}`);
   }
 
   if (missing) return <InlineError>This draft is not on this device for the current account. <Link href="/report/new">Start a new observation</Link></InlineError>;
