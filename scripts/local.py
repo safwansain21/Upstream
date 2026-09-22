@@ -1,6 +1,7 @@
 """Portable command entry point. Uses only this checkout's Python environment."""
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -8,6 +9,21 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 PYTHON = ROOT / '.venv' / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
 PNPM = shutil.which('pnpm.cmd' if os.name == 'nt' else 'pnpm') or 'pnpm'
+BIN = lambda root, name: root / 'node_modules/.bin' / (f'{name}.CMD' if os.name == 'nt' else name)  # noqa: E731
+SUPABASE, NEXT, TSC = BIN(ROOT, 'supabase'), BIN(ROOT / 'apps/web', 'next'), BIN(ROOT / 'apps/web', 'tsc')
+
+
+def fill_env():
+    """Copy .env.example to .env if missing and fill blank local Supabase keys from `supabase status` (never overwrites)."""
+    env = ROOT / '.env'
+    if not env.exists():
+        shutil.copy(ROOT / '.env.example', env)
+    status = subprocess.run([str(SUPABASE), 'status', '-o', 'env'], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    values = dict(re.findall(r'^(\w+)="?([^"\n]*)"?$', status, re.M))
+    text = env.read_text(encoding='utf-8')
+    for name, key in (('SUPABASE_ANON_KEY', 'ANON_KEY'), ('SUPABASE_SERVICE_ROLE_KEY', 'SERVICE_ROLE_KEY')):
+        text = re.sub(rf'^{name}=$', f'{name}={values[key]}', text, flags=re.M)
+    env.write_text(text, encoding='utf-8')
 
 
 def run(*args):
@@ -23,7 +39,7 @@ def main(command):
         run(PYTHON, '-m', 'pytest', 'tests/e2e', '-q', '-p', 'no:cacheprovider')
     elif command == 'test':
         run(PYTHON, '-m', 'pytest', 'tests/api', 'tests/packages', 'tests/security', '-q', '-p', 'no:cacheprovider')
-        run(PNPM, '--filter', '@upstream/web', 'typecheck')
+        subprocess.run([str(TSC), '--noEmit'], cwd=ROOT / 'apps/web', check=True)
     elif command == 'security':
         if not (ROOT / 'tests/security').exists():
             raise SystemExit('Security integration suite is not yet implemented; this is not a passing check.')
@@ -32,15 +48,16 @@ def main(command):
         if not shutil.which('docker'):
             raise SystemExit('Install and start Docker Desktop or another Docker-compatible engine first.')
         subprocess.run(['docker', 'info'], stdout=subprocess.DEVNULL, timeout=30, check=True)
-        run(PNPM, 'exec', 'supabase', 'start')
-        run(PNPM, 'exec', 'supabase', 'migration', 'up', '--local')
-        print('Local Supabase started. Run pnpm exec supabase status to inspect local-only credentials.')
+        run(SUPABASE, 'start')
+        run(SUPABASE, 'migration', 'up', '--local')
+        fill_env()
+        print('Local Supabase started and migrated; local keys written to .env where they were blank.')
     elif command == 'seed':
         run(PYTHON, ROOT / 'scripts/seed_example.py')
     elif command == 'reset':
         # ponytail: reset = rebuild the local database; seed_example.py's guard refuses non-local/production targets.
         run(PYTHON, '-c', 'import sys; sys.path.insert(0, "."); import scripts.seed_example as s; s.guard()')
-        run(PNPM, 'exec', 'supabase', 'db', 'reset', '--local')
+        run(SUPABASE, 'db', 'reset', '--local')
         run(PYTHON, ROOT / 'scripts/seed_example.py')
     elif command == 'dev':
         api = ROOT / 'services/api/main.py'
@@ -48,7 +65,7 @@ def main(command):
             raise SystemExit('API startup is pending implementation. Public web development: pnpm --filter @upstream/web dev')
         processes = [subprocess.Popen([str(PYTHON), '-m', 'uvicorn', 'services.api.main:app', '--port', '8000'], cwd=ROOT),
                      subprocess.Popen([str(PYTHON), '-m', 'services.worker'], cwd=ROOT),
-                     subprocess.Popen([PNPM, '--filter', '@upstream/web', 'dev'], cwd=ROOT)]
+                     subprocess.Popen([str(NEXT), 'dev', '--hostname', '127.0.0.1'], cwd=ROOT / 'apps/web')]
         try:
             for process in processes:
                 process.wait()
@@ -64,7 +81,7 @@ def main(command):
         for stage in ['test', 'engine', 'security', 'fhir']:
             main(stage)
         main('e2e')
-        run(PNPM, 'build')
+        subprocess.run([str(NEXT), 'build'], cwd=ROOT / 'apps/web', check=True)
         if '| FAIL |' in (ROOT / 'docs/release-results.md').read_text():
             raise SystemExit('Release is not complete: unresolved acceptance gates in docs/release-results.md')
     else:
