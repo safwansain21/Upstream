@@ -293,3 +293,13 @@ Stragglers (J02, J11, B11, F11; A07 in progress):
 - F11: recipients carry admin-configured concerns (migration 202609210015); GET cases/{id}/context returns sourced layers,
   attention level and recipient suggestions, each citing its source; Decision view shows them. Engine snapshot unchanged.
 - Full suite 212 passed, 1 skipped; 120 gates PASS.
+- J09 DONE: scripts/backup_restore.py drill (supabase db dump roles/schema/data + storage objects with SHA-256 manifest ->
+  isolated second stack UpstreamRestoreDrill on ports 553xx -> counts, object hashes, package verification, sign-in).
+  tests/ops/test_backup_restore.py; runbook "Backups and restore" rewritten. Not yet in a recorded full run.
+- A01 IN PROGRESS (paused 2026-09-22): scripts/local.py setup now fills blank local keys into .env and calls installed
+  binaries (no pnpm needed at runtime). Clean clone from GitHub at %TEMP%\ua01: `npx pnpm@11.19.0 install`, Python 3.12 venv +
+  requirements.lock, playwright chromium, `cp .env.example .env`, `pnpm setup:local`, `pnpm seed:example`, `pnpm dev` all
+  worked and /api/v1/status answered 200 through the web proxy. Still to do: browser check that the seeded example shows,
+  README update (pnpm fallback via npx/corepack, setup:local fills keys, short clone path on Windows), then `supabase db reset`
+  + both seeds, rebuild, restart, full suite, record A01/A07/J09 evidence.
+- Next after A01: G10 webhook outbox, then offline leftovers, then J12.
