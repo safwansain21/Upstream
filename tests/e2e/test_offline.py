@@ -176,31 +176,36 @@ def test_failed_upload_and_full_device_storage_stay_recoverable(tmp_path):  # H0
         expect(p.get_by_text('This browser could not save the draft. Keep this tab open or copy your text.')).to_be_visible()
         expect(p.get_by_label('Landmark or directions')).to_have_value('Grey water at the culvert, north bank')
         p.unroute(uploads)
-        p.get_by_role('button', name='Continue to review').click()
-        p.get_by_role('button', name='Retry submission').click()  # recovery: the same draft is sent once storage is back
+        p.reload()  # storage and upload service are back: the last saved draft, with its photo, is still on the device
+        expect(p.get_by_text('Grey water at the culvert')).to_be_visible()
+        p.get_by_role('button', name='Retry submission').click()
         expect(p).to_have_url(re.compile(r'/reports/[0-9a-f-]+'), timeout=30000)
         expect(p.get_by_text(re.compile('1 photo attached'))).to_be_visible()
         browser.close()
 
 
 def test_service_worker_update_keeps_unsent_work():  # H10
+    from pathlib import Path
+    sw = Path(__file__).resolve().parents[2] / 'apps/web/public/sw.js'  # served from disk by `next start`
+    original = sw.read_bytes()
+    assert b'upstream-shell-v1' in original
     with sync_playwright() as pw:
         browser, context, p = start(pw)
-        signed_in(p, fresh_contributor())
-        url = fill_report(p, 'Sheen under the rail bridge')
-        p.wait_for_function('() => !!navigator.serviceWorker.controller', timeout=15000)
-        original = p.request.get(BASE + '/sw.js').text()
-        assert 'upstream-shell-v1' in original
-        context.route('**/sw.js', lambda route: route.fulfill(status=200, content_type='application/javascript',
-                      body=original.replace('upstream-shell-v1', 'upstream-shell-v2')))  # a new deployment
-        p.reload()
-        expect(p.get_by_text(re.compile('An update to Upstream is ready'))).to_be_visible(timeout=15000)
-        expect(p.get_by_text('Sheen under the rail bridge')).to_be_visible()  # nothing reloaded away the unsent draft
-        p.close()  # closing every tab lets the new version take over
-        again = context.new_page()
-        again.goto(url)
-        again.wait_for_function("async () => (await caches.keys()).includes('upstream-shell-v2')", timeout=15000)
-        expect(again.get_by_text('Sheen under the rail bridge')).to_be_visible()
-        again.get_by_role('button', name='Submit report').click()
-        expect(again).to_have_url(re.compile(r'/reports/[0-9a-f-]+'), timeout=30000)
-        browser.close()
+        try:
+            signed_in(p, fresh_contributor())
+            url = fill_report(p, 'Sheen under the rail bridge')
+            p.wait_for_function('() => !!navigator.serviceWorker.controller', timeout=15000)
+            sw.write_bytes(original.replace(b'upstream-shell-v1', b'upstream-shell-v2'))  # a new deployment
+            p.reload()
+            expect(p.get_by_text(re.compile('An update to Upstream is ready'))).to_be_visible(timeout=15000)
+            expect(p.get_by_text('Sheen under the rail bridge')).to_be_visible()  # nothing reloaded away the unsent draft
+            p.close()  # closing every tab lets the new version take over
+            again = context.new_page()
+            again.goto(url)
+            again.wait_for_function("async () => (await caches.keys()).includes('upstream-shell-v2')", timeout=15000)
+            expect(again.get_by_text('Sheen under the rail bridge')).to_be_visible()
+            again.get_by_role('button', name='Submit report').click()
+            expect(again).to_have_url(re.compile(r'/reports/[0-9a-f-]+'), timeout=30000)
+        finally:
+            sw.write_bytes(original)
+            browser.close()
