@@ -40,12 +40,7 @@ def load_inputs(db, org, case):
         raise NotReady(['case not found'])
     if not case_row['network_id']:
         raise NotReady(['mapping_incomplete: no local network version recorded'])
-    net = db.execute('select * from network_versions where id=%s', (case_row['network_id'],)).fetchone()
-    nodes = {r['id']: r for r in db.execute('select id,code from network_nodes where network_id=%s', (net['id'],))}
-    edges = db.execute('select id,code,from_node,to_node,length_m,flow_status,connectivity from network_edges where network_id=%s order by code',
-                       (net['id'],)).fetchall()
-    stations = db.execute("select id,code,status,access_status from stations where case_id=%s and network_id=%s order by code",
-                          (case, net['id'])).fetchall()
+    net, nodes, edges, stations = load_network(db, case_row['network_id'])
     readings = db.execute('''select r.*, s.code station_code, i.serial, q.disposition, q.comparable reviewed_comparable from reading_versions r
         join stations s on s.id=r.station_id join instruments i on i.id=r.instrument_id
         left join lateral (select disposition, comparable from quality_decisions d where d.reading_id=r.id order by created_at desc limit 1) q on true
@@ -53,8 +48,9 @@ def load_inputs(db, org, case):
         and q.disposition is not null  -- readings awaiting QC are not evidence yet; they never enter a snapshot
         and not exists(select 1 from reading_versions n where n.entity_id=r.entity_id and n.version>r.version)
         order by r.entity_id''', (case, case)).fetchall()
-    backgrounds = db.execute('''select distinct on (b.station_id) b.*, s.code station_code from background_versions b
-        join stations s on s.id=b.station_id where s.case_id=%s order by b.station_id, b.version desc''', (case,)).fetchall()
+    # Backgrounds follow the station code across network versions; the latest reviewed record per code applies.
+    backgrounds = db.execute('''select distinct on (s.code) b.*, s.code station_code from background_versions b
+        join stations s on s.id=b.station_id where s.case_id=%s order by s.code, b.created_at desc, b.version desc''', (case,)).fetchall()
     transport = db.execute('select * from transport_versions where case_id=%s order by version desc limit 1', (case,)).fetchone()
     calibrations = db.execute('''select c.*, i.serial from calibration_events c join instruments i on i.id=c.instrument_id
         where c.id in (select calibration_id from reading_versions where case_id=%s) and c.bounds is not null''', (case,)).fetchall()
@@ -62,12 +58,10 @@ def load_inputs(db, org, case):
     return case_row, net, nodes, edges, stations, readings, backgrounds, transport, calibrations, waters
 
 
-def build(db, org, case) -> tuple[Snapshot, list[dict], dict]:
-    """Returns (snapshot, dependency rows, planner context). Raises NotReady listing every missing input found."""
-    case_row, net, nodes, edges, stations, readings, backgrounds, transport, calibrations, waters = load_inputs(db, org, case)
-    origin = case_row['data_origin']
+def network_model(net, nodes, edges, stations, origin) -> Network:
+    """Engine Network for one stored version. Station node code == station code by convention (stations split reaches)."""
     try:
-        network = Network(
+        return Network(
             id=str(net['id']), version=str(net['version']), data_origin=origin,
             reaches=tuple(Reach(id=e['code'], upstream=nodes[e['from_node']]['code'], downstream=nodes[e['to_node']]['code'],
                                 length_m=str(e['length_m']), geometry_id=str(e['id']), direction_verified=e['flow_status'] == 'verified',
@@ -77,7 +71,22 @@ def build(db, org, case) -> tuple[Snapshot, list[dict], dict]:
             mixing_reviewed=bool(net['mixing_reviewed']), boundary=net['boundary_treatment'] if net['boundary_treatment'] in ('closed', 'open') else 'unknown',
             boundary_evidence=(net['evidence_refs'] or [None])[0])
     except (ValidationError, KeyError) as exc:
-        raise NotReady([f'mapping_incomplete: network version invalid ({str(exc).splitlines()[0][:200]})'])
+        raise NotReady([f'mapping_incomplete: network version invalid ({str(exc).splitlines()[-1][:200]})'])
+
+
+def load_network(db, nid):
+    net = db.execute('select * from network_versions where id=%s', (nid,)).fetchone()
+    nodes = {r['id']: r for r in db.execute('select id,code from network_nodes where network_id=%s', (nid,))}
+    edges = db.execute('select id,code,from_node,to_node,length_m,flow_status,connectivity from network_edges where network_id=%s order by code', (nid,)).fetchall()
+    stations = db.execute('select id,code,status,access_status from stations where network_id=%s order by code', (nid,)).fetchall()
+    return net, nodes, edges, stations
+
+
+def build(db, org, case) -> tuple[Snapshot, list[dict], dict]:
+    """Returns (snapshot, dependency rows, planner context). Raises NotReady listing every missing input found."""
+    case_row, net, nodes, edges, stations, readings, backgrounds, transport, calibrations, waters = load_inputs(db, org, case)
+    origin = case_row['data_origin']
+    network = network_model(net, nodes, edges, stations, origin)
     missing = list(classify_network(network).reasons)
     if not transport:
         missing.append('transport/episode review needed: no reviewed load, discharge, persistence or velocity record')

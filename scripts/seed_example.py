@@ -85,7 +85,7 @@ def layout(net):
     return {n: (lon0 + x / (111320 * math.cos(math.radians(lat0))), lat0 + y / 110540) for n, (x, y) in pos.items()}
 
 
-def seed_network(db, org, case, net, offset, status='reviewed', flow_regime='steady_directed_tree'):
+def seed_network(db, org, case, net, offset, status='reviewed', flow_regime='steady_directed_tree', mixing=False):
     nid = sid(f'{case}:network:1')
     if db.execute('select 1 from network_versions where id=%s', (nid,)).fetchone():
         return nid
@@ -94,7 +94,7 @@ def seed_network(db, org, case, net, offset, status='reviewed', flow_regime='ste
     tidal = any(r.tidal for r in net.reaches)
     db.execute('''insert into network_versions(id,org_id,case_id,version,source,license,status,completeness,flow_regime,
         boundary_treatment,evidence_refs,content_hash,review_reason) values(%s,%s,%s,1,%s,'CC0-1.0 synthetic',%s,%s,%s,%s,%s,%s,%s)''',
-               (nid, org, case, f'SCIENTIFIC-ENGINE.md synthetic fixture {net.id}', status,
+               (nid, org, case, f'SCIENTIFIC-ENGINE.md synthetic fixture {net.id}', 'proposed',
                 'synthetic_complete_domain', 'tidal' if tidal else flow_regime, net.boundary, [net.boundary_evidence],
                 sid(f'{net.id}:hash'), 'Synthetic fixture: reviewed by construction, not field verification'))
     for node, (lon, lat) in coords.items():
@@ -115,6 +115,8 @@ def seed_network(db, org, case, net, offset, status='reviewed', flow_regime='ste
         db.execute('''insert into stations(id,org_id,case_id,network_id,code,point,status,access_status,access_notes)
             values(%s,%s,%s,%s,%s,extensions.st_setsrid(extensions.st_makepoint(%s,%s),4326),'approved','open',
             'Synthetic example access point') on conflict do nothing''', (sid(f'{case}:station:{s.id}'), org, case, nid, s.id, lon, lat))
+    # Geometry is written while proposed; publication freezes it (network_frozen trigger).
+    db.execute('update network_versions set status=%s, mixing_reviewed=%s, published_at=now() where id=%s', (status, mixing, nid))
     db.execute('update cases set network_id=%s where id=%s', (nid, case))
     return nid
 
@@ -125,7 +127,6 @@ def seed_evidence(db, org, case, monitor, expert):
     if db.execute('select 1 from transport_versions where case_id=%s', (case,)).fetchone():
         return
     stations = {r['code']: r['id'] for r in db.execute('select id,code from stations where case_id=%s', (case,))}
-    db.execute('update network_versions set mixing_reviewed=true where case_id=%s', (case,))
     for b in snap.backgrounds:
         db.execute('''insert into background_versions(id,org_id,station_id,version,enclosure,scope,method,provenance,reviewer_id,content_hash,data_origin)
             values(%s,%s,%s,1,%s,%s,'synthetic protocol bound','SCIENTIFIC-ENGINE.md canonical fixture',%s,%s,'synthetic')''',
@@ -231,7 +232,7 @@ def main():
         db.execute("update cases set locality='West catchment (synthetic)', workflow='localization_active' where id=%s", (mill['case_id'],))
         db.execute("update cases set locality='Park Lane (synthetic)', workflow='triage' where id=%s", (unnamed['case_id'],))
         db.execute("update cases set locality='Harbour (synthetic)', workflow='triage' where id=%s", (tidal['case_id'],))
-        seed_network(db, org, mill['case_id'], network1(), (0, 0))
+        seed_network(db, org, mill['case_id'], network1(), (0, 0), mixing=True)
         seed_evidence(db, org, mill['case_id'], ids['monitor@example.test'], ids['expert@example.test'])
         seed_network(db, org, tidal['case_id'], unsupported_networks()[1], (-.05, -.05))
     print(f'Seeded synthetic example workspace in organization {org}. Users: {", ".join(USERS)}; password: {PASSWORD}')

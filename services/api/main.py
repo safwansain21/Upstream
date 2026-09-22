@@ -222,6 +222,7 @@ def case_detail(org: UUID, case: UUID, request: Request, user: Identity = Depend
         waterway_id,created_at,updated_at from cases where org_id=%s and id=%s''', (org, case))
     data['reports'] = rows(user, f'select {REPORT_COLUMNS} from reports r join cases c on c.id=r.case_id '
                                  'where r.org_id=%s and r.case_id=%s order by r.observed_at', (org, case))
+    data['waterway'] = (rows(user, 'select id,local_name,external_ids,provisional,version from waterways where id=%s', (data['waterway_id'],)) or [None])[0] if data['waterway_id'] else None
     data['events'] = rows(user, 'select sequence,event_type,object_id,object_version,occurred_at from case_events '
                                 'where org_id=%s and case_id=%s order by sequence desc limit 50', (org, case))
     return envelope(data, request, version=data['version'])
@@ -577,3 +578,304 @@ def add_calibration(org: UUID, instrument: UUID, body: CalibrationEvent, request
         db.execute("insert into audit_log(org_id,actor_id,action,object_id,outcome) values(%s,%s,'calibration.recorded',%s,%s)",
                    (org, user.user_id, row['id'], body.status))
     return envelope(row, request, 201)
+
+
+# ---- local mapping: drafts, import, edit, validate, diff, publish ----
+
+from services.worker.snapshot import load_network, network_model  # noqa: E402
+from upstream_engine import classify_network  # noqa: E402
+
+SNAP_TOLERANCE_M = 5  # a station farther than this from a mapped reach is rejected, never snapped (C12)
+
+
+class DraftCreate(StrictModel):
+    source: str = ''
+    license: str = ''
+    retrieved_at: str | None = None
+    geojson: dict | None = None  # omit to start a draft from the current published version
+
+
+class EdgePatch(StrictModel):
+    flow_status: str | None = None     # verified | unknown | reverse
+    connectivity: str | None = None    # verified | mapped_unverified | unknown_connection
+    culvert: bool | None = None
+
+
+class StationPlace(StrictModel):
+    code: str
+    lon: float
+    lat: float
+
+
+class Publish(StrictModel):
+    reason: str
+    evidence: list[str]
+    boundary: str
+    mixing_reviewed: bool = False
+    domain_note: str = ''
+
+
+def mapping_access(user: Identity, org: UUID, case: UUID):
+    case_access(user, org, case, ('coordinate', 'network_verify'))
+
+
+def draft_of(db, org: UUID, nid: UUID):
+    net = db.execute('select * from network_versions where org_id=%s and id=%s', (org, nid)).fetchone()
+    if not net:
+        raise DomainError('NOT_FOUND', 'Record not found.', 404)
+    if net['status'] != 'proposed':
+        raise DomainError('VERSION_CONFLICT', 'Published network versions are immutable; start a new draft.', 409)
+    return net
+
+
+def refresh_kinds(db, nid):
+    db.execute('''update network_nodes n set kind=case
+        when exists(select 1 from stations s where s.network_id=n.network_id and s.code=n.code) then 'station'
+        when not exists(select 1 from network_edges e where e.to_node=n.id) then 'source'
+        when not exists(select 1 from network_edges e where e.from_node=n.id) then 'outlet' else 'junction' end
+        where network_id=%s''', (nid,))
+
+
+def import_geojson(db, org, nid, fc):
+    if fc.get('type') != 'FeatureCollection' or not isinstance(fc.get('features'), list):
+        raise DomainError('VALIDATION_FAILED', 'Provide a GeoJSON FeatureCollection.')
+    features = fc['features']
+    if len(features) > 10000:
+        raise DomainError('VALIDATION_FAILED', 'Imports are limited to 10,000 features; split the file.')
+    lines = [f for f in features if (f.get('geometry') or {}).get('type') == 'LineString']
+    points = [f for f in features if (f.get('geometry') or {}).get('type') == 'Point' and (f.get('properties') or {}).get('station')]
+    if not lines:
+        raise DomainError('VALIDATION_FAILED', 'No LineString reaches found in the file.')
+    nodes, warnings = {}, []
+
+    def node(coord):
+        lon, lat = float(coord[0]), float(coord[1])
+        if not (-180 <= lon <= 180 and -90 <= lat <= 90):
+            raise DomainError('VALIDATION_FAILED', f'Coordinate {coord} is outside WGS84 longitude/latitude ranges.')
+        key = (round(lon, 7), round(lat, 7))  # only exactly shared endpoints join; nearby ends are not merged
+        if key not in nodes:
+            nodes[key] = db.execute('''insert into network_nodes(org_id,network_id,code,kind,point) values(%s,%s,%s,'junction',
+                extensions.st_setsrid(extensions.st_makepoint(%s,%s),4326)) returning id''', (org, nid, f'N{len(nodes) + 1}', *key)).fetchone()['id']
+        return nodes[key]
+
+    codes = set()
+    for i, f in enumerate(lines, 1):
+        coords = f['geometry'].get('coordinates') or []
+        if len(coords) < 2:
+            raise DomainError('VALIDATION_FAILED', f'Reach {i} needs at least two coordinates.')
+        code = str((f.get('properties') or {}).get('id') or f'R{i}')[:60]
+        if code in codes:
+            raise DomainError('VALIDATION_FAILED', f'Duplicate reach id {code}.')
+        codes.add(code)
+        a, b = node(coords[0]), node(coords[-1])
+        if a == b:
+            raise DomainError('VALIDATION_FAILED', f'Reach {code} starts and ends at the same point.')
+        db.execute('''insert into network_edges(org_id,network_id,code,from_node,to_node,line,length_m,flow_status,connectivity)
+            select %s,%s,%s,%s,%s,g,round(extensions.st_length(g::extensions.geography)::numeric,2),'unknown','mapped_unverified'
+            from (select extensions.st_setsrid(extensions.st_geomfromgeojson(%s),4326) g) x''',
+                   (org, nid, code, a, b, json.dumps(f['geometry'])))
+    crossings = db.execute('''select a.code a,b.code b from network_edges a join network_edges b on a.network_id=b.network_id and a.code<b.code
+        where a.network_id=%s and extensions.st_crosses(a.line,b.line)''', (nid,)).fetchall()
+    warnings += [f"Reaches {c['a']} and {c['b']} cross without a shared junction; not treated as a confluence (review in the field)." for c in crossings]
+    refresh_kinds(db, nid)
+    for p in points:
+        lon, lat = p['geometry']['coordinates'][:2]
+        place_station(db, org, nid, str(p['properties']['station'])[:30], float(lon), float(lat))
+    return warnings
+
+
+def place_station(db, org, nid, code, lon, lat):
+    """Station on an existing node, or split the nearest reach at the point. Never snaps beyond tolerance."""
+    case = db.execute('select case_id from network_versions where id=%s', (nid,)).fetchone()['case_id']
+    if db.execute('select 1 from stations where network_id=%s and code=%s', (nid, code)).fetchone():
+        raise DomainError('VALIDATION_FAILED', f'Station {code} already exists in this draft.')
+    pt = (lon, lat)
+    near_node = db.execute('''select id,code,extensions.st_distance(point::extensions.geography,
+        extensions.st_setsrid(extensions.st_makepoint(%s,%s),4326)::extensions.geography) d from network_nodes where network_id=%s order by d limit 1''',
+                           (*pt, nid)).fetchone()
+    edge = db.execute('''select id,code,from_node,to_node,length_m,flow_status,connectivity,culvert,
+        extensions.st_linelocatepoint(line,extensions.st_setsrid(extensions.st_makepoint(%s,%s),4326)) f,
+        extensions.st_distance(line::extensions.geography,extensions.st_setsrid(extensions.st_makepoint(%s,%s),4326)::extensions.geography) d
+        from network_edges where network_id=%s order by d limit 1''', (*pt, *pt, nid)).fetchone()
+    if near_node and near_node['d'] <= 1:
+        if db.execute('select 1 from network_nodes where network_id=%s and code=%s', (nid, code)).fetchone() and near_node['code'] != code:
+            raise DomainError('VALIDATION_FAILED', f'Node code {code} is already used.')
+        db.execute('update network_nodes set code=%s where id=%s', (code, near_node['id']))
+    elif edge and edge['d'] <= SNAP_TOLERANCE_M:
+        first = (Decimal(str(edge['length_m'])) * Decimal(str(edge['f']))).quantize(Decimal('0.01'))
+        second = Decimal(str(edge['length_m'])) - first  # total channel length preserved exactly (C06)
+        if first <= 0 or second <= 0:
+            raise DomainError('VALIDATION_FAILED', 'Station falls on a reach end; place it on the existing node.')
+        mid = db.execute('''insert into network_nodes(org_id,network_id,code,kind,point) values(%s,%s,%s,'station',
+            extensions.st_setsrid(extensions.st_makepoint(%s,%s),4326)) returning id''', (org, nid, code, *pt)).fetchone()['id']
+        for suffix, a, b, lo, hi, length in ((':up', edge['from_node'], mid, 0, edge['f'], first), (':down', mid, edge['to_node'], edge['f'], 1, second)):
+            db.execute('''insert into network_edges(org_id,network_id,code,from_node,to_node,line,length_m,flow_status,connectivity,culvert)
+                select %s,%s,%s,%s,%s,extensions.st_linesubstring(line,%s,%s),%s,flow_status,connectivity,culvert from network_edges where id=%s''',
+                       (org, nid, edge['code'] + suffix, a, b, lo, hi, length, edge['id']))
+        db.execute('delete from network_edges where id=%s', (edge['id'],))
+    else:
+        distance = round(min(x['d'] for x in (near_node, edge) if x)) if (near_node or edge) else None
+        raise DomainError('VALIDATION_FAILED', f'Station {code} is {distance} m from the nearest mapped reach. '
+                                               'It is not moved automatically; add or correct the reach first.')
+    db.execute('''insert into stations(org_id,case_id,network_id,code,point,status,access_status)
+        values(%s,%s,%s,%s,extensions.st_setsrid(extensions.st_makepoint(%s,%s),4326),'proposed','unknown')''', (org, case, nid, code, *pt))
+    refresh_kinds(db, nid)
+
+
+def network_summary(db, nid, origin='real'):
+    net, nodes, edges, stations = load_network(db, nid)
+    try:
+        reasons = list(classify_network(network_model(net, nodes, edges, stations, origin)).reasons)
+    except Exception as exc:  # noqa: BLE001 - NotReady carries a user-facing reason
+        reasons = getattr(exc, 'reasons', [str(exc)])
+    return reasons
+
+
+@app.post('/api/v1/orgs/{org}/cases/{case}/network/drafts', status_code=201)
+def create_draft(org: UUID, case: UUID, body: DraftCreate, request: Request, user: Identity = Depends(identity)):
+    mapping_access(user, org, case)
+    with transaction(worker=True) as db:
+        c = db.execute('select network_id,data_origin from cases where id=%s', (case,)).fetchone()
+        if db.execute("select 1 from network_versions where case_id=%s and status='proposed'", (case,)).fetchone():
+            raise DomainError('VERSION_CONFLICT', 'This case already has an open draft; continue or publish it first.', 409)
+        version = db.execute('select coalesce(max(version),0)+1 v from network_versions where case_id=%s', (case,)).fetchone()['v']
+        base = db.execute('select * from network_versions where id=%s', (c['network_id'],)).fetchone() if c['network_id'] else None
+        if body.geojson is None and not base:
+            raise DomainError('VALIDATION_FAILED', 'No published network to copy; import GeoJSON linework to start the local map.')
+        if body.geojson is not None and (len(body.source) < 3 or len(body.license) < 2):
+            raise DomainError('VALIDATION_FAILED', 'Imported linework needs its source and licence.')
+        nid = db.execute('''insert into network_versions(org_id,case_id,version,source,license,retrieved_at,status,content_hash,created_by,supersedes_id)
+            values(%s,%s,%s,%s,%s,%s,'proposed','draft',%s,%s) returning id''',
+                         (org, case, version, body.source if body.geojson is not None else base['source'],
+                          body.license if body.geojson is not None else base['license'], body.retrieved_at, user.user_id,
+                          c['network_id'])).fetchone()['id']
+        if body.geojson is not None:
+            warnings = import_geojson(db, org, nid, body.geojson)
+        else:  # copy the published version into an editable draft; connectivity/review states are carried, not re-verified
+            warnings = []
+            db.execute('''insert into network_nodes(org_id,network_id,code,kind,point,boundary)
+                select org_id,%s,code,kind,point,boundary from network_nodes where network_id=%s''', (nid, base['id']))
+            db.execute('''insert into network_edges(org_id,network_id,code,from_node,to_node,line,length_m,flow_status,connectivity,evidence_refs,culvert)
+                select e.org_id,%s,e.code,f2.id,t2.id,e.line,e.length_m,e.flow_status,e.connectivity,e.evidence_refs,e.culvert from network_edges e
+                join network_nodes f on f.id=e.from_node join network_nodes t on t.id=e.to_node
+                join network_nodes f2 on f2.network_id=%s and f2.code=f.code join network_nodes t2 on t2.network_id=%s and t2.code=t.code
+                where e.network_id=%s''', (nid, nid, nid, base['id']))
+            db.execute('''insert into stations(org_id,case_id,network_id,code,point,status,access_status,access_notes)
+                select org_id,case_id,%s,code,point,status,access_status,access_notes from stations where network_id=%s''', (nid, base['id']))
+        db.execute('update network_versions set import_warnings=%s where id=%s', (json.dumps(warnings), nid))
+        db.execute("insert into case_events(org_id,case_id,event_type,actor_id,object_id,object_version) values(%s,%s,'network.draft_created',%s,%s,%s)",
+                   (org, case, user.user_id, nid, version))
+    return envelope({'id': nid, 'version': version, 'warnings': warnings}, request, 201)
+
+
+@app.get('/api/v1/orgs/{org}/networks/{nid}')
+def network_version(org: UUID, nid: UUID, request: Request, user: Identity = Depends(identity)):
+    net = one(user, '''select id,case_id,version,status,source,license,retrieved_at,flow_regime,boundary_treatment,mixing_reviewed,
+        review_reason,evidence_refs,published_at,supersedes_id,domain_note,import_warnings from network_versions where org_id=%s and id=%s''', (org, nid))
+    net['nodes'] = rows(user, 'select id,code,kind,extensions.st_x(point) lon,extensions.st_y(point) lat from network_nodes where network_id=%s order by code', (nid,))
+    net['edges'] = rows(user, '''select e.id,e.code,f.code from_code,t.code to_code,e.length_m,e.flow_status,e.connectivity,e.culvert,
+        extensions.st_asgeojson(e.line)::jsonb geometry from network_edges e join network_nodes f on f.id=e.from_node
+        join network_nodes t on t.id=e.to_node where e.network_id=%s order by e.code''', (nid,))
+    net['stations'] = rows(user, '''select id,code,status,access_status,extensions.st_x(point) lon,extensions.st_y(point) lat
+        from stations where network_id=%s order by code''', (nid,))
+    with transaction(worker=True) as db:
+        origin = db.execute('select data_origin from cases where id=%s', (net['case_id'],)).fetchone()['data_origin']
+        net['validation'] = network_summary(db, nid, origin)
+        current = db.execute('select network_id from cases where id=%s', (net['case_id'],)).fetchone()['network_id']
+        net['diff'] = diff(db, current, nid) if current and current != nid else None
+    return envelope(net, request, version=net['version'])
+
+
+def diff(db, old, new):
+    q = '''select e.code,f.code a,t.code b,e.length_m,e.flow_status,e.connectivity from network_edges e
+        join network_nodes f on f.id=e.from_node join network_nodes t on t.id=e.to_node where e.network_id=%s'''
+    before = {r['code']: r for r in db.execute(q, (old,))}
+    after = {r['code']: r for r in db.execute(q, (new,))}
+    total = lambda rows: sum(Decimal(str(r['length_m'])) for r in rows.values())  # noqa: E731
+    return {'added': sorted(after.keys() - before.keys()), 'removed': sorted(before.keys() - after.keys()),
+            'direction_changed': sorted(k for k in after.keys() & before.keys() if (after[k]['a'], after[k]['b']) != (before[k]['a'], before[k]['b'])),
+            'status_changed': sorted(k for k in after.keys() & before.keys() if (after[k]['flow_status'], after[k]['connectivity']) != (before[k]['flow_status'], before[k]['connectivity'])),
+            'length_before_m': str(total(before)), 'length_after_m': str(total(after))}
+
+
+@app.patch('/api/v1/orgs/{org}/networks/{nid}/edges/{edge}')
+def patch_edge(org: UUID, nid: UUID, edge: UUID, body: EdgePatch, request: Request, user: Identity = Depends(identity)):
+    with transaction(worker=True) as db:
+        net = draft_of(db, org, nid)
+    mapping_access(user, org, net['case_id'])
+    if body.flow_status not in (None, 'verified', 'unknown', 'reverse') or body.connectivity not in (None, 'verified', 'mapped_unverified', 'unknown_connection'):
+        raise DomainError('VALIDATION_FAILED', 'Unknown flow or connectivity status.')
+    with transaction(worker=True) as db:
+        if body.flow_status == 'reverse':
+            db.execute("update network_edges set from_node=to_node,to_node=from_node,line=extensions.st_reverse(line),flow_status='unknown' where id=%s and network_id=%s", (edge, nid))
+        elif body.flow_status:
+            db.execute('update network_edges set flow_status=%s where id=%s and network_id=%s', (body.flow_status, edge, nid))
+        if body.connectivity:
+            db.execute('update network_edges set connectivity=%s where id=%s and network_id=%s', (body.connectivity, edge, nid))
+        if body.culvert is not None:  # a culvert or unknown connection is never read as "disconnected" (C03)
+            db.execute("update network_edges set culvert=%s, connectivity=case when %s then 'unknown_connection' else connectivity end where id=%s and network_id=%s",
+                       (body.culvert, body.culvert, edge, nid))
+        refresh_kinds(db, nid)
+        db.execute("insert into case_events(org_id,case_id,event_type,actor_id,object_id) values(%s,%s,'network.edge_edited',%s,%s)", (org, net['case_id'], user.user_id, edge))
+    return envelope({'id': edge}, request)
+
+
+@app.post('/api/v1/orgs/{org}/networks/{nid}/stations', status_code=201)
+def add_station(org: UUID, nid: UUID, body: StationPlace, request: Request, user: Identity = Depends(identity)):
+    with transaction(worker=True) as db:
+        net = draft_of(db, org, nid)
+    mapping_access(user, org, net['case_id'])
+    if not body.code.strip() or len(body.code) > 30:
+        raise DomainError('VALIDATION_FAILED', 'Station code is required (30 characters max).')
+    with transaction(worker=True) as db:
+        place_station(db, org, nid, body.code.strip(), body.lon, body.lat)
+    return envelope({'code': body.code}, request, 201)
+
+
+@app.post('/api/v1/orgs/{org}/networks/{nid}/stations/{station}/approve')
+def approve_station(org: UUID, nid: UUID, station: UUID, request: Request, user: Identity = Depends(identity)):
+    with transaction(worker=True) as db:
+        net = draft_of(db, org, nid)
+    mapping_access(user, org, net['case_id'])
+    with transaction(worker=True) as db:
+        db.execute("update stations set status='approved',version=version+1 where id=%s and network_id=%s", (station, nid))
+    return envelope({'id': station, 'status': 'approved'}, request)
+
+
+@app.post('/api/v1/orgs/{org}/networks/{nid}/publish')
+def publish_network(org: UUID, nid: UUID, body: Publish, request: Request, user: Identity = Depends(identity)):
+    with transaction(worker=True) as db:  # content hash over the exact geometry being published
+        payload = db.execute('''select coalesce(json_agg(json_build_object('c',code,'f',from_node,'t',to_node,'l',length_m,'s',flow_status,
+            'k',connectivity) order by code),'[]')::text x from network_edges where network_id=%s''', (nid,)).fetchone()['x']
+        draft_of(db, org, nid)
+        db.execute('update network_versions set content_hash=%s where id=%s', (hashlib.sha256(payload.encode()).hexdigest(), nid))
+    return envelope(rpc(user, 'select public.publish_network(%s,%s,%s,%s,%s,%s,%s)',
+                        (org, nid, body.reason, body.evidence, body.boundary, body.mixing_reviewed, body.domain_note)), request)
+
+
+@app.get('/api/v1/orgs/{org}/cases/{case}/network/versions')
+def network_versions(org: UUID, case: UUID, request: Request, user: Identity = Depends(identity)):
+    return envelope(rows(user, '''select id,version,status,source,license,published_at,review_reason,supersedes_id,
+        (select network_id from cases where id=%s)=id current from network_versions where org_id=%s and case_id=%s order by version desc''',
+                         (case, org, case)), request)
+
+
+class WaterwayPatch(StrictModel):
+    local_name: str | None = None
+    external_ids: dict[str, str] | None = None
+
+
+@app.patch('/api/v1/orgs/{org}/waterways/{waterway}')
+def patch_waterway(org: UUID, waterway: UUID, body: WaterwayPatch, request: Request, user: Identity = Depends(identity)):
+    """Reconcile a provisional local waterway with an external identifier; report and case IDs never change (C08)."""
+    with transaction(user.user_id) as db:
+        if not db.execute("select private.has_capability(%s,'coordinate') ok", (org,)).fetchone()['ok']:
+            raise DomainError('FORBIDDEN', 'Coordinator capability required.', 403)
+    with transaction(worker=True) as db:
+        row = db.execute('''update waterways set local_name=coalesce(%s,local_name),external_ids=external_ids||%s::jsonb,
+            provisional=provisional and %s::jsonb='{}'::jsonb,version=version+1 where org_id=%s and id=%s
+            returning id,local_name,external_ids,provisional,version''', (body.local_name, json.dumps(body.external_ids or {}),
+                                                                    json.dumps(body.external_ids or {}), org, waterway)).fetchone()
+        if not row:
+            raise DomainError('NOT_FOUND', 'Record not found.', 404)
+    return envelope(row, request, version=row['version'])
