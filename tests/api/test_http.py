@@ -75,8 +75,8 @@ def test_directory_scopes_and_pagination():
                        headers=as_('coordinator')).json()['data']
     assert not {c['id'] for c in page2['items']} & {c['id'] for c in coordinator['items']}
     assert client.get(f'/api/v1/orgs/{ORG}/cases?q=Mill%20Brook', headers=as_('coordinator')).json()['data']['items'][0]['title'] == 'Mill Brook'
-    # A monitor with no assignment sees no case records (need-to-know) rather than the org directory.
-    assert client.get(f'/api/v1/orgs/{ORG}/cases', headers=as_('monitor')).json()['data']['items'] == []
+    # A monitor sees only cases with their assignments (need-to-know), not the org directory.
+    assert [c['title'] for c in client.get(f'/api/v1/orgs/{ORG}/cases', headers=as_('monitor')).json()['data']['items']] == ['Mill Brook']
 
 
 def test_other_org_and_unknown_records_are_not_found():  # G01

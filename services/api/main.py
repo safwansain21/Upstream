@@ -1,6 +1,9 @@
 """HTTP boundary: identity, envelopes and error mapping. Authority lives in database RPCs and RLS."""
 import hashlib
 import io
+import json
+import sys
+from pathlib import Path
 from decimal import Decimal
 from uuid import UUID, uuid4
 
@@ -11,6 +14,12 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from PIL import Image, ImageOps
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'packages/engine'))
+from upstream_engine import canonical_hash  # noqa: E402
+from upstream_engine.readiness import readiness_reasons  # noqa: E402
+
+from services.worker.snapshot import NotReady, build as build_snapshot  # noqa: E402
 
 from .auth import Identity, identity
 from .config import settings
@@ -316,3 +325,92 @@ def media(org: UUID, media: UUID, original: bool = False, user: Identity = Depen
         raise DomainError('NOT_FOUND', 'No original was retained for this photo.', 404)
     key, mime = (row['private_key'], row['mime']) if original else (row['derivative_key'], 'image/jpeg')
     return Response(storage('GET', key), media_type=mime, headers={'Cache-Control': 'private, max-age=300'})
+
+
+# ---- readiness / analyses / assessments ----
+
+READINESS_CHECKS = [  # label -> engine/builder reason fragments; each check is reported independently (C09)
+    ('Local network mapped and reviewed', ('mapping_incomplete: no local', 'network or mixing not reviewed')),
+    ('Connectivity and flow direction verified', ('connectivity or direction unknown',)),
+    ('Supported flow regime', ('unsupported_flow_model',)),
+    ('Boundary inflow treatment evidenced', ('boundary treatment',)),
+    ('Station positions approved', ('station position not approved', 'unapproved station', 'split the reach')),
+    ('Accepted measurements', ('accepted measurements needed',)),
+    ('Background ranges for measured stations', ('background',)),
+    ('Instrument calibration and uncertainty', ('calibration', 'uncertainty metadata', 'Invalid instrument')),
+    ('Transport intervals', ('transport', 'velocity', 'travel')),
+    ('Anchor and persistence', ('persistence', 'anchor', 'sustained')),
+    ('Comparability of readings', ('comparability pending',)),
+]
+
+
+def case_access(user: Identity, org: UUID, case: UUID, capabilities=('coordinate', 'expert', 'evidence_view')):
+    one(user, 'select id from cases where org_id=%s and id=%s', (org, case))  # RLS: 404 unless visible
+    with transaction(user.user_id) as db:
+        if not any(db.execute('select private.has_capability(%s,%s) ok', (org, c)).fetchone()['ok'] for c in capabilities):
+            raise DomainError('FORBIDDEN', 'Your current qualification does not allow this action.', 403)
+
+
+def readiness_for(org: UUID, case: UUID):
+    with transaction(worker=True) as db:
+        try:
+            snapshot, deps, context = build_snapshot(db, org, case)
+            reasons = list(readiness_reasons(snapshot))
+            measured = {r.station_id for r in snapshot.readings if r.qc == 'accepted'}
+            reasons += [f'background range needed at {s}' for s in sorted(measured - {b.station_id for b in snapshot.backgrounds})]
+        except NotReady as exc:
+            snapshot, deps, context, reasons = None, [], None, exc.reasons
+    checks = []
+    for label, fragments in READINESS_CHECKS:
+        hits = [r for r in reasons if any(f in r for f in fragments)]
+        state = 'missing' if hits else 'ready' if snapshot is not None else 'not_evaluated'  # unknown is never shown as ready
+        checks.append({'label': label, 'state': state, 'ready': state == 'ready', 'reasons': hits})
+    unmatched = [r for r in reasons if not any(r in c['reasons'] for c in checks)]
+    if unmatched:
+        checks.append({'label': 'Other prerequisites', 'state': 'missing', 'ready': False, 'reasons': unmatched})
+    return {'eligible': not reasons, 'reasons': reasons, 'checks': checks}, snapshot, deps, context
+
+
+@app.get('/api/v1/orgs/{org}/cases/{case}/readiness')
+def readiness(org: UUID, case: UUID, request: Request, user: Identity = Depends(identity)):
+    case_access(user, org, case)
+    return envelope(readiness_for(org, case)[0], request)
+
+
+@app.post('/api/v1/orgs/{org}/cases/{case}/analyses', status_code=202)
+def enqueue_analysis(org: UUID, case: UUID, request: Request, user: Identity = Depends(identity)):
+    case_access(user, org, case, ('coordinate', 'expert'))
+    summary, snapshot, deps, context = readiness_for(org, case)
+    if snapshot is None:  # nothing to compute yet; the case stays a useful coordination record
+        raise DomainError('READINESS_REQUIRED', 'Analysis inputs are incomplete: ' + '; '.join(summary['reasons']))
+    payload = json.dumps({'engine': snapshot.model_dump(mode='json'), 'dependencies': deps, 'context': context}, default=str)
+    with transaction(worker=True) as db:
+        job = db.execute('''insert into analysis_jobs(org_id,case_id,purpose,input_hash,snapshot) values(%s,%s,'assessment',%s,%s)
+            on conflict(purpose,input_hash,org_id) do update set purpose=excluded.purpose returning id,state,progress_stage,result_id''',
+                         (org, case, canonical_hash(snapshot), payload)).fetchone()
+        db.execute("insert into case_events(org_id,case_id,event_type,actor_id,object_id) values(%s,%s,'analysis.requested',%s,%s)",
+                   (org, case, user.user_id, job['id']))
+    return envelope(job, request, 202)
+
+
+@app.get('/api/v1/orgs/{org}/analyses/{job}')
+def analysis_status(org: UUID, job: UUID, request: Request, user: Identity = Depends(identity)):
+    return envelope(one(user, '''select id,case_id,state,progress_stage,attempts,last_error,result_id,created_at,
+        extract(epoch from now()-created_at)::int elapsed_seconds from analysis_jobs where org_id=%s and id=%s''', (org, job)), request)
+
+
+@app.get('/api/v1/orgs/{org}/cases/{case}/assessment')
+def latest_assessment(org: UUID, case: UUID, request: Request, revision: int | None = None, user: Identity = Depends(identity)):
+    a = one(user, '''select a.id,a.revision,a.snapshot_hash,a.retained_length_m,a.engine_version,a.solver_version,a.created_at,a.result,
+        (select status from assessment_publications p where p.assessment_id=a.id order by created_at desc limit 1) publication
+        from assessments a where a.org_id=%s and a.case_id=%s and (%s::int is null or a.revision=%s)
+        order by a.revision desc limit 1''', (org, case, revision, revision))
+    result = a.pop('result')
+    a |= {k: result[k] for k in ('eligible', 'readiness_reasons', 'outside_domain_unresolved', 'model_conflict',
+                                 'computation_incomplete', 'assumptions', 'retained_geometry_ids')}
+    a['classes'] = [{k: c[k] for k in ('id', 'signature', 'reach_ids', 'geometry_ids', 'length_m', 'status', 'reason')} for c in result['classes']]
+    a['recommendations'] = rows(user, '''select id,action->>'id' action_id,score_bound_m,score_status,rationale,
+        constraints->>'retained_length_m' retained_length_m,constraints->>'label' label,constraints->>'relaxation' relaxation
+        from recommendations where assessment_id=%s order by (constraints->>'rank')::int''', (a['id'],))
+    a['dependencies'] = rows(user, 'select entity_type,entity_id,version,reason from assessment_dependencies where assessment_id=%s', (a['id'],))
+    return envelope(a, request, version=a['revision'])

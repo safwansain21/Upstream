@@ -22,7 +22,7 @@ def main(command):
     elif command == 'e2e':  # needs API :8000 + `next start` :3000 running against the seeded local stack
         run(PYTHON, '-m', 'pytest', 'tests/e2e', '-q', '-p', 'no:cacheprovider')
     elif command == 'test':
-        run(PYTHON, '-m', 'pytest', 'tests/api', 'tests/packages', '-q', '-p', 'no:cacheprovider')
+        run(PYTHON, '-m', 'pytest', 'tests/api', 'tests/packages', 'tests/security', '-q', '-p', 'no:cacheprovider')
         run(PNPM, '--filter', '@upstream/web', 'typecheck')
     elif command == 'security':
         if not (ROOT / 'tests/security').exists():
@@ -47,6 +47,7 @@ def main(command):
         if not api.exists():
             raise SystemExit('API startup is pending implementation. Public web development: pnpm --filter @upstream/web dev')
         processes = [subprocess.Popen([str(PYTHON), '-m', 'uvicorn', 'services.api.main:app', '--port', '8000'], cwd=ROOT),
+                     subprocess.Popen([str(PYTHON), '-m', 'services.worker'], cwd=ROOT),
                      subprocess.Popen([PNPM, '--filter', '@upstream/web', 'dev'], cwd=ROOT)]
         try:
             for process in processes:

@@ -58,3 +58,19 @@ only with consent) → Supabase storage via service key server-side; `GET /orgs/
 Form uploads photos at submit, failed photo keeps draft (retry/remove). HEIC not converted yet (rejected with message).
 Remaining in step 3: duplicate suggestions (B09),
 map pin + directory map view (needs MapLibre, do with step 4), offline queue (step 9).
+
+Step 5 core DONE (worker + engine on real records), done before step 4 UI because readiness needs it:
+- Migration 202609210003: network_versions.mixing_reviewed + indexes. Apply with `pnpm exec supabase migration up --local`.
+- `services/worker/snapshot.py`: DB rows -> engine Snapshot + dependency rows + planner candidate actions. Conventions for
+  JSON columns are in its docstring (reading bounds, background enclosure, transport_versions.configuration = the reviewed
+  episode record: load, readiness, per-station discharge, future_uncertainty, planned_visit_at).
+- `services/worker/__main__.py` (`python -m services.worker`, included in `pnpm dev`): SKIP LOCKED lease, 3 attempts then
+  failed, assessment+classes+dependencies+recommendations+draft publication+case event+job done in ONE transaction.
+- API: `GET cases/{case}/readiness` (independent checks, state ready|missing|not_evaluated), `POST cases/{case}/analyses`
+  (202, deduped by canonical snapshot hash; 422 READINESS_REQUIRED when no snapshot can be built), `GET analyses/{job}`,
+  `GET cases/{case}/assessment[?revision=]`.
+- Seed adds Mill Brook evidence straight from fixtures.network1_snapshot (backgrounds, transport record, anchor task, visits,
+  O x2 + A3 enclosure readings, accepted QC). Worker result: eligible, 5300 m retained, 3 upper-A classes incompatible,
+  B2 plan bound 5300 (U=5, no guaranteed narrowing). tests/api/test_analysis.py 4 passed; full suite 82 passed.
+- Next: case page UI for readiness/assessment/recommendations + "Run analysis" with polling (step 4/5 UI), map-setup page,
+  then remaining seed scenarios (precision-limited, revised evidence, confluence, access-blocked, delivery).

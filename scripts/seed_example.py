@@ -15,7 +15,9 @@ import httpx
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT), str(ROOT / 'packages/engine')]
 
-from fixtures.networks import network1, unsupported_networks  # noqa: E402
+from datetime import timedelta  # noqa: E402
+
+from fixtures.networks import DISCHARGES, direct_reading, network1, network1_snapshot, unsupported_networks  # noqa: E402
 from services.api.config import settings  # noqa: E402
 from services.api.db import transaction  # noqa: E402
 
@@ -112,6 +114,48 @@ def seed_network(db, org, case, net, offset, status='reviewed', flow_regime='ste
     return nid
 
 
+def seed_evidence(db, org, case, monitor, expert):
+    """Mill Brook useful-evidence episode: exactly the SCIENTIFIC-ENGINE §9.1 fixture (anchor O x2, A3), no extra values."""
+    snap = network1_snapshot()
+    if db.execute('select 1 from transport_versions where case_id=%s', (case,)).fetchone():
+        return
+    stations = {r['code']: r['id'] for r in db.execute('select id,code from stations where case_id=%s', (case,))}
+    db.execute('update network_versions set mixing_reviewed=true where case_id=%s', (case,))
+    for b in snap.backgrounds:
+        db.execute('''insert into background_versions(id,org_id,station_id,version,enclosure,scope,method,provenance,reviewer_id,content_hash,data_origin)
+            values(%s,%s,%s,1,%s,%s,'synthetic protocol bound','SCIENTIFIC-ENGINE.md canonical fixture',%s,%s,'synthetic')''',
+                   (sid(f'{case}:bg:{b.station_id}'), org, stations[b.station_id], json.dumps(b.enclosure.model_dump(mode='json')),
+                    json.dumps({'epoch': b.epoch}), expert, sid(f'{case}:bg-hash:{b.station_id}')))
+    start = min(r.measured_at for r in snap.readings)
+    config = {'episode': snap.episode, 'protocol_version': snap.protocol_version, 'load': snap.load.model_dump(mode='json'),
+              'readiness': snap.readiness.model_dump(mode='json'),
+              'discharge': {s: direct_reading(s, '10').discharge.model_dump(mode='json') for s in DISCHARGES},
+              'future_uncertainty': '5', 'planned_visit_at': (start + timedelta(minutes=15)).isoformat()}
+    db.execute('''insert into transport_versions(id,org_id,case_id,version,configuration,provenance,content_hash,reviewer_id,data_origin)
+        values(%s,%s,%s,1,%s,'Synthetic episode review from SCIENTIFIC-ENGINE.md fixture',%s,%s,'synthetic')''',
+               (sid(f'{case}:transport:1'), org, case, json.dumps(config), sid(f'{case}:transport-hash:1'), expert))
+    task = sid(f'{case}:task:anchor')
+    db.execute('''insert into tasks(id,org_id,case_id,task_type,state,purpose,assignee_id,window_start,window_end,version)
+        values(%s,%s,%s,'anchor_reading','completed','Synthetic anchor and A3 readings for the example episode',%s,%s,%s,5)''',
+               (task, org, case, monitor, start - timedelta(hours=1), start + timedelta(hours=2)))
+    meter = sid('instrument:SC-011')
+    for r in snap.readings:
+        visit = sid(f'{case}:visit:{r.visit_id}')
+        db.execute('''insert into visits(id,org_id,task_id,station_id,instrument_id,operator_id,started_at,shared_effect_group)
+            values(%s,%s,%s,%s,%s,%s,%s,%s) on conflict do nothing''', (visit, org, task, stations[r.station_id], meter, monitor, r.measured_at, r.visit_id))
+        rid = sid(f'{case}:reading:{r.id}')
+        bounds = {'enclosure': r.enclosure.model_dump(mode='json'), 'discharge': r.discharge.model_dump(mode='json'),
+                  'episode': r.episode, 'epoch': r.epoch, 'comparable': r.comparable}
+        mid = (float(r.enclosure.lower) + float(r.enclosure.upper)) / 2
+        db.execute('''insert into reading_versions(id,org_id,case_id,entity_id,version,visit_id,station_id,instrument_id,mode,value,unit,
+            bounds,measured_at,received_at,quality,submitted_task_version,operator_id,data_origin,content_hash)
+            values(%s,%s,%s,%s,1,%s,%s,%s,'true_sc25_enclosure',%s,'uS/cm',%s,%s,%s,'accepted',1,%s,'synthetic',%s)''',
+                   (rid, org, case, sid(f'{case}:reading-entity:{r.id}'), visit, stations[r.station_id], meter, mid, json.dumps(bounds),
+                    r.measured_at, r.received_at, monitor, sid(f'{case}:reading-hash:{r.id}')))
+        db.execute('''insert into quality_decisions(org_id,reading_id,disposition,reason,reviewer_id)
+            values(%s,%s,'accepted','Synthetic fixture reading accepted for the example episode',%s)''', (org, rid, expert))
+
+
 def submit(user_id, org, key, body):
     with transaction(user_id) as db:
         return db.execute('select public.submit_report(%s::uuid,%s::uuid,%s::jsonb) r', (org, sid(key), json.dumps(body))).fetchone()['r']
@@ -166,6 +210,7 @@ def main():
         db.execute("update cases set locality='Park Lane (synthetic)', workflow='triage' where id=%s", (unnamed['case_id'],))
         db.execute("update cases set locality='Harbour (synthetic)', workflow='triage' where id=%s", (tidal['case_id'],))
         seed_network(db, org, mill['case_id'], network1(), (0, 0))
+        seed_evidence(db, org, mill['case_id'], ids['monitor@example.test'], ids['expert@example.test'])
         seed_network(db, org, tidal['case_id'], unsupported_networks()[1], (-.05, -.05))
     print(f'Seeded synthetic example workspace in organization {org}. Users: {", ".join(USERS)}; password: {PASSWORD}')
 
