@@ -30,6 +30,7 @@ class ReportCreate(StrictModel):
     public_visibility: bool = False
     media_ids: list[UUID] = Field(default_factory=list, max_length=5)
     new_observation: bool = True
+    suggested_case_id: UUID | None = None  # citizen's 'may be the same as'; recorded for the coordinator, never auto-merged
 
     @field_validator('timezone')
     @classmethod

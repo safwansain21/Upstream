@@ -225,9 +225,9 @@ def cases(org: UUID, request: Request, q: str = '', workflow: str = '', origin: 
 @app.get('/api/v1/orgs/{org}/cases/{case}')
 def case_detail(org: UUID, case: UUID, request: Request, user: Identity = Depends(identity)):
     data = one(user, '''select id,title,locality,workflow,data_origin,version,review_hold,network_id,current_assessment_id,
-        waterway_id,created_at,updated_at from cases where org_id=%s and id=%s''', (org, case))
-    data['reports'] = rows(user, f'select {REPORT_COLUMNS} from reports r join cases c on c.id=r.case_id '
-                                 'where r.org_id=%s and r.case_id=%s order by r.observed_at', (org, case))
+        waterway_id,merged_into,created_at,updated_at from cases where org_id=%s and id=%s''', (org, case))
+    data['reports'] = rows(user, f'select {REPORT_COLUMNS} from case_reports cr join reports r on r.id=cr.report_id join cases c on c.id=r.case_id '
+                                 'where cr.org_id=%s and cr.case_id=%s order by r.observed_at', (org, case))  # includes merged reports
     data['waterway'] = (rows(user, 'select id,local_name,external_ids,provisional,version from waterways where id=%s', (data['waterway_id'],)) or [None])[0] if data['waterway_id'] else None
     data['events'] = rows(user, 'select sequence,event_type,object_id,object_version,occurred_at from case_events '
                                 'where org_id=%s and case_id=%s order by sequence desc limit 50', (org, case))
@@ -1167,3 +1167,51 @@ def share_acknowledge(token: str, body: Acknowledge, request: Request):
         db.execute("insert into case_events(org_id,case_id,event_type,object_id,payload) values(%s,%s,'package.acknowledged',%s,%s)",
                    (g['org_id'], g['case_id'], g['package_id'], json.dumps({'by': name, 'notice': str(g['notice_id']) if g['notice_id'] else None})))
     return envelope({'acknowledged': True}, request)
+
+
+# ---- duplicate suggestions, merge, contribution receipts ----
+
+class MergeCommand(StrictModel):
+    into_case_id: UUID
+    expected_version: int
+    reason: str
+
+
+@app.get('/api/v1/orgs/{org}/duplicate-suggestions')
+def duplicate_suggestions(org: UUID, request: Request, lat: float, lon: float, observed_at: str, user: Identity = Depends(identity)):
+    """Nearby recent investigations, generalized (rounded distance, no report content). Never merges anything (B09)."""
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        raise DomainError('VALIDATION_FAILED', 'Coordinates are outside WGS84 ranges.')
+    with transaction(worker=True) as db:
+        found = db.execute('''select c.id case_id,c.title,
+            round(min(extensions.st_distance(r.location::extensions.geography,extensions.st_setsrid(extensions.st_makepoint(%s,%s),4326)::extensions.geography))/50)*50 distance_m,
+            round(min(abs(extract(epoch from r.observed_at-%s::timestamptz)))/86400) days_apart
+            from reports r join cases c on c.id=r.case_id where r.org_id=%s and c.merged_into is null and r.location is not null
+            and extensions.st_dwithin(r.location::extensions.geography,extensions.st_setsrid(extensions.st_makepoint(%s,%s),4326)::extensions.geography,500)
+            and r.observed_at between %s::timestamptz-interval '3 days' and %s::timestamptz+interval '3 days'
+            group by c.id order by distance_m limit 5''', (lon, lat, observed_at, org, lon, lat, observed_at, observed_at)).fetchall()
+    return envelope(found, request)
+
+
+@app.post('/api/v1/orgs/{org}/cases/{case}/merge')
+def merge_case(org: UUID, case: UUID, body: MergeCommand, request: Request, user: Identity = Depends(identity)):
+    return envelope(rpc(user, 'select public.merge_case(%s,%s,%s,%s,%s)', (org, case, body.into_case_id, body.expected_version, body.reason)), request)
+
+
+RECEIPT_SQL = '''select x.id,x.effect,x.co_dependencies,x.retained_before_m,x.retained_after_m,x.created_at,x.report_id,x.reading_id,
+    a.revision,(a.result->>'eligible')::boolean eligible,private.publication_status(a.id) status,c.title case_title,c.id case_id
+    from contribution_receipts x join assessments a on a.id=x.assessment_id join cases c on c.id=x.case_id'''
+
+
+@app.get('/api/v1/orgs/{org}/reports/{report}/receipts')
+def report_receipts(org: UUID, report: UUID, request: Request, user: Identity = Depends(identity)):
+    with transaction(worker=True) as db:  # own receipts only; assessment fields are exposed only through the receipt
+        return envelope(db.execute(RECEIPT_SQL + ' where x.org_id=%s and x.report_id=%s and x.user_id=%s order by x.created_at desc',
+                                   (org, report, user.user_id)).fetchall(), request)
+
+
+@app.get('/api/v1/orgs/{org}/receipts')
+def my_receipts(org: UUID, request: Request, user: Identity = Depends(identity)):
+    with transaction(worker=True) as db:
+        return envelope(db.execute(RECEIPT_SQL + ' where x.org_id=%s and x.user_id=%s order by x.created_at desc limit 200',
+                                   (org, user.user_id)).fetchall(), request)
