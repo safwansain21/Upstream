@@ -20,7 +20,7 @@ export default function OrgLayout({ children }: { children: ReactNode }) {
   const links: [string, string][] = [["notifications", "Notifications"], ["settings/profile", "Profile"], ["settings/organization", "Organization"],
     ["settings/instruments", "Instruments"], ["settings/protocols", "Protocols"], ["settings/integrations", "Integrations"]];
   return <><OfflineStatus/><AppHeader org={org}/>
-    {membership ? <nav className="breadcrumbs" aria-label="Workspace">{membership.name} · {links.map(([path, label]) => <span key={path}><Link href={`/app/${org}/${path}`}>{label}</Link> · </span>)}
+    {membership ? <nav className="workspace-nav" aria-label="Workspace"><strong>{membership.name}</strong>{links.map(([path, label]) => <Link key={path} href={`/app/${org}/${path}`}>{label}</Link>)}
       <button className="button button-quiet" onClick={() => supabase.auth.signOut().then(() => { location.href = "/"; })}>Sign out</button></nav> : null}
     {membership?.example ? <div className="page-banner" role="note">Example workspace · synthetic data</div> : null}{body}</>;
 }

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1672 941" width="1672" height="941" aria-hidden="true">
+  <!-- White is the water plane. This matte is intentionally conservative so
+       the moving texture never crosses the bank, sky, or foreground plants. -->
+  <defs><filter id="edge" x="-3%" y="-3%" width="106%" height="106%"><feGaussianBlur stdDeviation="5"/></filter></defs>
+  <path fill="white" filter="url(#edge)" d="M0 374 C350 378 660 374 958 358 C1122 349 1193 340 1270 337 C1373 335 1500 354 1672 373 L1672 590 C1600 605 1532 660 1450 728 C1350 752 1284 766 1232 825 C1120 828 1020 827 921 806 C790 768 679 774 555 750 C430 738 331 716 232 679 C130 642 50 591 0 548 Z"/>
+</svg>
