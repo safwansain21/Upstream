@@ -1,14 +1,14 @@
 import Link from "next/link";
-import { preload } from "react-dom";
 import { AppHeader } from "../components/app-header";
 import { Arrow } from "../components/brand";
 import { ProcessSteps } from "../components/process-steps";
+import { DuskScene } from "../components/scene/dusk-scene";
+import { HeroRoute } from "../components/scene/hero-route";
 import { Footer, OriginBadge } from "../components/ui";
 
 export default function HomePage() {
-  preload("/upstream-dark/dusk-river-clean-plate.png", { as: "image", fetchPriority: "high" });
   return <>
-    <div className="landing-top"><AppHeader/><main id="main-content">
+    <div className="landing-top"><DuskScene variant="hero" eager route={<HeroRoute note="A report begins with what you notice"/>}/><AppHeader/><main id="main-content">
       <section className="landing-hero" aria-labelledby="hero-title">
         <div className="hero-content">
           <h1 id="hero-title">See a change.<br/>Follow it upstream.</h1>
@@ -18,7 +18,6 @@ export default function HomePage() {
             <Link href="/example" className="button button-outline">Explore an example</Link>
           </div>
         </div>
-        <p className="hero-origin-note">A report begins with what you notice</p>
         <ol className="hero-process" aria-label="From report to review">
           <li><strong>Report</strong><span>Share what you see at a river, pond or lake.</span></li>
           <li><strong>Collect evidence</strong><span>Combine measurements, photos and local knowledge.</span></li>

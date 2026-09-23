@@ -54,7 +54,11 @@ def test_report_html_is_rendered_as_text_not_executed():  # G07 (unsafe HTML)
         browser.close(); pw.stop()
 
 
-def test_no_perpetual_decorative_motion_after_settling():  # I15
+LOOPING = '''document.getAnimations().filter(a => a.playState === "running" && !isFinite(a.effect.getComputedTiming().endTime))
+    .map(a => a.effect.target).filter(t => t && !t.closest(".loading-state"))'''
+
+
+def test_no_perpetual_decorative_motion_after_settling():  # I15 (dark handoff: subtle scene loops only, stopped by reduced motion)
     pw, browser, p = browser_page()
     try:
         for path in ['/', '/how-it-works', '/example/useful-evidence']:
@@ -62,10 +66,16 @@ def test_no_perpetual_decorative_motion_after_settling():  # I15
             expect(p.locator('#main-content h1').first).to_be_visible()
             p.wait_for_load_state('networkidle')
             p.wait_for_timeout(1200)
-            looping = p.evaluate('''document.getAnimations().filter(a => a.playState === "running" && !isFinite(a.effect.getComputedTiming().endTime))
-                .map(a => a.effect.target && a.effect.target.className).filter(c => !String(c).includes("loading"))''')
-            assert looping == [], (path, looping)
+            content = p.evaluate(f'({LOOPING}).filter(t => !t.closest(".dusk-scene")).map(t => t.className)')
+            assert content == [], (path, content)  # text, buttons and data never loop; only the wind in the scene does
             assert p.evaluate('getComputedStyle(document.body).cursor') in ('auto', 'default')
+        p.emulate_media(reduced_motion='reduce')
+        for path in ['/', '/how-it-works']:
+            p.goto(BASE + path)
+            expect(p.locator('#main-content h1').first).to_be_visible()
+            p.wait_for_timeout(800)
+            assert p.evaluate(f'({LOOPING}).length') == 0, path  # no wind, no drawing, nothing moves
+            assert p.locator('[data-motion="water"][data-running="true"]').count() == 0  # the water stops
     finally:
         browser.close(); pw.stop()
 

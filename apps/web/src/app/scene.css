@@ -1,0 +1,47 @@
+/* Dusk scene: one art box in plate coordinates (1672x941) sized like object-fit: cover; every layer lives inside it. */
+html { background: var(--night); }
+body { position: relative; isolation: isolate; background: transparent; }
+.dusk-scene { position: absolute; inset: 0 0 auto 0; overflow: hidden; pointer-events: none; z-index: -1; isolation: isolate; background: var(--night); }
+.dusk-hero, .dusk-screen { height: 100svh; min-height: 620px; }
+.dusk-band { height: var(--band-height, 420px); }
+.scene-art { --fx: var(--scene-focus-x, 50%); --fy: var(--scene-focus-y, 50%); position: absolute; left: var(--fx); top: var(--fy);
+  width: max(100%, calc(var(--scene-height) * 1.7768)); aspect-ratio: 1672 / 941; transform: translate(calc(var(--fx) * -1), calc(var(--fy) * -1)); }
+.dusk-hero .scene-art, .dusk-screen .scene-art { --scene-height: max(100svh, 620px); }
+.dusk-band .scene-art { --scene-height: var(--band-height, 420px); --scene-focus-y: 0%; }
+.scene-art picture, .scene-plate, .scene-water { position: absolute; inset: 0; width: 100%; height: 100%; }
+.scene-plate { object-fit: cover; }
+.scene-water { display: block; }
+.scene-foliage { position: absolute; left: 0; will-change: transform; }
+.scene-foliage picture, .scene-foliage img { position: static; width: 100%; height: auto; }
+.scene-branches { top: -2%; right: -4%; left: auto; width: calc(640 / 1672 * 72%); transform: scaleX(-1); -webkit-mask-image: linear-gradient(to bottom, #000 62%, transparent 96%); mask-image: linear-gradient(to bottom, #000 62%, transparent 96%); }
+.scene-branches picture { display: block; transform-origin: 0 20%; animation: sway-branch 7.4s ease-in-out infinite alternate; }
+.scene-reeds { top: calc(230 / 941 * 100%); width: calc(1220 / 1672 * 100%); transform-origin: 30% 100%; animation: sway-reed 6.1s 1.2s ease-in-out infinite alternate; }
+.scene-reeds picture { animation: sway-drift 9.3s 2s ease-in-out infinite alternate-reverse; }
+@keyframes sway-branch { from { transform: rotate(-.5deg); } to { transform: rotate(.9deg); } }
+@keyframes sway-reed { from { transform: rotate(-1.1deg) skewX(-.6deg); } to { transform: rotate(1.4deg) skewX(.8deg); } }
+@keyframes sway-drift { from { transform: translateX(-1.5px); } to { transform: translateX(2px); } }
+/* Legibility grade: dark where text sits (left), fades to night at the bottom of screen and band scenes. */
+.scene-grade { position: absolute; inset: 0; }
+.dusk-hero .scene-grade { background: linear-gradient(90deg, rgb(4 14 15 / 84%) 0%, rgb(5 16 17 / 52%) 36%, rgb(5 16 17 / 8%) 70%), linear-gradient(0deg, rgb(3 13 15 / 86%), transparent 30%, transparent 78%, rgb(3 13 15 / 30%)); }
+.dusk-screen .scene-grade { background: linear-gradient(90deg, rgb(4 14 15 / 82%) 0%, rgb(5 16 17 / 50%) 40%, rgb(5 16 17 / 14%) 72%), linear-gradient(0deg, var(--night) 0%, rgb(7 17 19 / 70%) 22%, transparent 50%, rgb(3 13 15 / 35%)); }
+.dusk-band .scene-grade { background: linear-gradient(90deg, rgb(7 17 19 / 92%) 0%, rgb(7 17 19 / 64%) 40%, rgb(7 17 19 / 10%) 76%), linear-gradient(0deg, var(--night) 0%, rgb(7 17 19 / 60%) 30%, transparent 70%, rgb(3 13 15 / 40%)); }
+
+/* Landing route: main line draws from the amber origin 650-2300 ms; branches start at their junctions. */
+.hero-route { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.hero-route path { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; stroke-dasharray: 1; stroke-dashoffset: 1; }
+.route-ink path { stroke: url(#hero-route-ink); stroke-width: 1.7; }
+.route-glow path { stroke: #d6f1ef; stroke-width: 7; opacity: .16; filter: blur(3px); }
+.route-main { animation: route-draw 1.65s .65s cubic-bezier(.45, 0, .2, 1) forwards; }
+.route-branch { animation: route-draw .95s calc(.65s + var(--at) * 1.65s) cubic-bezier(.45, 0, .2, 1) forwards; }
+.route-origin { fill: var(--amber); stroke: #fff3d9; stroke-width: 2; filter: drop-shadow(0 0 9px var(--amber)); animation: dot-arrive .28s .5s cubic-bezier(.22, 1, .36, 1) both; transform-box: fill-box; transform-origin: center; }
+.route-end { fill: var(--mist); filter: drop-shadow(0 0 7px var(--mist)); transform-box: fill-box; transform-origin: center; animation: dot-arrive .26s calc(.65s + var(--at) * 1.65s) cubic-bezier(.22, 1, .36, 1) both; }
+.route-branch-end { animation-delay: calc(.65s + var(--at) * 1.65s + .95s); }
+@keyframes route-draw { to { stroke-dashoffset: 0; } }
+@keyframes dot-arrive { from { opacity: 0; transform: scale(.7); } to { opacity: 1; transform: scale(1); } }
+.hero-origin-note { position: absolute; margin: 0; transform: translate(-1px, calc(-100% - 3.2vw)); padding: 0 0 2.4vw 10px; border-left: 1px solid rgb(238 175 99 / 70%); color: var(--amber); font-size: clamp(.8rem, .95vw, 1rem); white-space: nowrap; animation: fade-in .6s 2.3s both; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+html[data-motion="reduced"] .dusk-scene *, html[data-motion="reduced"] .dusk-scene *::before { animation: none !important; }
+html[data-motion="reduced"] .hero-route path { stroke-dashoffset: 0; }
+@media (prefers-reduced-motion: reduce) { .dusk-scene * { animation: none !important; } .hero-route path { stroke-dashoffset: 0; } }
+@media (max-width: 760px) { .dusk-hero, .dusk-screen { --scene-focus-x: 64%; } .dusk-hero .scene-overlay { display: none; } }
