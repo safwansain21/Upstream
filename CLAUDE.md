@@ -12,9 +12,16 @@ Spec: `docs/specification/` (UPSTREAM-PRD.md, SCIENTIFIC-ENGINE.md, ACCEPTANCE.m
 - After each step, update `docs/release-results.md` via `scripts/update_release_results.py` (edit its PASSES/PARTIAL maps, rerun the full suite, update the pass count in `CMD`, run the script).
 - PASS only with the exact command and passing test node IDs as evidence. Partial coverage stays FAIL with a note saying what is missing.
 - Update `docs/progress.md` as you go.
+- Before every push, reset the local database, apply both example and load seeds, run the full test suite, and confirm the release gate count is at least 131 PASS. Fix UI tests for intentional interface changes; never delete or skip a failing test to preserve the count. Report changed tests and the reason.
+
+## UI asset and performance rules
+- Do not put raw PNG or JPEG assets in `apps/web/public`. Export AVIF and WebP variants at actual rendered sizes and serve responsive variants with `next/image`.
+- Keep each route's total image transfer under 400 KB. If a design needs more, state the measured cost and the tradeoff before shipping it.
+- After any commit that adds images, font weights, animation, or a dependency, rerun `tests/e2e/test_performance.py::test_public_landing_budgets` against a production build and report measured mobile LCP against the 2.5 s budget.
+- Never regress a passing release gate. Record the download and performance cost of each added font weight and dependency; add one only when the design needs it.
 
 ## Priorities
-- Functionality over UI polish. Skip the I gates (I01-I14, I17); they are for a later UI pass.
+- Preserve product functionality while completing the current dark UI pass (I01-I14 and I17).
 - Done through J12 and H07 (131 PASS). Remaining: the UI pass for I01-I14 and I17. Default basemap is OpenFreeMap (keyless; map browser tests need internet). Keep docs/handoff.md in sync (tests/test_docs.py enforces its open-gate list).
 
 ## Local stack (Windows)
