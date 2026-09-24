@@ -107,6 +107,6 @@ def test_coordinator_runs_analysis_and_sees_engine_result(page):  # E04 E08 C09 
     expect(page.get_by_role('heading', name='Readiness')).to_be_visible()
     page.get_by_role('button', name=re.compile('Run analysis|Recompute')).click()
     expect(page.get_by_text('Analysis complete.')).to_be_visible(timeout=60000)
-    expect(page.get_by_text('5.30 km', exact=True)).to_be_visible()
+    expect(page.locator('.area-figure').get_by_text('5.30 km', exact=True)).to_be_visible()
     expect(page.get_by_text('No guaranteed narrowing under current bounds').first).to_be_visible()
     expect(page.get_by_text('Draft · awaiting expert review')).to_be_visible()

@@ -54,7 +54,11 @@ def test_report_html_is_rendered_as_text_not_executed():  # G07 (unsafe HTML)
         browser.close(); pw.stop()
 
 
-def test_no_perpetual_decorative_motion_after_settling():  # I15
+LOOPING = '''document.getAnimations().filter(a => a.playState === "running" && !isFinite(a.effect.getComputedTiming().endTime))
+    .map(a => a.effect.target).filter(t => t && !t.closest(".loading-state"))'''
+
+
+def test_no_perpetual_decorative_motion_after_settling():  # I15 (dark handoff: subtle scene loops only, stopped by reduced motion)
     pw, browser, p = browser_page()
     try:
         for path in ['/', '/how-it-works', '/example/useful-evidence']:
@@ -62,10 +66,32 @@ def test_no_perpetual_decorative_motion_after_settling():  # I15
             expect(p.locator('#main-content h1').first).to_be_visible()
             p.wait_for_load_state('networkidle')
             p.wait_for_timeout(1200)
-            looping = p.evaluate('''document.getAnimations().filter(a => a.playState === "running" && !isFinite(a.effect.getComputedTiming().endTime))
-                .map(a => a.effect.target && a.effect.target.className).filter(c => !String(c).includes("loading"))''')
-            assert looping == [], (path, looping)
+            content = p.evaluate(f'({LOOPING}).filter(t => !t.closest(".dusk-scene")).map(t => t.className)')
+            assert content == [], (path, content)  # text, buttons and data never loop; only the wind in the scene does
             assert p.evaluate('getComputedStyle(document.body).cursor') in ('auto', 'default')
+        p.emulate_media(reduced_motion='reduce')
+        for path in ['/', '/how-it-works']:
+            p.goto(BASE + path)
+            expect(p.locator('#main-content h1').first).to_be_visible()
+            p.wait_for_timeout(800)
+            assert p.evaluate(f'({LOOPING}).length') == 0, path  # no wind, no drawing, nothing moves
+            assert p.locator('[data-motion="water"][data-running="true"]').count() == 0  # the water stops
+    finally:
+        browser.close(); pw.stop()
+
+
+def test_home_route_is_actually_drawn():  # I10: visible line, not just a finished CSS animation
+    pw, browser, p = browser_page()
+    try:
+        p.goto(BASE + '/')
+        expect(p.locator('.hero-route .route-ink .route-main')).to_be_visible()
+        p.wait_for_timeout(3500)
+        paths = p.locator('.hero-route .route-ink path').evaluate_all('''paths => paths.map(path => ({
+            length: path.getTotalLength(),
+            dash: parseFloat(getComputedStyle(path).strokeDasharray),
+            offset: parseFloat(getComputedStyle(path).strokeDashoffset)
+        }))''')
+        assert paths and all(path['dash'] >= path['length'] and abs(path['offset']) < 0.01 for path in paths), paths
     finally:
         browser.close(); pw.stop()
 
@@ -95,15 +121,15 @@ def test_origin_is_labelled_on_maps_observations_receipts_and_examples():  # J04
     pw, browser, p = browser_page()
     try:
         p.goto(BASE + '/example/useful-evidence')
-        expect(p.get_by_text('Example data').first).to_be_visible()
+        expect(p.get_by_text('Synthetic example').first).to_be_visible()
         p.goto(BASE + '/sign-in')
         sign_in(p, 'expert@example.test')
         expect(p).to_have_url(re.compile('/investigations'))
         mill = case_id('Mill Brook')
         p.goto(f'{BASE}/app/{ORG}/investigations/{mill}')
-        expect(p.locator('section', has=p.get_by_role('heading', name='Local network')).get_by_text('Example data')).to_be_visible()
+        expect(p.locator('section', has=p.get_by_role('heading', name='Local network')).get_by_text('Synthetic example')).to_be_visible()
         p.goto(f'{BASE}/app/{ORG}/investigations/{mill}/observations')
-        expect(p.get_by_role('region', name='Readings').get_by_text('Example data').first).to_be_visible()
+        expect(p.get_by_role('region', name='Readings').get_by_text('Synthetic example').first).to_be_visible()
         q = browser.new_context().new_page()
         q.goto(BASE + '/sign-in')
         sign_in(q, 'contributor@example.test')
@@ -112,7 +138,7 @@ def test_origin_is_labelled_on_maps_observations_receipts_and_examples():  # J04
         expect(q.get_by_role('heading', name='Your contributions')).to_be_visible()
         report_id = client.get(f'/api/v1/orgs/{ORG}/cases/{mill}', headers=as_('coordinator')).json()['data']['reports'][0]['id']
         q.goto(f'{BASE}/app/{ORG}/reports/{report_id}')
-        expect(q.get_by_text('Example data').first).to_be_visible()
+        expect(q.get_by_text('Synthetic example').first).to_be_visible()
     finally:
         browser.close(); pw.stop()
 

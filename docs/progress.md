@@ -336,3 +336,41 @@ Stragglers (J02, J11, B11, F11; A07 in progress):
   pointing the real tile index at a closed port, because MapLibre fetches vector tiles in a worker Playwright cannot route;
   full provider outage via 503). Map browser tests now need internet access to tiles.openfreemap.org.
 - Full suite on a fresh database: 224 passed, 2 skipped (destructive); 131 gates PASS, 15 FAIL (I gates only).
+
+## 2026-09-23 dark UI rebuild (handoff: NewUI/Upstream-Dark-Handoff)
+- Theme: design.css (tokens, primitives, states, motion) and pages.css (page compositions) replace globals.css/dark.css.
+  Fonts: Newsreader 500 + 400 italic, Source Sans 3 400/500/600, IBM Plex Mono 400 (removed Barlow x3, Source Sans 700,
+  Newsreader 400/600); Caveat (48.8 KB, @fontsource/caveat 5.3.0) loads only on the report pages for the notebook note.
+- Scene: one plate art box, WebGL water (single canvas, pauses offscreen/hidden/reduced motion/save-data), independent
+  branch and reed sway, luminous routes drawn from the first dot; mounted per page, not in the root layout.
+- Rebuilt so far: landing (One Health narrative: where a change enters, who reaches that water, traceable handover incl.
+  FHIR R4; no health claim), how it works, sign in, onboarding, status, policy pages, system states, examples, report flow,
+  receipt, investigations directory (list-to-map connectors from real rows), case header/tabs, case overview (ruled-out vs
+  retained stretches, stretch detail, next station, readiness with role, M-13 evidence timeline), evidence review, decision
+  (three distinct statements), history. Still in the old markup under the new tokens: local map, observations, case tasks,
+  packages, field tasks, evidence queue, community, notifications, share page, settings.
+- Found and fixed: MapLibre's worker URL resolved to the page, so vector tiles and GeoJSON never rendered; the worker is now
+  served by app/maplibre/[file] and set with setWorkerUrl. Basemap switched to OpenFreeMap Dark (keyless) to match the UI.
+- Missing API data (shown honestly, not faked): the engine returns no unsat core, so a ruled-out stretch cannot name the
+  single reading that excluded it; the stretch detail shows its class reason, its signature stations and the accepted
+  readings there. The example API has no prior revision, so example pages show the current assessment only (no before/after).
+- Tests changed for the new interface (none deleted or skipped): J04 origin label "Example data" -> "Synthetic example";
+  I09 reduced motion is a switch, not a select; A07 empty directory heading "No investigations yet"; I15 now asserts content
+  never loops and only the scene loops (handoff supersedes it); duplicate-suggestion test uses a recent observed_at (±3 day
+  window); A02 accepts any OpenFreeMap style URL.
+
+## 2026-09-23 continuation and audit
+- Reconciled the later local dark-UI checkout with this `build/upstream` checkout. The earlier uncommitted asset and connector
+  experiment is preserved in local stash `pre-import local dark UI work 2026-09-23`; the later checkout's page work and its
+  two committed asset commits are incorporated here.
+- Browser audit found the scene, network, and list-map SVG draw CSS used a one-pixel dash on paths hundreds of units long.
+  The main home route was invisible after the animation. Measured path lengths now drive those animations; the home-route
+  browser regression test first failed and then passed. The settled 1440×900 home capture shows the route and branches.
+- First-time report submission could reach a receipt before cached `/me` reflected the membership created by the report.
+  The submission transition now refreshes membership before entering the workspace. The geolocation-denied, landmark-only
+  browser journey passed after this change.
+- The production build passed. The landing budget test measured 2,340 ms mobile LCP, 0.003 CLS, and 236 KB initial JS gzip
+  after the motion fix (2,500 ms LCP limit). A PDF verification test exposed that `pypdf` was missing from `requirements.lock`;
+  it is now pinned at 6.10.2, the version in the later checkout, and the previously unrun final test group passed 21/21.
+- Remaining UI scope: the local map, observations, case tasks, packages, field tasks, evidence queue, community,
+  notifications, share page, and settings still need their reference-level compositions and a complete screenshot pass.

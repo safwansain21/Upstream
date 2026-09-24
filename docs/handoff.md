@@ -28,7 +28,7 @@ passed in its own recorded run (see the A01 and A08 rows).
 ## Integrations not available or not verified
 
 - **AI description assistance:** off by default. The OpenAI Responses adapter has only been tested against a local fake provider, never against the real service.
-- **Background map provider:** OpenFreeMap (Liberty style) by default. It needs no key, account or payment and has no service-level agreement. Browser tests that open a map need internet access to `tiles.openfreemap.org`. A tile outage and a full provider outage are both simulated (H07); a real outage has not been observed.
+- **Background map provider:** OpenFreeMap (Dark style) by default. It needs no key, account or payment and has no service-level agreement. Browser tests that open a map need internet access to `tiles.openfreemap.org`. A tile outage and a full provider outage are both simulated (H07); a real outage has not been observed.
 - **Place search / geocoding:** not built. No geocoder is called.
 - **Email:** only the local Supabase mail catcher has been used. No production SMTP provider has been tested.
 - **Recipient webhooks:** tested against a local HTTP receiver, which is allowed only outside production. The HTTPS path (a request to the checked address with the configured host as SNI) is tested with a mocked transport. No real HTTPS recipient endpoint has been used.

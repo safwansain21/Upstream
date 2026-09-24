@@ -1,5 +1,6 @@
 """Receipts show the actual effect and revision (B12, B13); duplicates are suggested, rejected, then merged by a coordinator (B09)."""
 import re
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from playwright.sync_api import expect
@@ -37,7 +38,8 @@ def test_receipt_shows_effect_then_revision(page):  # B12 B13 (browser path)
 
 def test_duplicate_suggested_rejected_and_merged(page):  # B09 (browser path)
     lat, lon = 51.48 + (uuid4().int % 1000) / 1e6, -2.62
-    first = client.post(f'/api/v1/orgs/{ORG}/reports', json=report(latitude=lat, longitude=lon, local_name=f'Dup test {uuid4().hex[:5]}'),
+    recent = (datetime.now(timezone.utc) - timedelta(hours=2)).replace(microsecond=0).isoformat()  # inside the 3-day suggestion window
+    first = client.post(f'/api/v1/orgs/{ORG}/reports', json=report(latitude=lat, longitude=lon, local_name=f'Dup test {uuid4().hex[:5]}', observed_at=recent),
                         headers=as_('reporter') | {'Idempotency-Key': str(uuid4())}).json()['data']
     open_as(page, fresh_contributor())
     page.goto(BASE + '/report/new')

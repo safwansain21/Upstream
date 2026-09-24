@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CaseStatus, EmptyState, InlineError, LoadingState, PageIntro } from "../../../../../../components/ui";
 import { api, download } from "../../../../../../lib/api";
-import { CaseTabs } from "../../../../../../components/case-tabs";
+import { CaseHeader } from "../../../../../../components/case-tabs";
 import { useOrg } from "../../../../../../lib/session";
 
 type Delivery = { id: string; recipient: string; state: string; delivered_at: string | null; attempts: number; acknowledged_at: string | null; acknowledged_by: string | null };
@@ -57,10 +57,9 @@ export default function Exports() {
       setVerified(v => ({ ...v, [p.id]: r.valid ? `Integrity verified · signature ${r.signature_status}` : `Verification failed: ${r.reason}` })); }
     catch (e) { setVerified(v => ({ ...v, [p.id]: (e as Error).message })); }
   }
-  if (!allowed) return <main id="main-content" className="page-shell"><EmptyState title="Evidence packages are for the review team"><p>Recipients receive a scoped link from the reviewing expert.</p></EmptyState></main>;
+  if (!allowed) return <main id="main-content" className="page-shell case-page"><EmptyState title="Evidence packages are for the review team"><p>Recipients receive a scoped link from the reviewing expert.</p></EmptyState></main>;
   return <main id="main-content" className="page-shell">
-    <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href={`/app/${org}/investigations/${caseId}`}>Investigation overview</Link> / <span aria-current="page">Exports</span></nav>
-    <CaseTabs caseId={caseId} current="exports"/>
+    <CaseHeader caseId={caseId} current="exports"/>
     <PageIntro title="Evidence packages"><p>A package is an immutable record of one approved assessment. Creating it sends nothing; sending to a recipient is a separate, explicit action.</p></PageIntro>
     {error ? <InlineError>{error}</InlineError> : null}
     <section className="surface stack" aria-labelledby="create-heading"><h2 id="create-heading">Create a package</h2>

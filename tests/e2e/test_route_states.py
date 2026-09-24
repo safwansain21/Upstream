@@ -101,7 +101,7 @@ def test_new_organization_routes_show_empty_states(page):  # A07 empty
     page.locator('#password').fill(password)
     page.get_by_role('button', name='Sign in', exact=True).click()
     expect(page).to_have_url(re.compile('/app/'))
-    expected = {'/investigations': 'No investigations match', '/tasks': 'No tasks assigned to you', '/notifications': 'No notifications yet',
+    expected = {'/investigations': 'No investigations yet', '/tasks': 'No tasks assigned to you', '/notifications': 'No notifications yet',
                 '/settings/instruments': 'No instruments registered', '/settings/protocols': 'No protocols recorded',
                 '/settings/integrations': 'No recipients configured', '/community': 'No approved assessments yet'}
     for path, heading in expected.items():

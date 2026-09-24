@@ -87,7 +87,7 @@ def test_reduced_motion_is_honoured():  # I09 (OS setting and application settin
         sign_in(q, 'expert@example.test')
         expect(q).to_have_url(re.compile('/investigations'))
         q.goto(f'{BASE}/app/{ORG}/settings/profile')
-        q.get_by_label('Motion').select_option('reduced')
+        q.get_by_label('Reduce motion').check()
         expect(q.locator('html')).to_have_attribute('data-motion', 'reduced')
         q.reload()
         expect(q.locator('html')).to_have_attribute('data-motion', 'reduced')  # the application setting persists

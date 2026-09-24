@@ -79,5 +79,5 @@ def test_core_workflow_runs_without_paid_providers():  # A02
     status = client.get('/api/v1/status').json()['data']
     assert status['ai'] == 'unavailable' and status['email'] == 'local_mail_catcher'
     style = re.search(r'^MAP_STYLE_URL=(.*)$', (Path(__file__).resolve().parents[2] / '.env.example').read_text(encoding='utf-8'), re.M).group(1)
-    assert style in ('', 'https://tiles.openfreemap.org/styles/liberty')  # keyless OpenFreeMap or a plain background
+    assert style == '' or style.startswith('https://tiles.openfreemap.org/styles/')  # keyless OpenFreeMap or a plain background
     assert not re.search(r'key|token|access', style, re.I)

@@ -23,6 +23,9 @@ importers:
       '@fontsource/barlow-condensed':
         specifier: 5.3.0
         version: 5.3.0
+      '@fontsource/caveat':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@fontsource/ibm-plex-mono':
         specifier: 5.3.0
         version: 5.3.0
@@ -197,6 +200,9 @@ packages:
 
   '@fontsource/barlow-condensed@5.3.0':
     resolution: {integrity: sha512-RA7MmIx0v3eQ6Gcf74qLVLOwLB0GpPOzx+eU9iG/AmCnSJGcIWYeU8y6CEMGZ210MGwGg5CZhzLkkvyZdTTk1g==}
+
+  '@fontsource/caveat@5.3.0':
+    resolution: {integrity: sha512-eHTfzQxFSW9ABERRLNruHoNJmKed2J7pqTUc5lp4a4POMgXGKpxmWj3d9Hz10kmAg6iuTTLe6UagbA4bnsmfQw==}
 
   '@fontsource/ibm-plex-mono@5.3.0':
     resolution: {integrity: sha512-eTgnZjZEGk1QtD3ZstF+Vclo2HLAni8YMy34/DxllwZvyz1lR/1RF/xTiAquOBO7MvqBx8D2Ig2WCPMVfdZu7Q==}
@@ -1835,6 +1841,8 @@ snapshots:
       '@noble/hashes': 1.8.0
 
   '@fontsource/barlow-condensed@5.3.0': {}
+
+  '@fontsource/caveat@5.3.0': {}
 
   '@fontsource/ibm-plex-mono@5.3.0': {}
 

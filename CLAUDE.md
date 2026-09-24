@@ -21,8 +21,15 @@ Spec: `docs/specification/` (UPSTREAM-PRD.md, SCIENTIFIC-ENGINE.md, ACCEPTANCE.m
 - Never regress a passing release gate. Record the download and performance cost of each added font weight and dependency; add one only when the design needs it.
 
 ## Priorities
-- Preserve product functionality while completing the current dark UI pass (I01-I14 and I17).
-- Done through J12 and H07 (131 PASS). Remaining: the UI pass for I01-I14 and I17. Default basemap is OpenFreeMap (keyless; map browser tests need internet). Keep docs/handoff.md in sync (tests/test_docs.py enforces its open-gate list).
+- Current work: dark-theme UI rebuild from the handoff at `C:/Users/safwa/OneDrive/Documents/Hackathon Builds/UpstreamInstructions/NewUI/Upstream-Dark-Handoff` (start with `CODEX_START_HERE.md`; 34 references in `gallery.html`). It supersedes the old orange/ice-blue visual brief. Preserve all functionality; never change backend or scientific behavior to match a picture.
+- Preserve product functionality while completing the dark UI pass (I01-I14 and I17). J12 and H07 were complete before the rebuild; the baseline was 131 PASS. Default basemap is OpenFreeMap (keyless; map browser tests need internet). Keep docs/handoff.md in sync (tests/test_docs.py enforces its open-gate list).
+
+## Design integrity (UI rebuild)
+- The 34 references are a complete, deliberate design; additions must look as if they were always there. Integrate each addition into its page while building that page, never as a later pass.
+- Use the design's own language (typography, palette, curves, spacing, motion, composition). No generic additions: no info-icon clutter, banner strips, extra callout boxes, badge piles, default tooltips or filler cards.
+- If an addition has no natural home, find the designer's form (a typographic treatment, a line in an existing panel, a state of an existing element). If it cannot be integrated without compromise, describe the conflict in docs/progress.md instead of shipping it.
+- Required additions: One Health connection shown not claimed (landing narrative; decision view keeps environmental observations / potential exposure and access for people and animals / no health outcome established distinct); plain language for contributor screens and one quiet in-context explanation treatment for technical terms (station, reach, background range, SC25, ruled out, retained, readiness, network version); readiness items say what is missing and which role fixes it; case page shows ruled-out vs retained stretches, the reading that ruled a stretch out and why (engine data only), the planner's next station with a plain reason, and the M-13 evidence timeline with a static explanation; role-specific empty states; reusable components and tokens.
+- Never use "polluter", "safe" or "clean". Ruled out = incompatible under stated assumptions; retained = worth checking. Missing API data is listed in docs/progress.md, never faked.
 
 ## Local stack (Windows)
 - Docker Desktop running; `node_modules/.bin/supabase migration up --local`; `.venv/Scripts/python.exe scripts/seed_example.py` (+ `scripts/seed_load.py` for J03).

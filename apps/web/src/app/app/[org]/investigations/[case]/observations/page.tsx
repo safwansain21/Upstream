@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import { CaseTabs } from "../../../../../../components/case-tabs";
+import { CaseHeader } from "../../../../../../components/case-tabs";
 import { CaseStatus, EmptyState, InlineError, LoadingState, OriginBadge, PageIntro, PageState } from "../../../../../../components/ui";
 import { api } from "../../../../../../lib/api";
 import { useOrg } from "../../../../../../lib/session";
@@ -21,9 +21,8 @@ export default function Observations() {
   if (detail.error) return <PageState title="Observations" error={detail.error} retry={() => detail.refetch()}/>;
   if (!detail.data) return <PageState title="Observations"/>;
   const rows = (readings.data ?? []).filter(r => (!quality || (r.quality ?? "pending") === quality) && (!station || r.station_code === station));
-  return <main id="main-content" className="page-shell">
-    <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href={`/app/${org}/investigations/${caseId}`}>{detail.data.title}</Link> / <span aria-current="page">Observations</span></nav>
-    <CaseTabs caseId={caseId} current="observations"/>
+  return <main id="main-content" className="page-shell case-page">
+    <CaseHeader caseId={caseId} current="observations"/>
     <PageIntro title="Observations"><p>Reports describe what people saw; readings are measurements with their own versions, calibration and review. Each reading is listed separately; repeats are not merged into one value.</p></PageIntro>
     <section className="surface stack" aria-labelledby="reports-heading"><h2 id="reports-heading">Reports ({detail.data.reports.length})</h2>
       {detail.data.reports.length ? <ul>{detail.data.reports.map(r => <li key={r.id}><p>{r.description || r.categories.join(", ")} <OriginBadge origin={r.data_origin}/></p>
