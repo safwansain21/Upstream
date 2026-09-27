@@ -26,7 +26,7 @@ def test_task_proposal_assignment_capture_and_review(page):  # D01 D08 D14 (brow
     page.goto(f"{BASE}/app/{ORG}/investigations/{case_id('Harbour channel')}")
     page.get_by_role('link', name='Tasks', exact=True).click()
     page.get_by_label('Task type').select_option('conductance_reading')
-    pick(page.get_by_label('Station'), '^B1 ')
+    pick(page.get_by_label('Station', exact=True), '^B1 ')
     page.get_by_label('Protocol').select_option(index=1)
     page.get_by_label('Purpose').fill('Browser test: measure at B1 to help distinguish retained reaches.')
     page.get_by_label('Window start').fill(start.strftime('%Y-%m-%dT%H:%M'))

@@ -443,3 +443,9 @@ Memory before/after (Chromium 1440x900 against `next start`, forced GC; busy = m
   origin caption when all rows share an origin; limits callout with the SC25 term; role-specific empty states (contributors
   are told readings go to the review team and that they will be notified of assessment changes). Missing API data: report
   photo thumbnails — the case detail API returns no media ids for reports, so no thumbnails are shown.
+- Case tasks: tasks grouped by station beside a compact schematic of the case network (selecting a station scrolls to its
+  group); task cards with state, window, protocol name and purpose; the propose form (coordinators) with a time-window group;
+  a static list of the four checks that assignment runs on the server (qualification, verified instrument, access, booking);
+  non-coordinators are pointed to Field tasks; role-specific empty states. Test changed for the interface:
+  tests/e2e/test_task_flow.py now selects the form's station with get_by_label('Station', exact=True), because the page now
+  also has a "Tasks by station" region and the schematic's station list (the form itself is unchanged).
