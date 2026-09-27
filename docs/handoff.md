@@ -10,7 +10,7 @@ environmental model is right for any real stream.
 ## Final run
 
 `.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` on a freshly reset database (`supabase db reset --local`,
-`scripts/seed_example.py`, `scripts/seed_load.py`), with the API, worker and `next start` running: 229 passed, 2 skipped, 2026-09-26.
+`scripts/seed_example.py`, `scripts/seed_load.py`), with the API, worker and `next start` running: 244 passed, 2 skipped, 2026-09-27.
 The two skipped tests are destructive and run only with `UPSTREAM_RUN_DESTRUCTIVE=1` (A01 fresh checkout, A08 upgrade); each
 passed in its own recorded run (see the A01 and A08 rows).
 

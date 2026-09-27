@@ -419,10 +419,11 @@ Where things stand:
   settings x5 (40d75b4). Last milestone run on 40d75b4 (fresh reset + both seeds, 2026-09-26): 228 passed, 2 skipped
   (destructive), 1 failed: tests/test_docs.py found an uncommitted Phase 3 test file (tests/e2e/test_visual_gates.py) that
   the handoff inventory did not list yet; committed code is unaffected. 131 PASS.
-- Phase 3 (34-reference visual pass, I01-I14 and I17 evidence, leak click-through): in progress. ACCEPTANCE.md amendment
-  (I02, I15) written; route focus added; tests/e2e/test_visual_gates.py covers I02-I10, I12-I14, I17. I01 and I11 still name
-  the superseded hybrid references and PRD motion table: raised with the user, not reinterpreted.
-- Gates: 131 PASS, 15 FAIL (I01-I14, I17 only). Phase 1 milestone run on the trimmed stack, fresh reset + both seeds:
+- Phase 3: gates closed. Milestone run on 597143b (fresh reset + both seeds, 2026-09-27): 244 passed, 2 skipped
+  (destructive); 146 PASS, 0 FAIL. An earlier overnight attempt was invalid (the database container restarted mid-run,
+  most likely the laptop sleeping: 23 failures incl. API-only security tests, 10 h runtime) and was rerun from a fresh
+  reset. Remaining: the leak click-through and the comparison of pages rebuilt before this session with their references.
+- Gates (before Phase 3): 131 PASS, 15 FAIL (I01-I14, I17 only). Phase 1 milestone run on the trimmed stack, fresh reset + both seeds:
   229 passed, 2 skipped (destructive), 2026-09-26.
 
 Memory before/after (Chromium 1440x900 against `next start`, forced GC; busy = main-thread task time at idle, software GL):
