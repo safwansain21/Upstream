@@ -65,7 +65,7 @@ export default function HomePage() {
             <h2 id="example-heading">A small stream.<br/>A shared investigation.</h2>
             <p>Follow Mill Brook from the first observation to a reviewable next step, computed by the real engine. See what happens when evidence is useful, uncertain, or revised.</p>
             <Link href="/example" className="button button-primary">Explore the investigation <Arrow/></Link></div>
-          <svg className="example-trace" viewBox="0 0 520 260" aria-hidden="true"><path pathLength={1} d="M18 222 C120 210 160 170 232 150 S330 118 372 84 S460 40 506 30"/><path pathLength={1} className="branch" d="M372 84 C390 110 430 124 488 120"/><path pathLength={1} className="branch dashed" d="M232 150 C250 118 250 76 286 44"/><circle className="origin" cx="18" cy="222" r="6"/><circle cx="506" cy="30" r="4"/><circle cx="488" cy="120" r="4"/><circle cx="286" cy="44" r="4"/></svg>
+          <svg className="example-trace" viewBox="0 0 520 260" aria-hidden="true"><path d="M18 222 C120 210 160 170 232 150 S330 118 372 84 S460 40 506 30"/><path className="branch" d="M372 84 C390 110 430 124 488 120"/><path className="branch dashed" d="M232 150 C250 118 250 76 286 44"/><circle className="origin" cx="18" cy="222" r="6"/><circle cx="506" cy="30" r="4"/><circle cx="488" cy="120" r="4"/><circle cx="286" cy="44" r="4"/></svg>
         </Reveal>
       </section>
       <section className="landing-limits section-shell" aria-labelledby="limits-heading">

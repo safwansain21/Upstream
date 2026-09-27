@@ -21,15 +21,21 @@ export default function Observations() {
   if (detail.error) return <PageState title="Observations" error={detail.error} retry={() => detail.refetch()}/>;
   if (!detail.data) return <PageState title="Observations"/>;
   const rows = (readings.data ?? []).filter(r => (!quality || (r.quality ?? "pending") === quality) && (!station || r.station_code === station));
-  return <main id="main-content" className="page-shell case-page">
+  return <main id="main-content" className="page-shell case-page observations-page">
     <CaseHeader caseId={caseId} current="observations"/>
-    <PageIntro title="Observations"><p>Reports describe what people saw; readings are measurements with their own versions, calibration and review. Each reading is listed separately; repeats are not merged into one value.</p></PageIntro>
-    <section className="surface stack" aria-labelledby="reports-heading"><h2 id="reports-heading">Reports ({detail.data.reports.length})</h2>
-      {detail.data.reports.length ? <ul>{detail.data.reports.map(r => <li key={r.id}><p>{r.description || r.categories.join(", ")} <OriginBadge origin={r.data_origin}/></p>
-        <p className="muted">Observed {new Date(r.observed_at).toLocaleString()} ({r.timezone}) · {r.latitude === null ? `Location to be confirmed: “${r.landmark}”` : `${r.latitude.toFixed(5)}, ${r.longitude!.toFixed(5)} (${r.location_precision})`}</p></li>)}</ul>
+    <PageIntro title="Observations & readings"><p>Community reports and instrument measurements are separate kinds of evidence. Each reading keeps its own version, calibration and review history.</p></PageIntro>
+    <div className="observations-layout">
+    <section className="surface stack reports-panel" aria-labelledby="reports-heading"><div className="observation-panel-head"><div><span className="eyebrow">What people noticed</span><h2 id="reports-heading">Community reports <span className="count">{detail.data.reports.length}</span></h2></div><Link href="/report/new" className="button button-outline button-small">Report an observation</Link></div>
+      {detail.data.reports.length ? <ol className="observation-report-list">{detail.data.reports.map(r => <li key={r.id}>
+        <div className="report-card-meta"><time dateTime={r.observed_at}>{new Date(r.observed_at).toLocaleString()}</time><OriginBadge origin={r.data_origin}/></div>
+        <h3>{r.categories.length ? r.categories.join(", ") : "Community observation"}</h3>
+        {r.description ? <p>{r.description}</p> : null}
+        <p className="report-card-place">{r.latitude === null ? `Location to be confirmed: “${r.landmark}”` : `${r.latitude.toFixed(5)}, ${r.longitude!.toFixed(5)} (${r.location_precision})`}</p>
+        <Link href={`/app/${org}/reports/${r.id}`} className="text-link" aria-label={`View report from ${new Date(r.observed_at).toLocaleDateString()}`}>View report →</Link>
+      </li>)}</ol>
         : <EmptyState title="No reports visible to you"/>}</section>
-    {review ? <section className="surface stack" aria-labelledby="readings-heading"><h2 id="readings-heading">Readings</h2>
-      <div className="button-row">
+    {review ? <section className="surface stack readings-panel" aria-labelledby="readings-heading"><div className="observation-panel-head"><div><span className="eyebrow">What instruments measured</span><h2 id="readings-heading">Instrument readings <span className="count">{readings.data?.length ?? 0}</span></h2></div></div>
+      <div className="reading-filters">
         <div className="form-field"><label htmlFor="q-filter">Quality</label><select id="q-filter" value={quality} onChange={e => setQuality(e.target.value)}><option value="">All</option><option value="pending">Pending review</option><option value="accepted">Accepted</option><option value="suspect">Suspect</option><option value="excluded">Excluded</option></select></div>
         <div className="form-field"><label htmlFor="s-filter">Station</label><select id="s-filter" value={station} onChange={e => setStation(e.target.value)}><option value="">All</option>{[...new Set((readings.data ?? []).map(r => r.station_code))].sort().map(s => <option key={s}>{s}</option>)}</select></div></div>
       {readings.error ? <InlineError>{readings.error.message}</InlineError> : !readings.data ? <LoadingState/> : !rows.length ? <EmptyState title="No readings match"><p>Readings appear after trained monitors submit assigned tasks.</p></EmptyState> :
@@ -39,6 +45,8 @@ export default function Observations() {
             <td><span className="mono">{r.instrument_serial}</span> · <span className="mono">{r.visit_id.slice(0, 8)}</span></td>
             <td><CaseStatus tone={r.quality === "accepted" ? "accepted" : r.quality ? "warning" : "neutral"}>{r.quality ?? "pending review"}</CaseStatus>{r.quality_reason ? <p className="muted">{r.quality_reason}</p> : null}</td>
             <td>{!r.eligible ? `History only: ${r.ineligibility_reasons.join("; ")}` : r.quality === "accepted" ? (r.comparable === false ? "Accepted; comparability pending" : "Eligible") : "Not used until reviewed"}</td><td><OriginBadge origin={r.data_origin}/></td></tr>)}</tbody></table></div>}
-    </section> : <p className="muted">Measurement details are available to the review team.</p>}
+      <p className="reading-limits">A reading alone cannot identify a chemical or source. Assessment use depends on calibration, quality review and stated assumptions.</p>
+    </section> : <section className="surface observation-permission"><h2>Instrument readings</h2><p>Measurement details are available to the review team.</p></section>}
+    </div>
   </main>;
 }

@@ -96,6 +96,47 @@ def test_home_route_is_actually_drawn():  # I10: visible line, not just a finish
         browser.close(); pw.stop()
 
 
+def test_illustrative_traces_are_visible_after_drawing():
+    pw, browser, p = browser_page()
+    try:
+        for url, selector in [('/', '.example-trace path'), ('/example', '.example-art path')]:
+            p.goto(BASE + url)
+            expect(p.locator(selector).first).to_be_visible()
+            p.locator(selector).first.scroll_into_view_if_needed()
+            p.wait_for_timeout(2600)
+            paths = p.locator(selector).evaluate_all('''paths => paths.map(path => ({
+                length: path.getTotalLength(),
+                dash: parseFloat(getComputedStyle(path).strokeDasharray),
+                offset: parseFloat(getComputedStyle(path).strokeDashoffset)
+            }))''')
+            assert paths and all(path['dash'] >= path['length'] and abs(path['offset']) < 1 for path in paths), (url, paths)
+    finally:
+        browser.close(); pw.stop()
+
+
+def test_water_stops_scheduling_frames_when_scene_leaves_view():
+    pw, browser, p = browser_page()
+    try:
+        p.goto(BASE + '/')
+        expect(p.locator('[data-motion="water"][data-running="true"]')).to_have_count(1)
+        p.evaluate('''() => {
+            window.__waterFrames = 0;
+            const original = window.requestAnimationFrame;
+            window.requestAnimationFrame = callback => {
+                if (String(callback).includes('drawArrays')) window.__waterFrames++;
+                return original(callback);
+            };
+        }''')
+        p.locator('.site-footer').scroll_into_view_if_needed()
+        expect(p.locator('[data-motion="water"][data-running="false"]')).to_have_count(1)
+        p.evaluate('window.__waterFrames = 0')
+        p.wait_for_timeout(300)
+        count = p.evaluate('window.__waterFrames')
+        assert count == 0, count
+    finally:
+        browser.close(); pw.stop()
+
+
 def test_back_and_forward_keep_case_identity():  # I16
     pw, browser, p = browser_page()
     try:

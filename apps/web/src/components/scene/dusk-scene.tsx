@@ -3,7 +3,8 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { BRANCHES, PLATE, REEDS, ScenePicture } from "./scene-picture";
 import { startWater } from "./water";
 
-export const motionAllowed = () => document.documentElement.dataset.motion !== "reduced" && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+export const motionAllowed = () => document.documentElement.dataset.motion === "full" ||
+  (document.documentElement.dataset.motion !== "reduced" && !matchMedia("(prefers-reduced-motion: reduce)").matches);
 
 /**
  * The dusk river. Every art layer (plate, water, foliage, route) sits in one "art box" in plate coordinates
@@ -20,11 +21,15 @@ export function DuskScene({ variant, route, eager = false }: { variant: "hero" |
       path.style.setProperty("--path-length", `${Math.ceil(path.getTotalLength())}px`));
     scene.classList.add("routes-ready");
     let visible = true;
-    const io = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; });
-    io.observe(scene);
     const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
-    const stop = startWater(surface, plate, "/upstream-dark/water-zone-matte.svg", () => visible && !document.hidden && !saveData && motionAllowed());
-    return () => { io.disconnect(); stop(); };
+    const water = startWater(surface, plate, "/upstream-dark/water-zone-matte.svg", () => visible && !document.hidden && !saveData && motionAllowed());
+    const io = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; water.refresh(); });
+    io.observe(scene);
+    const motion = matchMedia("(prefers-reduced-motion: reduce)");
+    document.addEventListener("visibilitychange", water.refresh);
+    window.addEventListener("upstream-preferences", water.refresh);
+    motion.addEventListener("change", water.refresh);
+    return () => { io.disconnect(); document.removeEventListener("visibilitychange", water.refresh); window.removeEventListener("upstream-preferences", water.refresh); motion.removeEventListener("change", water.refresh); water.stop(); };
   }, []);
   const foliage = variant !== "band";
   return <div ref={host} className={`dusk-scene dusk-${variant}`} data-scene="river" aria-hidden="true">

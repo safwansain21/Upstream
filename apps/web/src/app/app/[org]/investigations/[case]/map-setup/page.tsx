@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import { NetworkDiagram, ReachLegend } from "../../../../../../components/network-diagram";
+import { NetworkDiagram } from "../../../../../../components/network-diagram";
 import { CaseStatus, EmptyState, InlineError, LoadingState, PageIntro } from "../../../../../../components/ui";
 import { api } from "../../../../../../lib/api";
 import { schematic } from "../../../../../../lib/geo";
@@ -34,10 +34,13 @@ export default function MapSetup() {
   const editor = can("coordinate") || can("network_verify");
   const v = detail.data; const draft = v?.status === "proposed";
   const view = v ? schematic(v.nodes, v.edges, new Set(v.stations.map(s => s.code)), e => ((v.edges.find(x => x.id === e.id)?.connectivity === "verified" && v.edges.find(x => x.id === e.id)?.flow_status === "verified") ? "candidate" : "unreviewed")) : null;
+  const verifiedEdges = v?.edges.filter(e => e.connectivity === "verified" && e.flow_status === "verified").length ?? 0;
+  const approvedStations = v?.stations.filter(s => s.status === "approved").length ?? 0;
+  const ready = !!v && !draft && v.edges.length > 0 && v.stations.length > 0 && v.validation.length === 0 && verifiedEdges === v.edges.length && approvedStations === v.stations.length;
 
   return <main id="main-content" className="page-shell case-page">
     <CaseHeader caseId={caseId} current="map-setup"/>
-    <PageIntro title="Local map and readiness"><p>Imported or drawn linework is a proposal. Connectivity, flow direction and stations become usable for localization only after documented review and publication.</p></PageIntro>
+    <PageIntro title="Local map and readiness"><p>Explore the local stream network, review its connections, and check what is ready for analysis.</p></PageIntro>
     {error ? <InlineError>{error}</InlineError> : null}{status ? <p className="notice" role="status">{status}</p> : null}
     {versions.error ? <InlineError>{versions.error.message}</InlineError> : !versions.data ? <LoadingState/> : <>
       <section className="surface stack" aria-labelledby="versions-heading"><h2 id="versions-heading">Network versions</h2>
@@ -47,12 +50,24 @@ export default function MapSetup() {
       </section>
       {shown && !v ? (detail.error ? <InlineError>{detail.error.message}</InlineError> : <LoadingState/>) : null}
       {v ? <>
-        <section className="surface stack" aria-labelledby="draft-heading"><h2 id="draft-heading">{draft ? `Draft version ${v.version}` : `Published version ${v.version}`}</h2>
-          {view && view.stations.length ? <><NetworkDiagram label={`Schematic of network version ${v.version}`} stations={view.stations} reaches={view.reaches}/><ReachLegend/></> : <EmptyState title="No geometry in this version"/>}
-          {v.import_warnings.length ? <div className="notice"><strong>Import warnings</strong><ul>{v.import_warnings.map(w => <li key={w}>{w}</li>)}</ul></div> : null}
-          <div><strong>Localization support checks</strong>{v.validation.length ? <ul>{v.validation.map(r => <li key={r}>{r}</li>)}</ul> : <p>No topology or review blockers.</p>}</div>
-          {v.diff ? <p>Changes from the current version: {v.diff.added.length} added, {v.diff.removed.length} removed, {v.diff.direction_changed.length} direction changes, {v.diff.status_changed.length} status changes. Channel length {(Number(v.diff.length_before_m) / 1000).toFixed(2)} → {(Number(v.diff.length_after_m) / 1000).toFixed(2)} km.</p> : null}
+        <section className="map-readiness-strip" aria-label="Network readiness">
+          <div><span className="map-step">01 · Version</span><strong>{draft ? `Draft network v${v.version}` : `Published network v${v.version}`}</strong><span>{v.source} · {v.license}</span></div>
+          <div><span className="map-step">02 · Connections</span><strong>{verifiedEdges} of {v.edges.length} reviewed</strong><span>Flow direction and connectivity</span></div>
+          <div><span className="map-step">03 · Stations</span><strong>{approvedStations} of {v.stations.length} approved</strong><span>Position and access reviewed separately</span></div>
+          <div className={ready ? "is-ready" : "needs-review"}><span className="map-step">04 · Analysis</span><strong>{ready ? "Checks clear" : "Review needed"}</strong><span>{v.validation.length ? `${v.validation.length} validation ${v.validation.length === 1 ? "issue" : "issues"}` : draft ? "Publish before use in localization" : "Version is published"}</span></div>
         </section>
+        <div className="map-review-layout">
+          <section className="surface map-network-panel" aria-labelledby="draft-heading"><div className="map-panel-head"><div><span className="eyebrow">{draft ? "Proposed linework" : "Reviewed linework"}</span><h2 id="draft-heading">{draft ? `Draft version ${v.version}` : `Published version ${v.version}`}</h2></div><span className="badge">{draft ? "Draft · not used for localization" : "Published"}</span></div>
+            {view && view.stations.length ? <NetworkDiagram mode="network" label={`Schematic of network version ${v.version}`} stations={view.stations} reaches={view.reaches}/> : <EmptyState title="No geometry in this version"/>}
+            <ul className="map-network-legend" aria-label="Network review legend"><li><span className="legend-reach candidate"/>Direction and connection verified</li><li><span className="legend-reach unreviewed"/>Review needed</li><li><span className="legend-station"/>Station</li></ul>
+          </section>
+          <aside className="surface map-review-panel" aria-labelledby="review-heading"><span className="eyebrow">Readiness review</span><h2 id="review-heading">Review the network</h2><p>Imported or drawn linework remains a proposal until the connections, stations and domain assumptions are documented and published.</p>
+            <div className="map-review-group"><h3>Localization support checks</h3>{v.validation.length ? <ul>{v.validation.map(r => <li key={r}>{r}</li>)}</ul> : <p>No topology or review blockers recorded.</p>}</div>
+            {v.import_warnings.length ? <div className="notice"><strong>Import warnings</strong><ul>{v.import_warnings.map(w => <li key={w}>{w}</li>)}</ul></div> : null}
+            {v.diff ? <div className="map-review-group"><h3>Changes from current</h3><p>{v.diff.added.length} added · {v.diff.removed.length} removed · {v.diff.direction_changed.length} direction changes · {v.diff.status_changed.length} status changes.</p><p>Channel length {(Number(v.diff.length_before_m) / 1000).toFixed(2)} → {(Number(v.diff.length_after_m) / 1000).toFixed(2)} km.</p></div> : null}
+            <p className="map-review-note">A verified network shows reviewed geometry. It does not establish water safety or a source area on its own.</p>
+          </aside>
+        </div>
         <section className="surface stack" aria-labelledby="reaches-heading"><h2 id="reaches-heading">Reaches</h2>
           <div className="table-scroll" role="region" aria-label="Reaches" tabIndex={0}><table className="data-table"><thead><tr><th scope="col">Reach</th><th scope="col">From → to</th><th scope="col">Length</th><th scope="col">Flow direction</th><th scope="col">Connectivity</th>{draft && editor ? <th scope="col">Edit</th> : null}</tr></thead>
             <tbody>{v.edges.map(e => <tr key={e.id}><td>{e.code}{e.culvert ? " · culvert" : ""}</td><td>{e.from_code} → {e.to_code}</td><td className="numeric">{Number(e.length_m).toFixed(0)} m</td><td>{e.flow_status}</td><td>{e.connectivity}</td>

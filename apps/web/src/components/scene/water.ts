@@ -21,12 +21,12 @@ void main() {
 
 export function startWater(canvas: HTMLCanvasElement, plate: HTMLImageElement, matteUrl: string, active: () => boolean) {
   const gl = canvas.getContext("webgl", { premultipliedAlpha: true, alpha: true, antialias: false, powerPreference: "low-power" });
-  if (!gl) return () => undefined;
+  if (!gl) return { refresh: () => undefined, stop: () => undefined };
   const shader = (type: number, source: string) => { const s = gl.createShader(type)!; gl.shaderSource(s, source); gl.compileShader(s); return s; };
   const program = gl.createProgram()!;
   gl.attachShader(program, shader(gl.VERTEX_SHADER, VERTEX)); gl.attachShader(program, shader(gl.FRAGMENT_SHADER, FRAGMENT));
   gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return () => undefined;
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return { refresh: () => undefined, stop: () => undefined };
   gl.useProgram(program);
   const buffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
@@ -40,16 +40,23 @@ export function startWater(canvas: HTMLCanvasElement, plate: HTMLImageElement, m
   gl.uniform1i(gl.getUniformLocation(program, "plate"), 0); gl.uniform1i(gl.getUniformLocation(program, "matte"), 1);
   const time = gl.getUniformLocation(program, "t");
 
-  let frame = 0, ready = 0, elapsed = 0, previous = 0, lost = false;
+  let frame = 0, ready = 0, elapsed = 0, previous = 0, lost = false, stopped = false;
+  const clear = () => { gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); };
+  const refresh = () => {
+    const on = !stopped && !lost && ready === 3 && active();
+    canvas.dataset.running = String(on);
+    if (on && !frame) frame = requestAnimationFrame(draw);
+    if (!on && frame) { cancelAnimationFrame(frame); frame = 0; clear(); previous = 0; }
+  };
   const matte = new Image();
   matte.onload = () => { // rasterize the vector matte once, at plate proportions
     const m = document.createElement("canvas"); m.width = 836; m.height = 470;
-    m.getContext("2d")!.drawImage(matte, 0, 0, m.width, m.height); texture(1, m); ready |= 2;
+    m.getContext("2d")!.drawImage(matte, 0, 0, m.width, m.height); texture(1, m); ready |= 2; refresh();
   };
   matte.src = matteUrl;
-  const plateReady = () => { try { texture(0, plate); ready |= 1; } catch { lost = true; } };
+  const plateReady = () => { try { texture(0, plate); ready |= 1; refresh(); } catch { lost = true; } };
   if (plate.complete && plate.naturalWidth) plateReady(); else plate.addEventListener("load", plateReady, { once: true });
-  const onLost = (e: Event) => { e.preventDefault(); lost = true; canvas.hidden = true; };
+  const onLost = (e: Event) => { e.preventDefault(); lost = true; canvas.hidden = true; refresh(); };
   canvas.addEventListener("webglcontextlost", onLost);
 
   const resize = () => {
@@ -59,14 +66,13 @@ export function startWater(canvas: HTMLCanvasElement, plate: HTMLImageElement, m
   };
   const observer = new ResizeObserver(resize); observer.observe(canvas); resize();
 
-  const draw = (now: number) => {
-    frame = requestAnimationFrame(draw);
-    const on = !lost && ready === 3 && active();
-    canvas.dataset.running = String(on);
-    if (!on) { previous = now; if (!lost) { gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); } return; } // paused: the still plate shows through
+  function draw(now: number) {
+    frame = 0;
+    if (stopped || lost || !active()) { refresh(); return; }
     elapsed += Math.min((now - (previous || now)) / 1000, .1); previous = now; // continuous across pauses: no phase jump
-    gl.uniform1f(time, elapsed); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  };
-  frame = requestAnimationFrame(draw);
-  return () => { cancelAnimationFrame(frame); observer.disconnect(); canvas.removeEventListener("webglcontextlost", onLost); gl.getExtension("WEBGL_lose_context")?.loseContext(); };
+    gl!.uniform1f(time, elapsed); gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
+    frame = requestAnimationFrame(draw);
+  }
+  refresh();
+  return { refresh, stop: () => { stopped = true; cancelAnimationFrame(frame); frame = 0; observer.disconnect(); matte.onload = null; plate.removeEventListener("load", plateReady); canvas.removeEventListener("webglcontextlost", onLost); gl.getExtension("WEBGL_lose_context")?.loseContext(); } };
 }

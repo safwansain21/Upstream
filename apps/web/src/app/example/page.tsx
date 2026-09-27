@@ -26,7 +26,7 @@ export default function ExamplesPage() {
       : <ol className="example-list">{q.data.map((e, index) => <li key={e.slug} className={index === 0 ? "featured" : undefined}>
         <Link className="example-row" href={`/example/${e.slug}`}>
           <span className="example-art" aria-hidden="true"><ScenePicture asset={PLATE} sizes={index === 0 ? "(max-width: 900px) 100vw, 55vw" : "(max-width: 900px) 100vw, 36vw"} className={`crop-${index % 3}`}/>
-            <svg viewBox="0 0 480 220" preserveAspectRatio="xMidYMid slice">{TRACES[index % 3].split("|").map((d, i) => <path key={i} d={d} pathLength={1} className={i ? "branch" : "main"}/>)}<circle cx={index === 1 ? 70 : 60} cy={index === 0 ? 190 : index === 1 ? 150 : 120} r="6"/></svg>
+            <svg viewBox="0 0 480 220" preserveAspectRatio="xMidYMid slice">{TRACES[index % 3].split("|").map((d, i) => <path key={i} d={d} className={i ? "branch" : "main"}/>)}<circle cx={index === 1 ? 70 : 60} cy={index === 0 ? 190 : index === 1 ? 150 : 120} r="6"/></svg>
             <span className="example-art-note">Illustrative</span></span>
           <span className="example-copy"><span className="row-index">{String(index + 1).padStart(2, "0")}</span><h3>{e.title}</h3><span className="example-summary">{e.summary}</span>
             <span className={`button ${index === 0 ? "button-primary" : "button-outline"} button-small`}>Explore investigation <Arrow/></span></span>

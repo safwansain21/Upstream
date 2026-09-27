@@ -5,7 +5,7 @@ import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 
 export type NetworkStation = { id: string; label: string; x: number; y: number; description?: string };
 export type NetworkReach = { id: string; label?: string; from: string; to: string; points?: [number, number][]; state?: "candidate" | "excluded" | "unreviewed" };
 type NetworkDiagramProps = { stations: NetworkStation[]; reaches: NetworkReach[]; selectedStation?: string; onSelectStation?: (id: string) => void; label?: string; compact?: boolean;
-  selectedReach?: string; onSelectReach?: (id: string) => void; highlight?: Set<string>; annotation?: { station: string; text: string } };
+  selectedReach?: string; onSelectReach?: (id: string) => void; highlight?: Set<string>; annotation?: { station: string; text: string }; mode?: "analysis" | "network" };
 
 export const REACH_WORDS = { candidate: "Retained · worth checking", excluded: "Ruled out under stated assumptions", unreviewed: "Not assessed" } as const;
 
@@ -26,7 +26,7 @@ function drawOrder(reaches: NetworkReach[]) {
   return order;
 }
 
-export function NetworkDiagram({ stations, reaches, selectedStation, onSelectStation, label = "Network schematic", compact = false, selectedReach, onSelectReach, highlight, annotation }: NetworkDiagramProps) {
+export function NetworkDiagram({ stations, reaches, selectedStation, onSelectStation, label = "Network schematic", compact = false, selectedReach, onSelectReach, highlight, annotation, mode = "analysis" }: NetworkDiagramProps) {
   const id = useId().replaceAll(":", "");
   const [localSelection, setLocalSelection] = useState<string>();
   const diagram = useRef<SVGSVGElement>(null);
@@ -62,7 +62,7 @@ export function NetworkDiagram({ stations, reaches, selectedStation, onSelectSta
           {state === "candidate" ? <path d={d} className="reach-glow" filter={`url(#glow-${id})`}/> : null}
           <path d={d} className="reach-line"/>
           {onSelectReach ? <path d={d} className="reach-hit" onClick={() => onSelectReach(reach.id)}/> : null}
-          <title>{reach.label || reach.id}: {REACH_WORDS[state]}</title></g>;
+          <title>{reach.label || reach.id}: {mode === "network" ? (state === "candidate" ? "Direction and connection verified" : "Network review needed") : REACH_WORDS[state]}</title></g>;
       })}</g>
       <g className="stations">{stations.map(station => <g key={station.id} className={`station ${selected === station.id ? "is-selected" : ""} ${station.label ? "" : "junction"}`}>
         <circle cx={station.x} cy={station.y} r={selected === station.id ? 7.5 : station.label ? 5 : 2.6}/>
