@@ -471,3 +471,11 @@ Memory before/after (Chromium 1440x900 against `next start`, forced GC; busy = m
   units relative to the notebook (its viewport-based size overflowed the 330 px notebook) and sits on
   the left page as in dark-report.png. Landing budget after (test_public_landing_budgets, production build, two runs):
   desktop LCP 132-148 ms, mobile LCP 2,388-2,400 ms (budget 2,500), CLS 0.003, initial JS 239 KB gzip (unchanged).
+- Notifications: a timeline grouped by day (today, yesterday, this week, earlier) with a spine that draws once, an amber
+  node and glyph for unread items, one action per update (view report, view task, see what it changed) and mark as read;
+  all/unread filter; plain empty state. Missing API data: notifications carry only an object id, so an assessment update
+  cannot name or link its investigation and no place is shown.
+- Share page (recipient): conclusion card with origin, assessment and review date, and an example-data caution; the four
+  "does and does not show" columns; files with plain types, manifest hash and signature note; status, details and
+  acknowledgment in a side column. Acknowledging is described as not agreement. Missing API data: file sizes, per-file
+  checksums and the sending organization's name are not in the share view.
