@@ -651,3 +651,22 @@ channel, Mill Brook (revised evidence). The 10,000 load-test cases live in a sep
 belongs to, so a judge's directory shows the four curated cases. The accumulated "Revised evidence test ..." and
 "Unnamed stream" rows seen earlier come from test runs, which create cases in the example organization; they appear only
 after the suite has run against the database. Seeds and test data are unchanged.
+
+## Handoff 2026-09-27: Phase 3 complete
+- Phase 3 is complete. Gates closed on 597143b; this session finished the remaining work: all 34 references compared at
+  their own size and at 390 px with fixes and documented differences (entry above), and the every-route leak
+  click-through (entry above; found and fixed a loading-screen leak; DOM and WebGL flat, heap plateaus).
+- Milestone run (fresh `supabase db reset` + seed_example + seed_load, production build, 2026-09-27):
+  `.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` - 245 passed, 2 skipped (destructive: fresh
+  checkout and upgrade, which replace the local stack), 0 failed, 29 min 28 s. Release gates: 146 PASS, 0 FAIL.
+- Tests added this session: tests/e2e/test_performance.py::test_click_through_every_route_stays_flat. Tests changed:
+  tests/e2e/test_visual_gates.py `every_page` now includes /onboarding (it overflowed at 390 px and was not covered).
+  None deleted or skipped.
+- Landing budget after the changes (test_public_landing_budgets, production build): desktop LCP 116 ms, mobile LCP
+  2,328 ms (budget 2,500), CLS 0.003, initial JS 240 KB gzip. No fonts, images or dependencies added.
+- Open, not blocking any gate: documented differences where the API has no data (case, task and report photos; task
+  station names, distances and coordinates; review priority, place and assignment; notification places; share file sizes,
+  checksums and sender name; per-artifact size and integrity; member emails and join dates; protocol bounds, reviewer and
+  editing; recipient roles). The directory accumulates synthetic test cases whenever the suite runs against the
+  database; a fresh reset with both seeds shows the four curated cases (seeds unchanged). Commit 5a0ef99 has a "wip:"
+  title from before the convention reminder; left as is (renaming it needs a force push).
