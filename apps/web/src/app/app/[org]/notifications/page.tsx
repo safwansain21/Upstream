@@ -38,7 +38,7 @@ export default function Notifications() {
   const groups: [string, Note[]][] = [];
   for (const n of notes) { const k = dayKey(n.created_at); const g = groups.find(([key]) => key === k); if (g) g[1].push(n); else groups.push([k, [n]]); }
   const unread = (q.data ?? []).filter(n => !n.read_at).length;
-  return <main id="main-content" className="page-shell notifications-page"><PageIntro title="Notifications" action={q.data?.length ? <div className="form-field filter-pill"><label htmlFor="note-filter" className="visually-hidden">Show</label>
+  return <main id="main-content" className="page-shell notifications-page"><PageIntro title="Updates that matter" action={q.data?.length ? <div className="form-field filter-pill"><label htmlFor="note-filter" className="visually-hidden">Show</label>
       <select id="note-filter" value={show} onChange={e => setShow(e.target.value as "all" | "unread")}><option value="all">All updates</option><option value="unread">Unread ({unread})</option></select></div> : null}>
       <p>Updates about your reports, tasks and the assessments your contributions informed. No marketing messages.</p></PageIntro>
     {error ? <InlineError>{error}</InlineError> : null}

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BookIcon, CalendarIcon, DocIcon, FlaskIcon, PersonIcon, PinIcon, ShieldIcon } from "../../../../../components/icons";
 import { TASK_STATES, TASK_TYPES, type Task } from "../../../../../components/tasks";
 import { CaseStatus, EmptyState, InlineError, LoadingState, PageState } from "../../../../../components/ui";
 import { api, supabase, type ApiError } from "../../../../../lib/api";
@@ -12,6 +13,7 @@ import { useMe, useOrg } from "../../../../../lib/session";
 type Reading = { id: string; mode: string; value: string; unit: string; temperature: string | null; measured_at: string; eligible: boolean; ineligibility_reasons: string[]; submitted_task_version: number; quality: string | null };
 type Detail = Task & { station_code: string | null; access_status: string | null; access_notes: string | null; instrument_serial: string | null; protocol_name: string | null; protocol_version: number | null; instructions: string | null; readings: Reading[] };
 type Candidates = { people: { user_id: string; display_name: string | null; qualified: boolean }[]; instruments: { id: string; serial: string; model: string; available: boolean; verified: boolean; booked: boolean }[]; travel_note: string };
+const ACCESS: Record<string, string> = { open: "Access open", closed: "Access reported closed" };
 const MEASURE = ["baseline_reading", "anchor_reading", "conductance_reading", "coordinated_pair", "instrument_check"];
 
 export default function TaskDetail() {
@@ -39,38 +41,55 @@ export default function TaskDetail() {
   const t = q.data; const mine = t.assignee_id === me; const coordinator = can("coordinate");
   const reasonField = <div className="form-field"><label htmlFor="reason">Reason or access note</label><textarea id="reason" rows={2} value={reason} onChange={e => setReason(e.target.value)} aria-describedby="reason-help"/><p className="field-help" id="reason-help">Required to decline, block, cancel or report access. Refusing unsafe or inaccessible terrain is a valid outcome.</p></div>;
 
-  return <main id="main-content" className="page-shell">
-    <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href={`/app/${org}/tasks`}>Tasks</Link> / <Link href={`/app/${org}/investigations/${t.case_id}`}>{t.case_title}</Link></nav>
-    <div className="page-intro"><div><h1>{TASK_TYPES[t.task_type] ?? t.task_type}{t.station_code ? ` at ${t.station_code}` : ""}</h1><p><CaseStatus tone={TASK_STATES[t.state]?.[1]}>{TASK_STATES[t.state]?.[0] ?? t.state}</CaseStatus> Version {t.version}</p></div></div>
-    {error ? <InlineError>{error}</InlineError> : null}{status ? <p className="notice" role="status">{status}</p> : null}
-    <div className="case-grid">
-      <section className="surface stack"><h2>Purpose</h2><p>{t.purpose}</p><p className="muted"><strong>Limitations:</strong> {t.limitations}</p>
-        <dl><dt>Window</dt><dd>{new Date(t.window_start).toLocaleString()} – {new Date(t.window_end).toLocaleString()} · about {t.estimated_minutes} min</dd>
-          <dt>Station access</dt><dd>{t.station_code ? `${t.access_status}${t.access_notes ? ` · ${t.access_notes}` : ""}` : "No station"}</dd>
-          <dt>Instrument</dt><dd>{t.instrument_serial ? <span className="mono">{t.instrument_serial}</span> : MEASURE.includes(t.task_type) ? "Assigned with the task" : "Not required"}</dd>
-          <dt>Protocol</dt><dd>{t.protocol_name ? `${t.protocol_name} v${t.protocol_version}` : "None"}</dd>
-          {t.instructions ? <><dt>Approved instructions</dt><dd>{t.instructions}</dd></> : null}
-          {t.reason ? <><dt>Last reason</dt><dd>{t.reason}</dd></> : null}</dl>
-        <p className="field-guidance">Use approved access points. Do not enter private or unsafe land.</p></section>
+  const day = (d: string) => new Date(d).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  const time = (d: string) => new Date(d).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  const access = t.station_code ? ACCESS[t.access_status ?? ""] ?? "Access not confirmed" : "No station for this task";
 
-      <section className="surface stack"><h2>Actions</h2>{reasonField}
-        <div className="button-row">
-          {t.state === "proposed" && !coordinator ? <button className="button button-primary" onClick={() => act("claim")}>Claim this task</button> : null}
-          {mine && t.state === "assigned" ? <button className="button button-primary" onClick={() => act("accept")}>Accept</button> : null}
-          {mine && t.state === "accepted" ? <button className="button button-primary" onClick={() => act("start")}>Start</button> : null}
-          {mine && ["assigned", "accepted"].includes(t.state) ? <button className="button button-outline" disabled={reason.length < 5} onClick={() => act("decline")}>Decline</button> : null}
-          {mine && ["assigned", "accepted", "in_progress"].includes(t.state) ? <button className="button button-outline" disabled={reason.length < 5} onClick={() => act("block")}>Report blocked</button> : null}
-          {mine && !MEASURE.includes(t.task_type) && ["accepted", "in_progress"].includes(t.state) ? <button className="button button-primary" onClick={() => act("submit")}>Submit outcome</button> : null}
-          {coordinator && t.state === "submitted" ? <button className="button button-primary" disabled={reason.length < 5} onClick={() => act("complete")}>Mark complete</button> : null}
-          {coordinator && !["completed", "cancelled"].includes(t.state) ? <button className="button button-quiet" disabled={reason.length < 5} onClick={() => act("cancel")}>Cancel task</button> : null}
-          {t.station_id ? <button className="button button-quiet" disabled={reason.length < 5} onClick={() => reportAccess("closed")}>Report access closed</button> : null}
-          {t.station_id && coordinator && t.access_status === "closed" ? <button className="button button-quiet" disabled={reason.length < 5} onClick={() => reportAccess("open")}>Resolve: access open</button> : null}
-        </div>
-        {coordinator && ["proposed", "declined", "needs_revision"].includes(t.state) ? <AssignPanel org={org} task={t} onDone={refresh}/> : null}
-      </section>
+  return <main id="main-content" className="page-shell task-detail">
+    <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href={`/app/${org}/tasks`}>Field tasks</Link> / <Link href={`/app/${org}/investigations/${t.case_id}`}>{t.case_title}</Link></nav>
+    <div className="page-intro task-hero"><div className="task-hero-copy"><h1>{TASK_TYPES[t.task_type] ?? t.task_type}{t.station_code ? ` at ${t.station_code}` : ""}</h1>
+        <p className="task-sub"><span className="task-place">{t.station_code ? `${t.station_code} · ` : ""}{t.case_title}</span><CaseStatus tone={TASK_STATES[t.state]?.[1]}>{TASK_STATES[t.state]?.[0] ?? t.state}</CaseStatus><span className="subtle small">Version {t.version}</span></p>
+        <p className="task-purpose">{t.purpose}</p></div>
+      <dl className="task-facts">
+        <div><PersonIcon size={26}/><dt>Assigned to</dt><dd>{!t.assignee_id ? "Not assigned yet" : mine ? "You" : "A qualified member"}</dd></div>
+        <div><CalendarIcon size={26}/><dt>{day(t.window_start)}</dt><dd>{time(t.window_start)} – {time(t.window_end)}<span>About {t.estimated_minutes} min</span></dd></div>
+        <div><ShieldIcon size={26}/><dt>Access</dt><dd>{access}</dd></div>
+      </dl></div>
+    {error ? <InlineError>{error}</InlineError> : null}{status ? <p className="notice" role="status">{status}</p> : null}
+    <div className="task-grid">
+      <div className="task-side">
+        <section className="surface" aria-labelledby="station-h"><h2 id="station-h">Station and access</h2>
+          <p className="task-line"><PinIcon size={26}/><span><strong>{t.station_code ?? "No station"}</strong><span>{t.case_title}</span></span></p>
+          {t.access_notes ? <p className="task-line"><ShieldIcon size={26}/><span><strong>{access}</strong><span>{t.access_notes}</span></span></p> : null}
+          <p className="field-guidance"><strong>Use approved access points. Do not enter private or unsafe land.</strong> {t.limitations}</p>
+          {t.reason ? <p className="muted small"><strong>Last reason:</strong> {t.reason}</p> : null}</section>
+        <section className="surface" aria-labelledby="kit-h"><h2 id="kit-h">Instrument and protocol</h2>
+          <ul className="task-kit">
+            <li><FlaskIcon size={26}/><span><strong>Instrument</strong><span>{t.instrument_serial ? <span className="mono">{t.instrument_serial}</span> : MEASURE.includes(t.task_type) ? "Assigned with the task" : "Not required"}</span></span></li>
+            <li><DocIcon size={26}/><span><strong>Protocol</strong><span>{t.protocol_name ? `${t.protocol_name} v${t.protocol_version}` : "None"}</span></span></li>
+            {t.instructions ? <li><BookIcon size={26}/><span><strong>Approved instructions</strong><span>{t.instructions}</span></span></li> : null}
+          </ul></section>
+      </div>
+      <div className="task-main">
+        <section className="surface" aria-labelledby="actions-h"><h2 id="actions-h">Actions</h2>{reasonField}
+          <div className="button-row">
+            {t.state === "proposed" && !coordinator ? <button className="button button-primary" onClick={() => act("claim")}>Claim this task</button> : null}
+            {mine && t.state === "assigned" ? <button className="button button-primary" onClick={() => act("accept")}>Accept</button> : null}
+            {mine && t.state === "accepted" ? <button className="button button-primary" onClick={() => act("start")}>Start</button> : null}
+            {mine && ["assigned", "accepted"].includes(t.state) ? <button className="button button-outline" disabled={reason.length < 5} onClick={() => act("decline")}>Decline</button> : null}
+            {mine && ["assigned", "accepted", "in_progress"].includes(t.state) ? <button className="button button-outline" disabled={reason.length < 5} onClick={() => act("block")}>Report blocked</button> : null}
+            {mine && !MEASURE.includes(t.task_type) && ["accepted", "in_progress"].includes(t.state) ? <button className="button button-primary" onClick={() => act("submit")}>Submit outcome</button> : null}
+            {coordinator && t.state === "submitted" ? <button className="button button-primary" disabled={reason.length < 5} onClick={() => act("complete")}>Mark complete</button> : null}
+            {coordinator && !["completed", "cancelled"].includes(t.state) ? <button className="button button-quiet" disabled={reason.length < 5} onClick={() => act("cancel")}>Cancel task</button> : null}
+            {t.station_id ? <button className="button button-quiet" disabled={reason.length < 5} onClick={() => reportAccess("closed")}>Report access closed</button> : null}
+            {t.station_id && coordinator && t.access_status === "closed" ? <button className="button button-quiet" disabled={reason.length < 5} onClick={() => reportAccess("open")}>Resolve: access open</button> : null}
+          </div>
+          {coordinator && ["proposed", "declined", "needs_revision"].includes(t.state) ? <AssignPanel org={org} task={t} onDone={refresh}/> : null}
+        </section>
+        {mine && MEASURE.includes(t.task_type) && ["accepted", "in_progress", "submitted", "needs_revision"].includes(t.state) ? <CaptureForm org={org} task={t} onDone={refresh}/> : null}
+        <Readings org={org} readings={t.readings} canReview={can("expert") || coordinator} onDone={refresh}/>
+      </div>
     </div>
-    {mine && MEASURE.includes(t.task_type) && ["accepted", "in_progress", "submitted", "needs_revision"].includes(t.state) ? <CaptureForm org={org} task={t} onDone={refresh}/> : null}
-    <Readings org={org} readings={t.readings} canReview={can("expert") || coordinator} onDone={refresh}/>
   </main>;
 }
 
@@ -117,12 +136,12 @@ function CaptureForm({ org, task, onDone }: { org: string; task: Detail; onDone:
         .then(() => window.dispatchEvent(new Event("upstream-drafts")), () => setError("No connection, and this browser could not save the readings. Keep this tab open."));
     }
   }
-  return <section className="surface stack" aria-labelledby="capture-heading"><h2 id="capture-heading">Record readings</h2>
-    <p>Record each replicate separately exactly as displayed. Say what the number represents; the server decides eligibility.</p>
+  return <section className="surface capture" aria-labelledby="capture-heading"><h2 id="capture-heading">Record readings</h2>
+    <p className="muted">Record each replicate separately exactly as displayed. Say what the number represents; the server decides eligibility.</p>
     {error ? <InlineError>{error}</InlineError> : null}
-    <div className="button-row"><div className="form-field"><label htmlFor="mode">Value type</label><select id="mode" value={mode} onChange={e => setMode(e.target.value)}><option value="raw">Raw conductivity (not temperature compensated)</option><option value="meter_sc25">Meter-reported SC25 (compensated by the meter)</option></select></div>
+    <div className="capture-kind"><div className="form-field"><label htmlFor="mode">Value type</label><select id="mode" value={mode} onChange={e => setMode(e.target.value)}><option value="raw">Raw conductivity (not temperature compensated)</option><option value="meter_sc25">Meter-reported SC25 (compensated by the meter)</option></select></div>
       <div className="form-field"><label htmlFor="unit">Unit</label><select id="unit" value={unit} onChange={e => setUnit(e.target.value)}><option value="uS/cm">µS/cm</option><option value="mS/cm">mS/cm</option></select></div></div>
-    {reps.map((r, i) => <fieldset key={i}><legend>Replicate {i + 1}</legend><div className="button-row">
+    {reps.map((r, i) => <fieldset key={i} className="replicate"><legend>Replicate {i + 1}</legend><div className="replicate-fields">
       <div className="form-field"><label htmlFor={`v${i}`}>Value</label><input id={`v${i}`} inputMode="decimal" value={r.value} onChange={e => set(i, { value: e.target.value.trim() })}/></div>
       <div className="form-field"><label htmlFor={`t${i}`}>Water temperature (°C)</label><input id={`t${i}`} inputMode="decimal" value={r.temperature} onChange={e => set(i, { temperature: e.target.value.trim() })}/></div>
       <div className="form-field"><label htmlFor={`m${i}`}>Measured at</label><input id={`m${i}`} type="datetime-local" value={r.measured_at} onChange={e => set(i, { measured_at: e.target.value })}/></div>

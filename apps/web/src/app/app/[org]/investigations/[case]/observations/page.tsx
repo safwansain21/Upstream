@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { CaseHeader } from "../../../../../../components/case-tabs";
+import { FlaskIcon, PeopleIcon } from "../../../../../../components/icons";
 import { Term } from "../../../../../../components/term";
 import { EmptyState, InlineError, LoadingState, OriginBadge, PageIntro, PageState } from "../../../../../../components/ui";
 import { api } from "../../../../../../lib/api";
@@ -58,7 +59,7 @@ export default function Observations() {
     <PageIntro title="Observations & readings"><p>Community reports and instrument measurements are separate kinds of evidence. Each reading keeps its own version, calibration and review history.</p></PageIntro>
     <div className="observations-layout">
     <section className="stack reports-panel" aria-labelledby="reports-heading">
-      <div className="observation-panel-head"><h2 id="reports-heading">Community reports</h2><span className="panel-count">{detail.data.reports.length} {detail.data.reports.length === 1 ? "report" : "reports"}</span>
+      <div className="observation-panel-head"><h2 id="reports-heading"><PeopleIcon size={34}/>Community reports</h2><span className="panel-count">{detail.data.reports.length} {detail.data.reports.length === 1 ? "report" : "reports"}</span>
         <Link href="/report/new" className="button button-primary button-small">Report an observation</Link></div>
       {detail.data.reports.length ? <div className="reading-filters" role="group" aria-label="Filter reports">
         <label className="filter-pill"><span className="visually-hidden">Period</span><select value={period} onChange={e => setPeriod(e.target.value)}>{WINDOWS.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
@@ -78,7 +79,7 @@ export default function Observations() {
             <span className="row-chevron" aria-hidden="true">›</span></Link></li>)}</ol>}
     </section>
     {review ? <section className="stack readings-panel" aria-labelledby="readings-heading">
-      <div className="observation-panel-head"><h2 id="readings-heading">Instrument readings</h2><span className="panel-count">{all.length} {all.length === 1 ? "reading" : "readings"} at {stations.length} {stations.length === 1 ? "station" : "stations"}</span></div>
+      <div className="observation-panel-head"><h2 id="readings-heading"><FlaskIcon size={34}/>Instrument readings</h2><span className="panel-count">{all.length} {all.length === 1 ? "reading" : "readings"} at {stations.length} {stations.length === 1 ? "station" : "stations"}</span></div>
       <div className="reading-filters">
         <div className="form-field filter-pill"><label htmlFor="s-filter" className="visually-hidden">Station</label><select id="s-filter" value={station} onChange={e => setStation(e.target.value)}><option value="">All stations</option>{stations.map(s => <option key={s} value={s}>Station {s}</option>)}</select></div>
         <div className="form-field filter-pill"><label htmlFor="q-filter" className="visually-hidden">Quality</label><select id="q-filter" value={quality} onChange={e => setQuality(e.target.value)}><option value="">All quality</option><option value="pending">Pending review</option><option value="accepted">Accepted</option><option value="suspect">Suspect</option><option value="excluded">Excluded</option></select></div>

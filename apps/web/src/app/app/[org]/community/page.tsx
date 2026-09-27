@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { AlertIcon, BinocularsIcon, ClipboardIcon, DocIcon, FlaskIcon, LeafIcon, PeopleIcon, PinIcon } from "../../../../components/icons";
 import { ReceiptHistory } from "../../../../components/receipts";
 import { EmptyState, OriginBadge, PageIntro, PageState } from "../../../../components/ui";
 import { api } from "../../../../lib/api";
@@ -19,17 +20,17 @@ export default function CommunityPage() {
   return <main id="main-content" className="page-shell community-page"><PageIntro title={c.organization.name}>
       <p className="community-meta">{c.organization.contact ? <span>Contact: {c.organization.contact}</span> : <span>No public contact is listed.</span>}{c.organization.example ? <OriginBadge origin="synthetic"/> : null}</p></PageIntro>
     <div className="community-layout">
-      <section className="surface stack" aria-labelledby="ways-heading"><h2 id="ways-heading">Ways to help</h2><p className="muted">Real places, real progress. Everyone has a role.</p>
-        <Link className="help-card primary" href="/report/new"><span><strong>Report an observation</strong><span>Share what you notice. You do not need to know the stream’s name.</span></span><span aria-hidden="true">›</span></Link>
-        {c.available_tasks ? <Link className="help-card" href={`/app/${org}/tasks`}><span><strong>{c.available_tasks} field {c.available_tasks === 1 ? "task" : "tasks"} open for trained monitors</strong><span>Help with readings at named stations.</span></span><span aria-hidden="true">›</span></Link>
-          : <div className="help-card is-quiet"><span><strong>No open field tasks right now</strong><span>Coordinators propose them when an investigation needs readings.</span></span></div>}
-        <p className="safety-note">Use approved access points and put your safety first. Some places are private land or closed at certain times of year.</p></section>
-      <section className="surface stack" aria-labelledby="mine-heading"><h2 id="mine-heading">Your contributions</h2><p className="muted">A record of what you have shared with {c.organization.name}.</p>
-        <div className="contribution-tiles"><div><strong>{mine.reports}</strong><span>{mine.reports === 1 ? "report" : "reports"}</span></div><div><strong>{mine.readings}</strong><span>{mine.readings === 1 ? "reading" : "readings"}</span></div>
-          <p>No rankings, no points. Contributions are valued for what they add to the shared understanding.</p></div>
+      <section className="surface stack" aria-labelledby="ways-heading"><div className="community-head"><span className="community-glyph amber"><LeafIcon size={36}/></span><div><h2 id="ways-heading">Ways to help</h2><p className="muted">Real places, real progress. Everyone has a role.</p></div></div>
+        <Link className="help-card primary" href="/report/new"><BinocularsIcon size={40}/><span><strong>Report an observation</strong><span>Share what you notice. You do not need to know the stream’s name.</span></span><span aria-hidden="true">›</span></Link>
+        {c.available_tasks ? <Link className="help-card" href={`/app/${org}/tasks`}><ClipboardIcon size={40}/><span><strong>{c.available_tasks} field {c.available_tasks === 1 ? "task" : "tasks"} open for trained monitors</strong><span>Help with readings at named stations.</span></span><span aria-hidden="true">›</span></Link>
+          : <div className="help-card is-quiet"><ClipboardIcon size={40}/><span><strong>No open field tasks right now</strong><span>Coordinators propose them when an investigation needs readings.</span></span></div>}
+        <p className="safety-note"><AlertIcon size={22}/><span>Use approved access points and put your safety first. Some places are private land or closed at certain times of year.</span></p></section>
+      <section className="surface stack" aria-labelledby="mine-heading"><div className="community-head"><span className="community-glyph amber"><PeopleIcon size={36}/></span><div><h2 id="mine-heading">Your contributions</h2><p className="muted">A record of what you have shared with {c.organization.name}.</p></div></div>
+        <div className="contribution-tiles"><div><PinIcon size={30}/><strong>{mine.reports}</strong><span>{mine.reports === 1 ? "report" : "reports"}</span></div><div><FlaskIcon size={30}/><strong>{mine.readings}</strong><span>{mine.readings === 1 ? "reading" : "readings"}</span></div>
+          <p><LeafIcon size={30}/><span><strong>No rankings. No points.</strong>Contributions are valued for what they add to the shared understanding.</span></p></div>
         <h3>What your latest contribution changed</h3>
         <ReceiptHistory path={`/orgs/${org}/receipts`}/></section>
-      <section className="surface stack community-updates" aria-labelledby="updates-heading"><h2 id="updates-heading">Published case updates</h2><p className="muted">Investigations with an assessment an expert has approved.</p>
+      <section className="surface stack community-updates" aria-labelledby="updates-heading"><div className="community-head"><span className="community-glyph"><DocIcon size={36}/></span><div><h2 id="updates-heading">Published case updates</h2><p className="muted">Investigations with an assessment an expert has approved.</p></div></div>
         {c.published_updates.length ? <ol className="update-list">{c.published_updates.map(u => { const d = new Date(u.updated_at); return <li key={u.id}>
           <time dateTime={u.updated_at}><span>{d.toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>{d.getFullYear()}</time>
           <div><strong>{u.title}</strong><span>{WORKFLOW[u.workflow] ?? u.workflow}</span></div>

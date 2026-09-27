@@ -3,7 +3,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api, supabase } from "../lib/api";
 import { claimGuestDrafts, db, MAX_PHOTO_BYTES, PHOTO_TYPES, toReportBody, uuidv7, validate, type Draft } from "../lib/drafts";
 import { claim, sendDraft } from "../lib/submit";
@@ -18,7 +18,8 @@ const MapView = dynamic(() => import("./map-view").then(m => m.MapView), { ssr: 
 
 const CATEGORIES = REPORT_CATEGORIES;
 
-export function ReportForm({ draftId }: { draftId: string }) {
+/** `intro` renders the page heading for the current step (the review step retitles the page, as in dark-report-review). */
+export function ReportForm({ draftId, intro }: { draftId: string; intro: (step: number) => ReactNode }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -67,7 +68,7 @@ export function ReportForm({ draftId }: { draftId: string }) {
     const found = step > draft!.step ? validate(draft!, draft!.step) : {};
     setErrors(found);
     if (Object.keys(found).length) { requestAnimationFrame(() => summary.current?.focus()); return; }
-    update({ step }); requestAnimationFrame(() => heading.current?.focus());
+    update({ step }); requestAnimationFrame(() => { window.scrollTo(0, 0); heading.current?.focus({ preventScroll: true }); });
   }
   function locate() {
     if (!("geolocation" in navigator)) { setNotice("Location is not available in this browser. Describe a landmark or enter coordinates."); return; }
@@ -101,15 +102,15 @@ export function ReportForm({ draftId }: { draftId: string }) {
     if (outcome.error.code === "AUTH_REQUIRED") router.push(`/sign-in?next=${encodeURIComponent(`/report/${draftId}/edit`)}`);
   }
 
-  if (missing) return <InlineError>This draft is not on this device for the current account. <Link href="/report/new">Start a new observation</Link></InlineError>;
-  if (!draft) return <LoadingState label="Opening your draft…"/>;
-  if (draft.status === "server_received" && draft.result) return <section className="surface stack"><h2>Already submitted</h2><p>Your report has been received for review. The cause is not established.</p><Link className="button button-primary" href={`/app/${draft.result.org_id}/reports/${draft.result.id}`}>View receipt</Link></section>;
+  if (missing) return <>{intro(1)}<InlineError>This draft is not on this device for the current account. <Link href="/report/new">Start a new observation</Link></InlineError></>;
+  if (!draft) return <>{intro(1)}<LoadingState label="Opening your draft…"/></>;
+  if (draft.status === "server_received" && draft.result) return <>{intro(1)}<section className="surface stack"><h2>Already submitted</h2><p>Your report has been received for review. The cause is not established.</p><Link className="button button-primary" href={`/app/${draft.result.org_id}/reports/${draft.result.id}`}>View receipt</Link></section></>;
   const err = (k: string) => errors[k] ? <p className="field-error" id={`${k}-error`}>{errors[k]}</p> : null;
   const described = (k: string, help?: string) => [errors[k] ? `${k}-error` : "", help || ""].filter(Boolean).join(" ") || undefined;
   const hasPoint = draft.latitude !== "" && draft.longitude !== "";
 
   const whatText = [draft.categories.map(c => CATEGORIES.find(([k]) => k === c)?.[1]).join(", "), draft.description].filter(Boolean).join(" · ") || "No category or description yet";
-  return <div className="report-flow">
+  return <>{intro(draft.step)}<div className="report-flow">
     <ReportSteps step={draft.step}/>
     <p className="autosave" role="status"><span className="autosave-dot" aria-hidden="true"/>{draft.status === "submitting" ? draft.error || "Sending to Upstream…" : draft.error || "Saved on this device. Not submitted yet."}</p>
     {notice ? <p className="notice" role="status">{notice}</p> : null}
@@ -174,7 +175,7 @@ export function ReportForm({ draftId }: { draftId: string }) {
       </div></div>
       <div className="report-actions submit-bar"><p className="icon-line"><ShieldIcon/><span><strong>This report documents what you noticed; it does not establish a cause.</strong><br/><span className="subtle small">Observations help inform further investigation by qualified people.</span></span></p>
         <div className="button-row"><button type="button" className="button button-quiet" onClick={() => go(2)}>Back</button><button type="button" className="button button-outline" onClick={() => setNotice("Draft saved on this device.")}>Save draft</button><button type="button" className="button button-primary" disabled={draft.status === "submitting"} onClick={submit}>{draft.status === "submitting" ? "Submitting…" : draft.error ? "Retry submission" : "Submit report"}</button></div></div></section> : null}
-  </div>;
+  </div></>;
 }
 
 const STEP_NAMES = ["What happened", "Where it was", "Review"];

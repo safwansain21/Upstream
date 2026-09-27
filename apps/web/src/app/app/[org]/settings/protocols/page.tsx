@@ -8,6 +8,8 @@ import { useOrg } from "../../../../../lib/session";
 
 type Protocol = { id: string; version: number; name: string; status: string; data_origin: string; source: string; instructions: string | null; replicates: number | null };
 
+const STATUS: Record<string, string> = { approved: "Approved", draft: "Draft", retired: "Retired" };
+
 export default function Protocols() {
   const { org } = useOrg();
   const q = useQuery({ queryKey: ["protocols", org], queryFn: () => api<Protocol[]>(`/orgs/${org}/protocols`) });
@@ -23,11 +25,11 @@ export default function Protocols() {
       : <div className="protocol-layout">
         <section aria-label="Protocol list"><p className="muted">{list.length} {list.length === 1 ? "protocol" : "protocols"}</p>
           <ul className="protocol-list">{list.map(x => <li key={x.id}><button type="button" className={x.id === p?.id ? "is-selected" : undefined} aria-pressed={x.id === p?.id} onClick={() => setChosen(x.id)}>
-            <strong>{x.name}</strong><span>v{x.version} · <span className={`quality quality-${x.status === "approved" ? "accepted" : "suspect"}`}><span className="dot" aria-hidden="true"/>{x.status}</span></span>
+            <strong>{x.name}</strong><span>v{x.version} · <span className={`quality quality-${x.status === "approved" ? "accepted" : "suspect"}`}><span className="dot" aria-hidden="true"/>{STATUS[x.status] ?? x.status}</span></span>
             <span>{x.replicates ? `${x.replicates} replicates · ` : ""}Source: {x.source}</span></button></li>)}</ul>
           {!list.length ? <p className="muted">No protocols match.</p> : null}</section>
         {p ? <article className="surface protocol-detail" aria-labelledby="protocol-heading"><h2 id="protocol-heading">{p.name}</h2>
-          <p className="protocol-meta"><span>Version {p.version}</span><CaseStatus tone={p.status === "approved" ? "accepted" : "warning"}>{p.status}</CaseStatus><OriginBadge origin={p.data_origin}/></p>
+          <p className="protocol-meta"><span>Version {p.version}</span><CaseStatus tone={p.status === "approved" ? "accepted" : "warning"}>{STATUS[p.status] ?? p.status}</CaseStatus><OriginBadge origin={p.data_origin}/></p>
           <div className="protocol-columns"><div><h3>Instructions</h3>{steps.length > 1 ? <ol className="protocol-steps">{steps.map((s, n) => <li key={n}>{s}</li>)}</ol> : <p>{p.instructions || "No written instructions recorded for this version."}</p>}</div>
             <dl className="map-facts"><div><dt><Term k="replicate">Replicates</Term></dt><dd>{p.replicates ? `${p.replicates} per visit` : "Not specified"}</dd></div><div><dt>Source</dt><dd>{p.source}</dd></div>
               <div><dt>Data origin</dt><dd>{p.data_origin === "real" ? "Field protocol" : "Example protocol: its bounds are illustrative only"}</dd></div></dl></div></article> : null}

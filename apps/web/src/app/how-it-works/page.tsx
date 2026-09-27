@@ -11,12 +11,12 @@ export const metadata: Metadata = { title: "How it works" };
 
 const STAGES: [string, string][] = [["Report", "Describe what changed."], ["Locate", "A mapped stream is optional."], ["Collect", "Qualified monitors use verified instruments."],
   ["Review", "Experts assess evidence and assumptions."], ["Revise & share", "New evidence may change a conclusion."]];
-const STOPS: Stop[] = [[200, 640], [480, 612], [780, 562], [1076, 512], [1350, 452]].map(([x, y], i) =>
+const STOPS: Stop[] = [[222, 595], [514, 570], [826, 536], [1138, 500], [1458, 448]].map(([x, y], i) =>
   ({ x, y, tone: i === 0 ? "origin" : "done", label: <><span className="stop-index">0{i + 1}</span> {STAGES[i][0]}</>, detail: STAGES[i][1] }));
 
 export default function HowItWorksPage() {
   return <>
-    <div className="screen-top"><DuskScene variant="screen" route={<SceneRoute stops={STOPS} tail={[{ x: 1470, y: 428 }]}/>}/><AppHeader scene={false}/>
+    <div className="screen-top screen-short"><DuskScene variant="screen" route={<SceneRoute stops={STOPS} tail={[{ x: 1600, y: 444 }]}/>}/><AppHeader scene={false}/>
       <main id="main-content" className="how-hero">
         <div className="how-hero-copy">
           <h1 className="enter">One observation.<br/>A shared next step.</h1>

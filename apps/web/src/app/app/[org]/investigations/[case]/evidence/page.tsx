@@ -66,7 +66,7 @@ export default function EvidenceReview() {
   return <main id="main-content" className="page-shell case-page">
     <CaseHeader caseId={caseId} current="evidence"/>
     <PageIntro title={latestHist && last(latestHist) === "draft" && A ? "A revision worth reviewing" : "Evidence and assessments"}>
-      <p><CaseStatus>Cause unconfirmed</CaseStatus> {caseQ.data.review_hold ? <CaseStatus tone="warning">Review required</CaseStatus> : null}</p></PageIntro>
+      {caseQ.data.review_hold ? <p><CaseStatus tone="warning">Review required</CaseStatus></p> : null}</PageIntro>
     {error ? <InlineError>{error}{/Evidence or assumptions changed/.test(error) ? <> <button className="button button-quiet" onClick={recompute}>Recompute with current evidence</button></> : null}</InlineError> : null}
     {status ? <p className="notice" role="status">{status}</p> : null}
     {!hist.data.length ? <EmptyState title="No assessments yet" steps={can("coordinate") || can("expert") ? ["Run an analysis from the investigation overview once readiness allows it.", "The overview’s readiness list shows what is still missing and who can fix it."] : ["An assessment appears here once a coordinator or expert runs the analysis."]}/> : <div className="evidence-layout"><div className="evidence-main">

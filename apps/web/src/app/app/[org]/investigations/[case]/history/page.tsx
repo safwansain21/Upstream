@@ -1,8 +1,9 @@
 "use client";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { CaseHeader } from "../../../../../../components/case-tabs";
+import { CheckIcon, ClipboardIcon, DocIcon, FlaskIcon, HistoryIcon, LayersIcon, LinkIcon, MapIcon, PackageIcon, PersonIcon, ShieldIcon } from "../../../../../../components/icons";
 import { EmptyState, InlineError, LoadingState, PageIntro } from "../../../../../../components/ui";
 import { api } from "../../../../../../lib/api";
 import { eventLabel } from "../../../../../../lib/events";
@@ -12,9 +13,29 @@ type Event = { sequence: number; event_type: string; object_id: string | null; o
 const TYPES: [string, string][] = [["", "All activity"], ["report", "Reports"], ["task", "Tasks"], ["reading", "Readings and QC"], ["network", "Mapping"], ["analysis", "Analyses requested"],
   ["assessment", "Assessments and reviews"], ["decision", "Decisions"], ["package", "Packages and delivery"], ["access", "Access"], ["case", "Merges"]];
 
+const ORIGIN: Record<string, string> = { synthetic: "synthetic example", real: "field observation", replayed: "replayed data", imported: "imported evidence" };
+const yes = (v: unknown) => v === true || v === "true";
+/** The row summary in plain words; identifiers and hashes stay in "View record". */
+const PLAIN: Record<string, (v: unknown) => string> = {
+  retained_length_m: v => `${(Number(v) / 1000).toFixed(2)} km retained`,
+  eligible: v => yes(v) ? "able to rule stretches out" : "not yet able to rule anything out",
+  data_origin: v => ORIGIN[String(v)] ?? String(v),
+  signed: v => yes(v) ? "signed" : "not signed",
+  attempt: v => `delivery attempt ${v}`,
+  blocked_tasks: v => `${v} ${Number(v) === 1 ? "task" : "tasks"} provisionally blocked`,
+  count: v => `${v} ${Number(v) === 1 ? "reading" : "readings"}`,
+  comparable: v => yes(v) ? "comparable with other readings" : "not comparable with other readings",
+  reason: v => String(v),
+  by: v => `by ${v}`,
+};
 function describe(e: Event) {
-  const p = e.payload || {};
-  return Object.entries(p).filter(([, v]) => v !== null && v !== "" && typeof v !== "object").map(([k, v]) => `${k.replaceAll("_", " ")}: ${String(v)}`).join(" · ");
+  return Object.entries(e.payload || {}).filter(([k, v]) => v !== null && v !== "" && PLAIN[k]).map(([k, v]) => PLAIN[k](v)).join(" · ");
+}
+const GLYPH: [string, (p: { size?: number }) => ReactNode][] = [["report", PersonIcon], ["network", MapIcon], ["reading", FlaskIcon], ["assessment", DocIcon], ["analysis", LayersIcon],
+  ["package", PackageIcon], ["access", ShieldIcon], ["task", ClipboardIcon], ["decision", CheckIcon], ["case", LinkIcon]];
+function Glyph({ type }: { type: string }) {
+  const Icon = GLYPH.find(([k]) => type.startsWith(k))?.[1] ?? HistoryIcon;
+  return <span className="history-glyph" aria-hidden="true"><Icon size={22}/></span>;
 }
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]!.toUpperCase()).join("") || "·";
 
@@ -35,7 +56,7 @@ export default function History() {
         <ol className="history-spine" aria-label="Activity, newest first">{items.map((e, i) => <li key={e.sequence} className={`${e.event_type.startsWith("report") ? "is-report" : ""} ${open === e.sequence ? "is-open" : ""}`} style={{ ["--i" as string]: Math.min(i, 10) }}>
           <span className="spine-dot" aria-hidden="true"/>
           <time dateTime={e.occurred_at}>{new Date(e.occurred_at).toLocaleDateString()}<br/><span>{new Date(e.occurred_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span></time>
-          <div className="history-main"><strong>{eventLabel(e.event_type)}</strong>{e.object_version ? <span className="subtle small"> · version {e.object_version}</span> : null}{describe(e) ? <p className="subtle small">{describe(e)}</p> : null}</div>
+          <div className="history-main"><Glyph type={e.event_type}/><div><strong>{eventLabel(e.event_type)}</strong>{e.object_version ? <span className="subtle small"> · version {e.object_version}</span> : null}{describe(e) ? <p className="subtle small">{describe(e)}</p> : null}</div></div>
           <span className="history-actor"><span className="avatar small-avatar" aria-hidden="true">{initials(e.actor)}</span>{e.actor}</span>
           <button type="button" className="button button-outline button-small" aria-expanded={open === e.sequence} onClick={() => setOpen(open === e.sequence ? undefined : e.sequence)}>View record</button></li>)}</ol>
         <aside className="history-detail" aria-live="polite">{selected ? <div className="surface raised">

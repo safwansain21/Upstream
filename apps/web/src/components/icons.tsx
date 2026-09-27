@@ -37,4 +37,6 @@ export const LeafIcon = ({ size }: { size?: number }) => <Icon size={size}><path
 export const SendIcon = ({ size }: { size?: number }) => <Icon size={size}><path d="m20.5 3.5-17 7 7 2.5 2.5 7z"/><path d="m10.5 13 10-9.5"/></Icon>;
 export const EyeIcon = ({ size, off = false }: { size?: number; off?: boolean }) => <Icon size={size}><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/>{off ? <path d="m4 20 16-16"/> : null}</Icon>;
 export const PlusIcon = ({ size }: { size?: number }) => <Icon size={size}><circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8"/></Icon>;
+export const CompassIcon = ({ size }: { size?: number }) => <Icon size={size}><circle cx="12" cy="12" r="8.5"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></Icon>;
+export const LifebuoyIcon = ({ size }: { size?: number }) => <Icon size={size}><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/><path d="m6 6 3.5 3.5M18 6l-3.5 3.5M6 18l3.5-3.5M18 18l-3.5-3.5"/></Icon>;
 export const ChevronIcon = ({ size = 18 }: { size?: number }) => <Icon size={size}><path d="m9 6 6 6-6 6"/></Icon>;

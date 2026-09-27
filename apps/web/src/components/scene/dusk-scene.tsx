@@ -15,8 +15,9 @@ export function DuskScene({ variant, route, eager = false, still = false }: { va
   const host = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   // The band shows only a graded sliver of water, and a loading screen is gone in a moment: both keep a still plate, no WebGL
-  // context. A still screen loads its images eagerly: a lazy image unmounted before it loads stays registered with the
-  // document and keeps the whole detached scene alive (measured: one scene per workspace navigation).
+  // context. A still screen paints the plate as a CSS background and has no <img> at all: an image element unmounted while
+  // its load is pending keeps the whole detached screen alive (measured: one ~100-node scene per public navigation, even
+  // with eager loading). The foliage is left out for that moment.
   const live = variant !== "band" && !still;
   useEffect(() => {
     const scene = host.current, surface = canvas.current, plate = scene?.querySelector<HTMLImageElement>(".scene-plate");
@@ -41,11 +42,11 @@ export function DuskScene({ variant, route, eager = false, still = false }: { va
   }, []);
   return <div ref={host} className={`dusk-scene dusk-${variant}`} data-scene="river" aria-hidden="true">
     <div className="scene-art">
-      <ScenePicture asset={PLATE} className="scene-plate" eager={eager} sizes={variant === "band" ? "(max-width: 750px) 750px, 100vw" : "(max-aspect-ratio: 1672/941) 178vh, 100vw"}/>
+      {still ? <div className="scene-plate scene-plate-still"/> : <ScenePicture asset={PLATE} className="scene-plate" eager={eager} sizes={variant === "band" ? "(max-width: 750px) 750px, 100vw" : "(max-aspect-ratio: 1672/941) 178vh, 100vw"}/>}
       {live ? <canvas ref={canvas} className="scene-water" data-motion="water"/> : null}
-      {variant !== "band" ? <>
-        <div className="scene-foliage scene-branches"><ScenePicture asset={BRANCHES} eager={still} sizes="(max-aspect-ratio: 1672/941) 68vh, 38vw"/></div>
-        <div className="scene-foliage scene-reeds"><ScenePicture asset={REEDS} eager={still} sizes="(max-aspect-ratio: 1672/941) 130vh, 73vw"/></div>
+      {variant !== "band" && !still ? <>
+        <div className="scene-foliage scene-branches"><ScenePicture asset={BRANCHES} sizes="(max-aspect-ratio: 1672/941) 68vh, 38vw"/></div>
+        <div className="scene-foliage scene-reeds"><ScenePicture asset={REEDS} sizes="(max-aspect-ratio: 1672/941) 130vh, 73vw"/></div>
       </> : null}
     </div>
     <div className="scene-grade"/>

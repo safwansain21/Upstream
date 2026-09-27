@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { AppHeader } from "../../../components/app-header";
+import { DocIcon, LayersIcon, LockIcon, QuestionIcon, TargetIcon } from "../../../components/icons";
 import { EmptyState, InlineError, LoadingState, OriginBadge, PageIntro } from "../../../components/ui";
 import { api, ApiError } from "../../../lib/api";
 
@@ -36,17 +37,17 @@ export default function SharedPackage() {
           <p className="share-statement">{v.conclusion}</p><p className="muted">{v.case_scope}</p>
           {v.data_origin !== "real" ? <p className="share-caution">This is example data. It does not describe a real place or a confirmed event.</p> : null}</section>
         <section className="surface share-shows" aria-labelledby="shows-heading"><h2 id="shows-heading" className="eyebrow">What this does and does not show</h2>
-          <div className="share-columns"><div><h3>Limitations</h3><ul>{v.limitations.map(x => <li key={x}>{x}</li>)}</ul></div>
-            <div><h3>Assumptions</h3><ul>{v.assumptions.map(x => <li key={x}>{x}</li>)}</ul></div>
-            <div><h3>Unknowns</h3>{v.unknowns.length ? <ul>{v.unknowns.map(x => <li key={x}>{x}</li>)}</ul> : <p>None listed.</p>}</div>
-            <div><h3>Next action</h3><p>{v.next_action}</p></div></div></section>
+          <div className="share-columns"><div><h3><DocIcon size={30}/>Limitations</h3><ul>{v.limitations.map(x => <li key={x}>{x}</li>)}</ul></div>
+            <div><h3><LayersIcon size={30}/>Assumptions</h3><ul>{v.assumptions.map(x => <li key={x}>{x}</li>)}</ul></div>
+            <div><h3><QuestionIcon size={30}/>Unknowns</h3>{v.unknowns.length ? <ul>{v.unknowns.map(x => <li key={x}>{x}</li>)}</ul> : <p>None listed.</p>}</div>
+            <div><h3><TargetIcon size={30}/>Next action</h3><p>{v.next_action}</p></div></div></section>
         <section className="surface share-files" aria-labelledby="files-heading"><h2 id="files-heading" className="eyebrow">Files in this package</h2>
           <ul className="share-file-list">{v.artifacts.map(a => <li key={a}><a className="text-link" href={`/api/v1/share/${token}/artifacts/${a}`} download>{a}</a><span>{kind(a)}</span></li>)}</ul>
           <div className="manifest"><span className="manifest-label">Manifest SHA-256</span><code className="mono">{v.manifest_hash}</code></div>
           <p className="muted">{v.signing_status === "signed" ? <>Signed with a detached Ed25519 signature. Verify with the organization’s <a className="text-link" href="/api/v1/signing-key">published public key</a>, obtained independently. A valid signature proves integrity and origin, not scientific correctness.</> : "This package is unsigned. Its manifest lists a SHA-256 hash for every file."}</p></section>
       </div>
       <aside className="share-aside">
-        <section className={`surface share-status is-${v.banner}`} aria-label="Package status"><p role="status"><strong>{v.banner === "current" ? "Current package" : label}</strong></p>
+        <section className={`surface share-status is-${v.banner}`} aria-label="Package status"><p role="status"><strong><LockIcon size={22}/>{v.banner === "current" ? "Current package" : label}</strong></p>
           <p className="muted">{v.banner === "current" ? "You are viewing the latest package shared with you." : null}{v.replacement_available ? " The sending organization has issued a replacement package; use the newer link they sent you." : ""}</p>
           <p className="muted">You can open only this one package.</p></section>
         <section className="surface" aria-labelledby="details-heading"><h2 id="details-heading" className="eyebrow">Package details</h2>

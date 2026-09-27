@@ -8,6 +8,7 @@
 .dusk-band .scene-art { --scene-height: var(--band-height, 420px); --scene-focus-y: 0%; }
 .scene-art picture, .scene-plate, .scene-water { position: absolute; inset: 0; width: 100%; height: 100%; }
 .scene-plate { object-fit: cover; }
+.scene-plate-still { background: var(--night) center / cover no-repeat; background-image: image-set(url("/upstream-dark/scene/plate-1280.avif") type("image/avif"), url("/upstream-dark/scene/plate-1280.webp") type("image/webp")); }
 .scene-water { display: block; }
 .scene-foliage { position: absolute; left: 0; }
 .scene-foliage picture, .scene-foliage img { position: static; width: 100%; height: auto; }
@@ -62,4 +63,4 @@ html[data-motion="reduced"] .hero-route path { stroke-dashoffset: 0; }
 .scene-stop-label.origin strong, .scene-stop-label.current strong { color: var(--amber); }
 html[data-motion="reduced"] .scene-route path { stroke-dashoffset: 0; }
 @media (prefers-reduced-motion: reduce) { .scene-route path { stroke-dashoffset: 0; } }
-@media (max-width: 760px) { .scene-overlay .scene-stop-label { display: none; } }
+@media (max-width: 760px) { .scene-overlay .scene-stop-label, .screen-short .scene-route { display: none; } } /* the stages are listed as text there */

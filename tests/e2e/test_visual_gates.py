@@ -59,7 +59,7 @@ def settle(p, path):
 
 
 def every_page(p, check, share):
-    """Run `check(path)` on every required page: public, report, share, then every workspace and case route as an expert.
+    """Run `check(path)` on every required page: public, report, share, then onboarding and every workspace and case route as an expert.
     `share` comes from share_path(), created before any browser opens (package export renders its PDF with Playwright)."""
     found = {}
     for path in PUBLIC + ['/report/new', share]:
@@ -67,7 +67,7 @@ def every_page(p, check, share):
         if (r := check(path)):
             found[path] = r
     signed_in(p)
-    for path in app_pages():
+    for path in ['/onboarding'] + app_pages():  # onboarding needs a session
         settle(p, path)
         if (r := check(path)):
             found[path] = r

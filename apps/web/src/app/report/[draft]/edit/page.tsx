@@ -12,7 +12,8 @@ export default function EditReport() {
     <p className="report-margin" aria-hidden="true">People see it first.<br/>That’s where it starts.</p>
     <div className="report-column">
       <nav className="breadcrumbs" aria-label="Breadcrumb"><Link className="back" href="/">Report an observation</Link></nav>
-      <PageIntro title="What caught your attention?" aside={<MarginLine>Local observations lead to real questions.</MarginLine>}><p>Share what you noticed. The team will help investigate. You do not need to know the stream’s name or find it on a map.</p></PageIntro>
-      <ReportForm draftId={draft}/>
+      <ReportForm draftId={draft} intro={step => step === 3
+        ? <PageIntro title="Review your observation" aside={<MarginLine>Local observations lead to real questions.</MarginLine>}><p>Check what will be shared before you send it.</p></PageIntro>
+        : <PageIntro title="What caught your attention?" aside={<MarginLine>Local observations lead to real questions.</MarginLine>}><p>Share what you noticed. The team will help investigate. You do not need to know the stream’s name or find it on a map.</p></PageIntro>}/>
     </div></main></>;
 }

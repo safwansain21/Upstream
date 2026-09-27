@@ -1,6 +1,7 @@
 "use client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { LockIcon, MapIcon, SendIcon, SettingsIcon } from "../../../../../components/icons";
 import { CaseStatus, EmptyState, InlineError, LoadingState, PageIntro } from "../../../../../components/ui";
 import { api } from "../../../../../lib/api";
 import { useOrg } from "../../../../../lib/session";
@@ -10,6 +11,8 @@ type Delivery = { id: string; recipient: string; method: string; state: string; 
 const CONCERNS: [string, string][] = [["public_access", "Public access"], ["animal_access", "Animal access"], ["habitat", "Habitat"]];
 type Key = { configured: boolean; key_id?: string; public_key_sha256?: string; note?: string };
 type Status = Record<string, string>;
+
+const GLYPH: Record<string, ReactNode> = { "AI assistance": <SettingsIcon size={28}/>, "Email delivery": <SendIcon size={28}/>, "Background map": <MapIcon size={28}/>, "Package signing": <LockIcon size={28}/> };
 
 export default function Integrations() {
   const { org, can } = useOrg(); const client = useQueryClient();
@@ -38,7 +41,7 @@ export default function Integrations() {
   return <main id="main-content" className="page-shell settings-page"><PageIntro title="Integrations & delivery"><p>Configured, unavailable and unsigned states are shown as they are. Citizens are never asked for API keys.</p></PageIntro>
     <section className="provider-strip" aria-labelledby="providers-heading"><h2 id="providers-heading" className="visually-hidden">Providers</h2>
       {status.error ? <InlineError>{status.error.message}</InlineError> : !status.data ? <LoadingState label="Checking providers…"/> : providers.map(([label, text, ok]) =>
-        <div key={label} className={ok ? "is-ready" : "is-missing"}><span className={`quality quality-${ok ? "accepted" : "pending"}`}><span className="dot" aria-hidden="true"/></span><p><strong>{label}</strong><span>{text}</span></p></div>)}
+        <div key={label} className={ok ? "is-ready" : "is-missing"}>{GLYPH[label]}<p><strong>{label}</strong><span className={`quality quality-${ok ? "accepted" : "pending"}`}><span className="dot" aria-hidden="true"/>{text}</span></p></div>)}
       {key.error ? <InlineError>{key.error.message}</InlineError> : null}</section>
     {key.data?.configured ? <p className="muted signing-fingerprint">Signing key fingerprint <span className="mono">SHA-256 {key.data.public_key_sha256}</span></p> : null}
     <div className="integrations-layout">

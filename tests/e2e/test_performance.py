@@ -96,3 +96,76 @@ def test_directory_and_map_render_are_bounded():  # J03 (500 visible map feature
         assert in_map < 200  # features are drawn in WebGL layers, not one DOM marker each
         assert elapsed < 10
         browser.close()
+
+
+GL_PROBE = """(() => {  // every WebGL context the page creates, held weakly: a context still alive after GC and not lost is live
+  const made = [], get = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (type, ...rest) {
+    const ctx = get.call(this, type, ...rest);
+    if (ctx && /webgl/.test(type) && !made.some(r => r.deref() === ctx)) made.push(new WeakRef(ctx));
+    return ctx;
+  };
+  window.__liveGL = () => made.map(r => r.deref()).filter(c => c && !c.isContextLost()).length;
+})()"""
+
+
+def test_click_through_every_route_stays_flat():  # memory: no route leaks heap, DOM or WebGL contexts across client navigations
+    """Five loops of client-side navigation through every route (public, report, share, onboarding, workspace, case tabs,
+    task and report detail). After forced GC, heap and DOM at the loop's start route stay flat and each route's live WebGL
+    contexts are the same in loop 5 as in loop 1 (at most one: a scene's water or a map). Per-route values go to
+    test-results/leak-click-through.json."""
+    import json
+    from pathlib import Path
+    from tests.api.test_analysis import case_id
+    from tests.api.test_http import ORG, client
+    from tests.e2e.test_routes import CASE_TABS, PUBLIC, WORKSPACE
+    from tests.e2e.test_visual_gates import share_path
+    share = share_path()
+    mill = case_id('Mill Brook')
+    task = client.get(f'/api/v1/orgs/{ORG}/tasks', headers=as_('expert')).json()['data'][0]['id']
+    report = client.get(f'/api/v1/orgs/{ORG}/cases/{mill}', headers=as_('expert')).json()['data']['reports'][0]['id']
+    routes = ([f'/app/{ORG}{w}' for w in WORKSPACE] + [f'/app/{ORG}/investigations/{mill}{t}' for t in CASE_TABS]
+              + [f'/app/{ORG}/tasks/{task}', f'/app/{ORG}/reports/{report}', '/onboarding', share, '/report/new'] + PUBLIC)
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        p = browser.new_context(viewport={'width': 1440, 'height': 900}).new_page()
+        p.add_init_script(GL_PROBE)
+        p.goto(BASE + '/sign-in')
+        sign_in(p, 'expert@example.test')
+        expect(p).to_have_url(re.compile('/investigations'))
+        cdp = p.context.new_cdp_session(p)
+        cdp.send('Performance.enable')
+
+        def measure():
+            p.wait_for_timeout(600)
+            cdp.send('HeapProfiler.collectGarbage'); cdp.send('HeapProfiler.collectGarbage')
+            m = {x['name']: x['value'] for x in cdp.send('Performance.getMetrics')['metrics']}
+            return {'heap_mb': round(m['JSHeapUsedSize'] / 2**20, 2), 'nodes': int(m['Nodes']), 'webgl': p.evaluate('window.__liveGL()')}
+
+        def go(path):
+            p.evaluate('path => window.next.router.push(path)', path)
+            p.wait_for_url(re.compile(re.escape(path) if path != '/report/new' else r'/report/[0-9a-f-]+/edit'))
+            expect(p.locator('#main-content h1').first).to_be_visible(timeout=20000)
+            expect(p.locator('#main-content[aria-busy]')).to_have_count(0, timeout=20000)
+            p.wait_for_load_state('networkidle')
+
+        loops = []
+        for _ in range(5):
+            seen = {}
+            for path in routes + [routes[0]]:
+                go(path)
+                seen[path if path not in seen else 'loop end'] = measure()
+            loops.append(seen)
+        browser.close()
+    out = Path(__file__).resolve().parents[2] / 'test-results'
+    out.mkdir(exist_ok=True)
+    (out / 'leak-click-through.json').write_text(json.dumps(loops, indent=1))
+    first, last = loops[0], loops[-1]
+    print('route | loop 1 heap MB / nodes / webgl | loop 5 heap MB / nodes / webgl')
+    for path in first:
+        print(path, '|', *first[path].values(), '|', *last[path].values())
+    ends = [loop['loop end'] for loop in loops]
+    assert ends[-1]['nodes'] - ends[0]['nodes'] < 60, ends  # a stranded scene used to add ~100 nodes per navigation
+    assert ends[-1]['heap_mb'] - ends[1]['heap_mb'] < 2, ends  # after the first loop has filled the query cache
+    grew = {k: (first[k]['webgl'], last[k]['webgl']) for k in first if last[k]['webgl'] > max(first[k]['webgl'], 1)}
+    assert not grew, grew  # contexts are released: never more than one live, and no more in loop 5 than in loop 1

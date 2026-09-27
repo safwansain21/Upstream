@@ -510,3 +510,144 @@ Memory before/after (Chromium 1440x900 against `next start`, forced GC; busy = m
 - I12 reduction: real data cannot be made to narrow on demand (an excluded reading cannot be restored, and new readings
   moved the result unpredictably), so the test serves the earlier real assessment back as the next revision to check the
   reduction is announced exactly like the expansion. The expansion uses real data end to end.
+
+## 2026-09-27 Phase 3 visual comparison (all 34 references)
+Method: each route captured against a production build after a fresh reset with both seeds, at the reference's own size
+(1672x941; landing 1586x992) and at 390 px full page, then compared one route at a time (capture script and images in
+test-results/compare, gitignored). Parameterised routes used real objects: Mill Brook, a contributor's submitted report,
+a monitor's assigned and accepted task, an approved case with a created and delivered package, the admin for the two
+admin-only settings references. Shared change: the header links now sit at the right edge beside the account tools, as
+in every reference (they sat beside the brand).
+- 07-visible-current (/): fixed: subtitle wrapped to three lines (now one, as in the reference). Otherwise matches.
+- dark-how-it-works: fixed: the scene took the whole first screen, so the roles band was below the fold; the hero now
+  ends at about 64% of the screen with the stage line and all five stage labels over the water and the roles band in view.
+  At 390 px the drawn stage line crossed the intro text; it is hidden there (the stages are listed as text).
+- dark-examples: fixed: only the featured card fitted the first screen; tighter intro and compact secondary rows show all
+  three. Documented difference: card art is the scene plate with an illustrative trace (no case photos in the API).
+- dark-example-detail: fixed: intro and schematic height tightened so map, notes and timeline read as one screen.
+- dark-sign-in: matches (the primary button is dimmed until a password is typed; kept, it is the disabled state).
+- dark-onboarding: matches in composition. Fixed at 390 px: the page was 427 px wide (the organization row's name
+  column could not shrink; at narrow widths the action now sits under the name); /onboarding is now part of every visual gate's page set, so I05 reflow covers it.
+- dark-status: matches; the real check list has seven services (the reference shows six).
+- dark-privacy: fixed: the section list on the spine was compressed; its spacing now follows the reference.
+- dark-terms: fixed: the numbered sections were squeezed into a narrow column by a class clash with the receipt's
+  numbered list (`.numbered`); renamed to `policy-numbered` and the column widened.
+- dark-accessibility: fixed: rebuilt to the reference composition (hero with the comfort switches beside it, an
+  "On this page" row that underlines the section being read, three columns with hairline icons, WCAG note under "Our
+  approach"). Same text and the same MotionSettings control.
+- dark-system-states: matches for not found and error; loading is the shared LoadingState. Fixed: a script-focused
+  heading (route focus) drew a focus ring; headings focused by script no longer show one, controls still do.
+- dark-report: fixed: the step line spanned the whole column; it is now compact as in the reference. Documented
+  difference: the reference's single-row chips and inline map are a denser layout of the same fields; ours keeps the
+  labelled checkbox choices and the map on step 2 (the tested form).
+- dark-report-review: fixed: the review step kept the "What caught your attention?" title and opened scrolled down; it
+  is now titled "Review your observation" with its own lead, and every step change starts at the top.
+- dark-receipt: matches. Documented difference: no photo in "What you reported" (the submission had none).
+- dark-investigations: matches (header links now right-aligned). Documented differences: no case photos in rows (not in
+  the API); markers are one style because the directory API has no location-certainty class per case.
+- dark-tasks: matches in composition. Documented differences: task photos, station names and distances (not in the API).
+- dark-task-detail: fixed: rebuilt to the reference composition (title with station and case, assigned/window/access
+  facts; station and access, instrument and protocol on the left; actions, record readings and submitted readings on the
+  right; replicate fields in one row). All actions, labels and field ids unchanged. Documented differences: station
+  coordinates map, earlier readings at the station (not in the task API).
+- dark-review-queue: matches. Documented differences: priority, place, preview map and reviewer assignment (not in the
+  review-queue API).
+- dark-community: fixed: added the reference's hairline icons to the three sections, both help cards, the contribution
+  tiles and the safety line. Documented difference: no recent-activity list (no per-contributor activity API).
+- dark-notifications: fixed: title is now "Updates that matter". Documented difference: no place per update (the
+  notification carries only an object id).
+- dark-shared-package: fixed: icons on the four "does and does not show" columns and the package status. Documented
+  differences: file sizes, per-file checksums, sender organization name (not in the share view).
+- dark-overview: fixed (shared case header): the back link, name, tabs and content now start about 60 px higher on every
+  case page. Otherwise matches.
+- dark-map: fixed: case sub-page titles are sized as working-page titles (the display size pushed the readiness strip
+  below the fold). Documented differences from Phase 2 stand (reach names, edit times, observation position).
+- dark-observations: fixed: section icons (people, flask) as in the reference. Documented difference: report photos.
+- dark-case-tasks: matches. Documented difference: station coordinates beside each group (not in the case API).
+- dark-evidence: fixed: the intro repeated the "Cause unconfirmed" badge already in the case header; removed. The
+  single panel is shown here: a fresh seed has one draft per case. "Previous approved assessment" appears beside the
+  draft (with "What changed?") only once an earlier revision was approved; not faked for the picture.
+- dark-decision: matches (three distinct statements, record-a-decision form).
+- dark-history: fixed: rows showed raw payload keys ("eligible: true · retained length m: 5300"); they now read in
+  plain words ("able to rule stretches out · 5.30 km retained") with an event icon per row; raw fields stay in "View
+  record". Documented differences: actor roles and before/after images (not in the events API).
+- dark-packages: matches with an approved, delivered package (lifecycle lit to Delivered). Documented differences:
+  per-artifact size and integrity (the verify endpoint checks the whole package).
+- dark-settings-profile: fixed (shared settings layout): side navigation now carries the reference's hairline icons;
+  settings titles and rows tightened.
+- dark-settings-organization: matches for the admin. Documented differences: member emails and join dates.
+- dark-settings-instruments: fixed: date-picker icons were inverted twice (dark on dark) by a filter on top of the dark
+  color scheme; now light. Documented differences: instrument photo, location, protocol per event.
+- dark-settings-protocols: fixed: statuses capitalised ("Approved"). Documented differences: bounds, reviewer, review
+  date; no protocol editing or "New protocol" (not in the API).
+- dark-settings-integrations-v2: fixed: provider strip now has an icon per provider with its status line beneath, as in
+  the reference. Documented difference: recipient roles.
+
+## 2026-09-27 Phase 3 leak click-through (every route)
+Production build (`next start`), Chromium 1440x900, forced GC before each reading; client-side navigation
+(`next.router.push`) through all 34 routes: public, report, share, onboarding, workspace, every case tab, task and report
+detail. Five loops. Live WebGL contexts are counted by a probe that holds each created context weakly (alive after GC and
+not lost = live). Test: tests/e2e/test_performance.py::test_click_through_every_route_stays_flat (per-route values in
+test-results/leak-click-through.json).
+- Found (regression the two-route Phase 1 test could not see): DOM grew by ~343 nodes and ~0.5 MB per loop (loop end
+  2,053 -> 3,572 nodes). Bisected by route group: workspace, public pairs and app<->public transitions were flat; the
+  growth came from each client navigation into a public page that shows the root loading screen (/example, /report/new,
+  the example walkthroughs). CDP queryObjects found one detached `div.screen-top` (the loading StatePage) retained per
+  such navigation: its `<picture>` images were still loading when it unmounted, and an image element with a pending load
+  keeps its detached tree alive, even with eager loading (Phase 1's fix). Fix: the still loading scene paints the plate
+  as a CSS background and has no `<img>`; its foliage is left out for that moment.
+- After: DOM at the loop end 1,318 in all five loops; per route, loop 2 -> 5 within -4..+21 nodes. WebGL: 1 live context
+  on the directory (map) and on each scene page (water), 0 on every other workspace page, identical in loops 1 and 5;
+  contexts are released on leaving. Heap at the loop end 13.93 -> 15.44 MB over five loops, decelerating
+  (+0.60, +0.40, +0.31, +0.20). A 20-loop workspace run plateaus (13.87-13.99 MB from loop 14 to 20, +0.01..0.05 per
+  loop; DOM flat at 261): warm-up and caches filling, not a leak. Public pages plateau by loop 8 (+0.02 MB).
+
+| Route (loop 1 -> loop 5) | Heap MB | DOM nodes | Live WebGL |
+|---|---|---|---|
+| /investigations | 11.48 -> 15.22 | 1,250 -> 1,319 | 1 -> 1 |
+| /tasks | 9.87 -> 13.49 | 220 -> 287 | 0 -> 0 |
+| /evidence | 10.18 -> 13.69 | 1,023 -> 1,088 | 0 -> 0 |
+| /community | 10.12 -> 13.59 | 441 -> 504 | 0 -> 0 |
+| /notifications | 10.11 -> 13.53 | 179 -> 240 | 0 -> 0 |
+| /settings/profile | 10.26 -> 13.59 | 274 -> 358 | 0 -> 0 |
+| /settings/organization | 10.34 -> 13.57 | 212 -> 267 | 0 -> 0 |
+| /settings/instruments | 10.42 -> 13.59 | 377 -> 425 | 0 -> 0 |
+| /settings/protocols | 10.48 -> 13.58 | 280 -> 327 | 0 -> 0 |
+| /settings/integrations | 10.61 -> 13.60 | 354 -> 399 | 0 -> 0 |
+| case overview | 11.00 -> 13.77 | 777 -> 808 | 0 -> 0 |
+| case observations | 10.89 -> 13.61 | 582 -> 620 | 0 -> 0 |
+| case tasks | 11.01 -> 13.62 | 462 -> 498 | 0 -> 0 |
+| case map-setup | 11.13 -> 13.68 | 806 -> 840 | 0 -> 0 |
+| case evidence | 11.20 -> 13.71 | 696 -> 728 | 0 -> 0 |
+| case history | 11.14 -> 13.59 | 398 -> 428 | 0 -> 0 |
+| case decision | 11.33 -> 13.66 | 581 -> 609 | 0 -> 0 |
+| case exports | 11.25 -> 13.58 | 259 -> 285 | 0 -> 0 |
+| task detail | 11.30 -> 13.59 | 425 -> 449 | 0 -> 0 |
+| report receipt | 11.32 -> 13.58 | 340 -> 362 | 0 -> 0 |
+| /onboarding | 11.37 -> 13.56 | 279 -> 299 | 1 -> 1 |
+| /share/[token] | 11.44 -> 13.57 | 403 -> 421 | 1 -> 1 |
+| /report/new | 11.65 -> 13.65 | 446 -> 456 | 1 -> 1 |
+| / | 11.65 -> 13.64 | 416 -> 425 | 1 -> 1 |
+| /how-it-works | 11.75 -> 13.65 | 424 -> 430 | 1 -> 1 |
+| /example | 11.81 -> 13.66 | 372 -> 377 | 1 -> 1 |
+| /example/useful-evidence | 11.90 -> 13.70 | 600 -> 603 | 1 -> 1 |
+| /example/unmapped | 11.87 -> 13.65 | 355 -> 358 | 1 -> 1 |
+| /example/tidal | 11.93 -> 13.69 | 546 -> 549 | 1 -> 1 |
+| /sign-in | 11.83 -> 13.63 | 291 -> 294 | 1 -> 1 |
+| /privacy | 11.87 -> 13.65 | 321 -> 323 | 1 -> 1 |
+| /accessibility | 11.88 -> 13.65 | 354 -> 355 | 1 -> 1 |
+| /terms | 11.90 -> 13.65 | 339 -> 340 | 1 -> 1 |
+| /status | 11.92 -> 13.66 | 400 -> 400 | 1 -> 1 |
+| loop end (/investigations) | 13.93 -> 15.44 | 1,318 -> 1,318 | 1 -> 1 |
+
+Loop-1 per-route node counts are lower on workspace pages because loop 1 visits them before any page has been cached;
+the loop-end row is the like-for-like comparison. Heap per route is higher than Phase 1's 4.2-9.7 MB because this run
+keeps one session through all 34 routes (every route's query cache is resident), where Phase 1 measured each route fresh.
+
+## 2026-09-27 demo data after a fresh reset
+`supabase db reset --local`, then `scripts/seed_example.py` and `scripts/seed_load.py`: the example organization (the one
+every example.test user signs into) has exactly the four curated synthetic cases: Mill Brook, Allotment ditch, Harbour
+channel, Mill Brook (revised evidence). The 10,000 load-test cases live in a separate organization that no example user
+belongs to, so a judge's directory shows the four curated cases. The accumulated "Revised evidence test ..." and
+"Unnamed stream" rows seen earlier come from test runs, which create cases in the example organization; they appear only
+after the suite has run against the database. Seeds and test data are unchanged.
