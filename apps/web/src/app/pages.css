@@ -354,9 +354,9 @@ html[data-motion="reduced"] .example-trace circle, html:not([data-motion]) .exam
 .ai-assist[open] > summary { margin-bottom: 12px; }
 .ai-assist > * + * { margin-top: 10px; }
 .map-surface .atlas-map-frame { border-radius: var(--radius); overflow: hidden; }
-.field-notebook { position: absolute; left: clamp(4px, 1vw, 24px); top: min(58vh, 600px); width: min(21vw, 330px); aspect-ratio: 1536 / 1024; margin: 0; pointer-events: none; }
+.field-notebook { position: absolute; left: clamp(4px, 1vw, 24px); top: min(58vh, 600px); width: min(21vw, 330px); aspect-ratio: 1536 / 1024; margin: 0; pointer-events: none; container-type: inline-size; }
 .field-notebook picture, .field-notebook img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; filter: brightness(.82); }
-.ink-note { position: absolute; left: 16%; top: 30%; width: 44%; transform: rotate(-9deg); font-family: "Caveat", var(--display); font-size: clamp(1rem, 1.6vw, 1.55rem); line-height: 1.25; color: #2b2d2b; }
+.ink-note { position: absolute; left: 23%; top: 31%; width: 29%; transform: rotate(-9deg); font-family: "Caveat", var(--display); font-size: 5.6cqi; /* scales with the notebook, not the viewport */ line-height: 1.25; color: #2b2d2b; }
 .ink-line { display: block; }
 .ink-word { display: inline-block; clip-path: inset(0 100% 0 0); animation: ink-write .3s cubic-bezier(.3, .1, .3, 1) both; }
 @keyframes ink-write { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }

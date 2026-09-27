@@ -340,7 +340,8 @@ Stragglers (J02, J11, B11, F11; A07 in progress):
 ## 2026-09-23 dark UI rebuild (handoff: NewUI/Upstream-Dark-Handoff)
 - Theme: design.css (tokens, primitives, states, motion) and pages.css (page compositions) replace globals.css/dark.css.
   Fonts: Newsreader 500 + 400 italic, Source Sans 3 400/500/600, IBM Plex Mono 400 (removed Barlow x3, Source Sans 700,
-  Newsreader 400/600); Caveat (48.8 KB, @fontsource/caveat 5.3.0) loads only on the report pages for the notebook note.
+  Newsreader 400/600); Caveat (48.8 KB, @fontsource/caveat 5.3.0) loads only on the report pages for the notebook note. [Correction 2026-09-26: this
+  was not true at the time; nothing imported Caveat and the note rendered in the fallback serif. Fixed below.]
 - Scene: one plate art box, WebGL water (single canvas, pauses offscreen/hidden/reduced motion/save-data), independent
   branch and reed sway, luminous routes drawn from the first dot; mounted per page, not in the root layout.
 - Rebuilt so far: landing (One Health narrative: where a change enters, who reaches that water, traceable handover incl.
@@ -395,7 +396,8 @@ Measured before fixing (Playwright/CDP probe against `next start`, 1440x900, for
   animations on settled workspace pages).
 - MapLibre: one map per mount, `map.remove()` on unmount, sources added once on `style.load`; contexts are released (live
   count stays 1 on the directory, 0 elsewhere).
-- Removed unused dependencies (never imported): @fontsource/barlow-condensed, @fontsource/caveat, motion, lucide-react,
+- Removed unused dependencies (never imported): @fontsource/barlow-condensed, @fontsource/caveat (wrong: .ink-note names
+  "Caveat" in CSS; restored below), motion, lucide-react,
   react-hook-form, @hookform/resolvers, zod. No bundle change (they were never in a bundle); smaller install.
 - Simplifications (visual intent kept): workspace band water is a still plate; water frame rate ~30 fps; the loading screen's
   scene is still (no water) for its brief appearance.
@@ -414,7 +416,7 @@ Where things stand:
   `exports/fhir/validate.py --download` once, or the F13 test is skipped.
 - Phase 2 (remaining pages): in progress. Done and milestone-tested (6b597bb; fresh reset + both seeds, 229 passed,
   2 skipped destructive, 131 PASS, 2026-09-26): local map, observations, case tasks. Coded, not yet built/checked: packages,
-  field tasks, evidence queue, community. Then: Caveat restore for the report notebook note (own checkpoint), notifications,
+  field tasks, evidence queue, community (done: 6261057). Caveat restored (own checkpoint). Next: notifications,
   share page, settings (5 references). Follow the Phase 1 motion rules (still plates where water is not visible, pause
   every loop offscreen/hidden/reduced/save-data, eager images on anything that mounts only briefly).
 - Phase 3 (34-reference visual pass, I01-I14 and I17 evidence, leak click-through): not started.
@@ -462,3 +464,9 @@ Memory before/after (Chromium 1440x900 against `next start`, forced GC; busy = m
   per-item preview map and reviewer assignment are not in the review-queue API, so there is no priority sort or assignment.
 - Community: ways to help (report, open field tasks), safety note, contribution counts with "no rankings, no points",
   latest receipt, published updates with links to each investigation.
+- Caveat restored for the report notebook note: @fontsource/caveat 5.3.0 (exact pin), one weight (400) and the latin subset
+  only, imported in app/report/layout.tsx so only /report/new and /report/[draft]/edit load it. Download cost: one woff2,
+  48,836 bytes, measured in the browser on /report/new; / and /how-it-works load none. The note is now sized in container
+  units relative to the notebook (its viewport-based size overflowed the 330 px notebook) and sits on
+  the left page as in dark-report.png. Landing budget after (test_public_landing_budgets, production build, two runs):
+  desktop LCP 132-148 ms, mobile LCP 2,388-2,400 ms (budget 2,500), CLS 0.003, initial JS 239 KB gzip (unchanged).
