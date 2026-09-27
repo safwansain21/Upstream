@@ -414,13 +414,14 @@ Where things stand:
   studio and edge_runtime off; realtime kept on for the planned live /events streaming). Both seeds stay in the reset procedure.
   The pinned HL7 validator JAR (exports/fhir/.cache, gitignored) had to be downloaded again for F13; after a move, run
   `exports/fhir/validate.py --download` once, or the F13 test is skipped.
-- Phase 2 (remaining pages): in progress. Milestone-tested: local map, observations, case tasks (6b597bb), packages, field
-  tasks, evidence queue, community (6261057) and the Caveat restore (5efb45e). Last milestone run on 5efb45e (fresh reset +
-  both seeds, 2026-09-26): 228 passed, 2 skipped (destructive), 1 failed; the failure was the content audit scanning an
-  uncommitted share-page draft ("partner"), not committed code; after rewording, tests/test_content_audit.py passed 3/3, and
-  HEAD's share page contains no such word. 131 PASS. Coded, not yet checked: notifications, share page. Next: settings
-  (5 references), then Phase 3 (ACCEPTANCE.md amendment for I02/I15 first). Follow the Phase 1 motion rules.
-- Phase 3 (34-reference visual pass, I01-I14 and I17 evidence, leak click-through): not started.
+- Phase 2 (remaining pages): done. All ten page groups rebuilt: local map, observations, case tasks (6b597bb), packages,
+  field tasks, evidence queue, community (6261057), Caveat restore (5efb45e), notifications and share page (31b64a0),
+  settings x5 (40d75b4). Last milestone run on 40d75b4 (fresh reset + both seeds, 2026-09-26): 228 passed, 2 skipped
+  (destructive), 1 failed: tests/test_docs.py found an uncommitted Phase 3 test file (tests/e2e/test_visual_gates.py) that
+  the handoff inventory did not list yet; committed code is unaffected. 131 PASS.
+- Phase 3 (34-reference visual pass, I01-I14 and I17 evidence, leak click-through): in progress. ACCEPTANCE.md amendment
+  (I02, I15) written; route focus added; tests/e2e/test_visual_gates.py covers I02-I10, I12-I14, I17. I01 and I11 still name
+  the superseded hybrid references and PRD motion table: raised with the user, not reinterpreted.
 - Gates: 131 PASS, 15 FAIL (I01-I14, I17 only). Phase 1 milestone run on the trimmed stack, fresh reset + both seeds:
   229 passed, 2 skipped (destructive), 2026-09-26.
 
