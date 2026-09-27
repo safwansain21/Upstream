@@ -403,3 +403,30 @@ Measured before fixing (Playwright/CDP probe against `next start`, 1440x900, for
   test_gates_ui.py::test_workspace_navigation_keeps_no_scene_or_webgl_behind.
 - Landing budget after: desktop LCP 72-132 ms, mobile LCP 2388-2424 ms (before 2380 ms; budget 2500), CLS 0.003, initial JS
   239 KB gzip (before 236 KB).
+
+## Handoff 2026-09-26 (before the repo moves out of OneDrive)
+Where things stand:
+- Phase 0 (ground truth): done. Uncommitted dark-UI work was checkpointed as bde22d9. Stash `pre-import local dark UI work
+  2026-09-23` is kept (its content is already reworked into HEAD). The 34 references map one-to-one to routes (gallery.html).
+- Phase 1 (memory/performance): done; see the entry above. The local stack is trimmed in supabase/config.toml (analytics,
+  studio and edge_runtime off; realtime kept on for the planned live /events streaming). Both seeds stay in the reset procedure.
+  The pinned HL7 validator JAR (exports/fhir/.cache, gitignored) had to be downloaded again for F13; after a move, run
+  `exports/fhir/validate.py --download` once, or the F13 test is skipped.
+- Phase 2 (remaining pages): not started. Still in old markup: local map, observations, case tasks, packages, field tasks,
+  evidence queue, community, notifications, share page, settings (5 references). Next: local map + observations (partly
+  restyled in bde22d9), then case tasks, then milestone push; follow the Phase 1 motion rules (still plates where water is not
+  visible, pause every loop offscreen/hidden/reduced/save-data, eager images on anything that mounts only briefly).
+- Phase 3 (34-reference visual pass, I01-I14 and I17 evidence, leak click-through): not started.
+- Gates: 131 PASS, 15 FAIL (I01-I14, I17 only). Phase 1 milestone run on the trimmed stack, fresh reset + both seeds:
+  229 passed, 2 skipped (destructive), 2026-09-26.
+
+Memory before/after (Chromium 1440x900 against `next start`, forced GC; busy = main-thread task time at idle, software GL):
+
+| Measure | Before | After |
+|---|---|---|
+| Workspace page idle | 28-29% busy, 60 rAF/s, 1 WebGL context | 0% busy, 0 rAF/s, 0 contexts (directory map: 1) |
+| Public scene pages idle | 35-37% busy | 16-20% busy (water ~30 fps) |
+| DOM after 5 navigation loops | 756 -> 1556 nodes (leak) | 357 -> 359 (flat; 12-cycle loops flat) |
+| JS heap per route | 4.2-9.7 MB | 4.2-9.7 MB |
+| Supabase containers | ~1,591 MiB (vector crash-looping) | ~669 MiB |
+| Landing mobile LCP / initial JS | 2,380 ms / 236 KB gzip | 2,388-2,424 ms / 239 KB gzip (budget 2,500 ms / 250 KB) |
