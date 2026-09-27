@@ -450,3 +450,15 @@ Memory before/after (Chromium 1440x900 against `next start`, forced GC; busy = m
   non-coordinators are pointed to Field tasks; role-specific empty states. Test changed for the interface:
   tests/e2e/test_task_flow.py now selects the form's station with get_by_label('Station', exact=True), because the page now
   also has a "Tasks by station" region and the schematic's station list (the form itself is unchanged).
+- Packages: lifecycle line (created → delivered → acknowledged) lit only by recorded state, grows once to that state; package
+  switcher when a case has several; manifest hash with copy; artifact table with a plain description per file; package-level
+  integrity check; send panel and delivery ledger side by side; role-specific states. Missing API data: per-artifact size and
+  per-artifact integrity (the verify endpoint checks the whole package), so neither is shown per row.
+- Field tasks: tasks grouped by investigation and station with a river rail of the groups; plain task kinds for contributors;
+  open work first and finished tasks collapsed; "who can take a task", safety and "no one is ranked" notes; role-specific
+  empty states. Missing API data: task photos, station names and distances in the reference are not in the tasks API.
+- Evidence queue: status filters with counts (all, new, reopened, on hold), cards with revision, computed time and
+  conditional retained length, a detail panel explaining what the status means. Missing API data: priority, place,
+  per-item preview map and reviewer assignment are not in the review-queue API, so there is no priority sort or assignment.
+- Community: ways to help (report, open field tasks), safety note, contribution counts with "no rankings, no points",
+  latest receipt, published updates with links to each investigation.
