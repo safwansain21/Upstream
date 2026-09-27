@@ -430,3 +430,16 @@ Memory before/after (Chromium 1440x900 against `next start`, forced GC; busy = m
 | JS heap per route | 4.2-9.7 MB | 4.2-9.7 MB |
 | Supabase containers | ~1,591 MiB (vector crash-looping) | ~669 MiB |
 | Landing mobile LCP / initial JS | 2,380 ms / 236 KB gzip | 2,388-2,424 ms / 239 KB gzip (budget 2,500 ms / 250 KB) |
+
+## 2026-09-26 Phase 2 pages
+- Local map (map-setup): readiness strip states what is missing and which role fixes it (coordinator places/imports,
+  network reviewer confirms and publishes); tabbed review panel (Summary, Linework, Connectivity, Evidence) from the version
+  record; reaches and stations tables with review status; role-specific empty state; Term treatment for reach, readiness,
+  network version. Missing API data: the reference marks the case's observation on the schematic and shows reach names and
+  per-version edit times; the network version API returns neither a case observation position in schematic space nor reach
+  names or edit timestamps, so they are not shown.
+- Observations: reports list with time, type and location filters, accuracy (± m) and whole-row links; readings table with
+  station/quality filters, client-side CSV of the shown rows, plain assessment use (Yes / No / Not yet with the reason), one
+  origin caption when all rows share an origin; limits callout with the SC25 term; role-specific empty states (contributors
+  are told readings go to the review team and that they will be notified of assessment changes). Missing API data: report
+  photo thumbnails — the case detail API returns no media ids for reports, so no thumbnails are shown.

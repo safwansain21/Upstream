@@ -12,11 +12,11 @@ import { AlertIcon, CalendarIcon, DocIcon, LockIcon, PhotoIcon, PinIcon, ShieldI
 import { InkNote } from "./ink-note";
 import { NOTEBOOK, ScenePicture } from "./scene/scene-picture";
 import { InlineError, LoadingState } from "./ui";
+import { REPORT_CATEGORIES } from "../lib/labels";
 
 const MapView = dynamic(() => import("./map-view").then(m => m.MapView), { ssr: false, loading: () => <LoadingState label="Loading map…"/> });
 
-const CATEGORIES: [string, string][] = [["unusual_foam", "Unusual foam"], ["colour_change", "Change in colour"], ["odour", "Odour noticed (without deliberately smelling)"],
-  ["dead_wildlife", "Dead wildlife"], ["visible_discharge", "Visible discharge"], ["habitat_access", "Habitat or access concern"], ["other", "Something else"]];
+const CATEGORIES = REPORT_CATEGORIES;
 
 export function ReportForm({ draftId }: { draftId: string }) {
   const router = useRouter();

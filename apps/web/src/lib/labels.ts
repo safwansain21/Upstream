@@ -11,3 +11,7 @@ export function workflowTone(workflow: string): "neutral" | "warning" | "accepte
   if (workflow === "localization_active" || workflow === "inspection_recommended") return "active";
   return "neutral";
 }
+
+/** What a person can report noticing (the report form's choices; also used to label reports). */
+export const REPORT_CATEGORIES: [string, string][] = [["unusual_foam", "Unusual foam"], ["colour_change", "Change in colour"], ["odour", "Odour noticed (without deliberately smelling)"],
+  ["dead_wildlife", "Dead wildlife"], ["visible_discharge", "Visible discharge"], ["habitat_access", "Habitat or access concern"], ["other", "Something else"]];
