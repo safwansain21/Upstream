@@ -74,7 +74,12 @@ export function CaseAnalysis({ org, caseId, canAnalyse, canReview, dataOrigin = 
 
   async function run() {
     setError("");
-    try { setJob(await api<Job>(`/orgs/${org}/cases/${caseId}/analyses`, { method: "POST" })); }
+    try {
+      const started = await api<Job>(`/orgs/${org}/cases/${caseId}/analyses`, { method: "POST" });
+      setJob(started);
+      // unchanged evidence returns an already finished job: nothing will poll, so refresh the result now
+      if (started.state === "done") { client.invalidateQueries({ queryKey: ["assessment", org, caseId] }); client.invalidateQueries({ queryKey: ["case", org, caseId] }); }
+    }
     catch (e) { setError((e as Error).message); }
   }
 

@@ -168,6 +168,24 @@ I15 No perpetual decorative movement, custom cursor, scroll hijacking or celebra
 I16 Browser back/forward and direct links preserve sensible focus, selection and case identity.
 I17 Functional app screenshots are desktop web layouts, not phone mockups.
 
+Amendment 2026-09-26 (dark UI handoff). The user adopted the dark handoff (`NewUI/Upstream-Dark-Handoff`: 34 references,
+`docs/DESIGN_SYSTEM.md`, `docs/MOTION_SPEC.md`), which supersedes the orange/ice-blue visual brief. Four gates are evaluated
+against it rather than their original wording:
+- I01 (added 2026-09-26): the side-by-side inspection at 1440x900 uses the dark handoff's primary landing reference
+  (`references/07-visible-current.png`) and workspace reference (`references/dark-investigations.png`) instead of the
+  superseded hybrid references.
+- I02: the palette is the dark handoff palette (night ground, ivory text, amber origin, river-blue lines; tokens in
+  `apps/web/src/app/design.css`), not orange/ice-blue. Organic river curves, expressive display type and normal-width body
+  text are still required on every page.
+- I15: the only perpetual movement permitted is the dusk scene's water and foliage loops. They must pause when the scene is
+  offscreen, when the tab is hidden and under reduced motion (OS or application setting), and resume without a phase jump.
+  Content, text, buttons and data never loop; custom cursors, scroll hijacking and celebration of environmental damage
+  remain prohibited.
+- I11 (added 2026-09-26): hover, focus, button, list, detail, form and drawer animations are evaluated against the dark
+  handoff's `docs/MOTION_SPEC.md` (global motion grammar) instead of the PRD motion table. Where the handoff does not
+  specify a value, the PRD value still applies.
+All other I gates keep their wording.
+
 ## J. Performance, evaluation and release
 
 J01 Public LCP/CLS and JS budget measured using documented browser/network profile.

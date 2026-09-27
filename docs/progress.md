@@ -489,3 +489,23 @@ Memory before/after (Chromium 1440x900 against `next start`, forced GC; busy = m
   strip (AI, email, background map, signing), recipient registry, add-recipient form and delivery ledger. Missing API
   data: instrument photos, location and a protocol field on calibration events; protocol bounds, reviewer and review
   date; member emails and join dates; recipient roles. Protocol editing and "new protocol" do not exist, so none is shown.
+
+## 2026-09-26 Phase 3 gates
+- ACCEPTANCE.md amendment (dated 2026-09-26): I01 (dark primary landing and workspace references), I02 (dark handoff
+  palette), I11 (MOTION_SPEC, PRD values where unspecified) and I15 (only the scene's water and foliage loop, pausing
+  offscreen, hidden and under reduced motion). The evidence rows of all four cite it.
+- tests/e2e/test_visual_gates.py (15 tests) covers I01-I14 and I17 on every required page: public, report, share, all
+  workspace and case routes, at 1920-320 px where relevant.
+- I01 inspection (test-results/i01/*-side-by-side.png, 1440x900): landing matches 07-visible-current in composition (hero
+  type left, amber origin with its note, drawn route over the water, process line with the unmapped-stream note, header
+  links). Workspace matches dark-investigations (heading, search and filters, list/map toggle, list beside the map with
+  correspondence lines). Differences: no case photos in list rows (not in the API), and the directory shows accumulated
+  synthetic test cases rather than three curated examples.
+- Found and fixed while closing gates: the case evidence page skipped from h1 to h3 (revision panels now h2); the instruments
+  settings page overflowed at 1024 px (inputs in the side form could not shrink); menus opened with no transition (now a
+  200 ms settle, within the handoff's state-transition range); route focus added (focus moves to the new page's h1 after a
+  client navigation); recomputing with unchanged evidence returned an already finished job and the page never refreshed
+  the result (now refreshed at once).
+- I12 reduction: real data cannot be made to narrow on demand (an excluded reading cannot be restored, and new readings
+  moved the result unpredictably), so the test serves the earlier real assessment back as the next revision to check the
+  reduction is announced exactly like the expansion. The expansion uses real data end to end.

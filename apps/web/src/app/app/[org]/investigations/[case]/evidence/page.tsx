@@ -24,7 +24,7 @@ function Panel({ title, a, net }: { title: string; a: Assessment; net: Net }) {
   const sameTopology = net && networkId === net.id;
   const kept = new Set(a.retained_geometry_ids);
   const view = net && sameTopology ? schematic(net.nodes, net.edges, new Set(net.stations.map(s => s.code)), e => !a.eligible ? "unreviewed" : kept.has(e.id) ? "candidate" : "excluded") : null;
-  return <section className="surface revision-panel" aria-label={title}><div className="spread"><h3>{title}</h3><CaseStatus tone={a.publication === "approved" ? "accepted" : "warning"}>{a.publication === "approved" ? "Approved" : a.publication === "draft" ? "Under review" : a.publication}</CaseStatus></div>
+  return <section className="surface revision-panel" aria-label={title}><div className="spread"><h2 className="revision-title">{title}</h2><CaseStatus tone={a.publication === "approved" ? "accepted" : "warning"}>{a.publication === "approved" ? "Approved" : a.publication === "draft" ? "Under review" : a.publication}</CaseStatus></div>
     <p className="numeric revision-length"><strong>{a.eligible ? km(a.retained_length_m) : "Not eligible for localization"}</strong> · {a.publication}</p>
     {view ? <NetworkDiagram compact label={`${title} schematic`} stations={view.stations} reaches={view.reaches}/> : <p className="muted">This assessment used a different network version; the map is not shown side by side because lengths may not be like-for-like.</p>}
     <ul className="class-list">{a.classes.map(c => <li key={c.id} className={c.status}>{c.reach_ids.join(", ")} · {km(c.length_m)} · {c.status === "incompatible" ? "excluded under current bounds" : c.status}</li>)}</ul></section>;

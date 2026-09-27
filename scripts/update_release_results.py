@@ -14,6 +14,7 @@ W = 'tests/e2e/test_report_flow.py::'
 T = 'tests/e2e/test_task_flow.py::test_task_proposal_assignment_capture_and_review'
 M, MS = 'tests/api/test_mapping.py::', 'tests/e2e/test_map_setup.py::'
 GM, GU = 'tests/api/test_gates_misc.py::', 'tests/e2e/test_gates_ui.py::'
+VG = 'tests/e2e/test_visual_gates.py::'
 SB = 'tests/security/test_boundaries.py::'
 RA, SEC = 'tests/e2e/test_responsive_a11y.py::', 'tests/security/test_secrets.py::'
 RT, MB = 'tests/e2e/test_routes.py::', 'tests/api/test_membership.py::'
@@ -53,8 +54,25 @@ PASSES = {
     'E22': [GM + 'test_context_layers_do_not_change_compatibility_inputs', E + 'test_truth_ai_float_and_bad_intervals_rejected'],
     'E27': [GM + 'test_real_organizations_get_no_synthetic_protocol_bounds', 'tests/api/test_bootstrap.py::test_bootstrap_creates_real_org_with_admin_only'],
     'G08': [H + 'test_upload_rejects_disguised_and_oversized_images', GM + 'test_oversize_media_and_imports_are_rejected'],
-    'I15': [GU + 'test_no_perpetual_decorative_motion_after_settling'],
+    'I01': ['evaluated per the 2026-09-26 amendment in docs/specification/ACCEPTANCE.md (dark references 07-visible-current.png and dark-investigations.png; side-by-side captures in test-results/i01 inspected, notes in docs/progress.md)', VG + 'test_side_by_side_with_the_dark_primary_references'],
+    'I02': ['evaluated per the 2026-09-26 amendment in docs/specification/ACCEPTANCE.md (dark handoff palette)', VG + 'test_dark_palette_and_type_on_every_page'],
+    'I03': [VG + 'test_scene_art_is_decoration_never_a_flattened_screenshot'],
+    'I04': [VG + 'test_decoration_never_covers_focus_or_map_controls'],
+    'I05': [VG + 'test_every_required_page_reflows_at_every_width', 'tests/e2e/test_responsive_a11y.py::test_pages_reflow_without_horizontal_scroll[*]'],
+    'I06': ['tests/e2e/test_responsive_a11y.py::test_keyboard_only_report', VG + 'test_keyboard_only_task_measurement_map_review_and_acknowledgment'],
+    'I07': [VG + 'test_headings_route_focus_and_error_summary', VG + 'test_map_waits_for_the_result_and_announces_changes_alike', VG + 'test_contrast_zoom_reflow_and_no_colour_only_status (axe accessible-name rules)'],
+    'I08': [VG + 'test_contrast_zoom_reflow_and_no_colour_only_status', 'tests/e2e/test_routes.py::test_no_serious_accessibility_violations'],
+    'I09': [VG + 'test_reduced_motion_on_every_page', 'tests/e2e/test_responsive_a11y.py::test_reduced_motion_is_honoured'],
+    'I10': [VG + 'test_interrupted_and_repeated_navigation_settle_correctly'],
+    'I11': ['evaluated per the 2026-09-26 amendment in docs/specification/ACCEPTANCE.md (MOTION_SPEC; PRD values where unspecified)', VG + 'test_interaction_motion_follows_the_dark_motion_spec'],
+    'I12': [VG + 'test_map_waits_for_the_result_and_announces_changes_alike'],
+    'I13': [VG + 'test_no_numeric_count_up'],
+    'I14': [VG + 'test_upload_shows_a_true_stage_not_a_made_up_percentage'],
+    'I15': ['evaluated per the 2026-09-26 amendment in docs/specification/ACCEPTANCE.md (only the scene water and foliage loop; both pause offscreen, hidden and under reduced motion)',
+            GU + 'test_no_perpetual_decorative_motion_after_settling', GU + 'test_water_stops_scheduling_frames_when_scene_leaves_view',
+            GU + 'test_foliage_sway_pauses_with_the_water_offscreen'],
     'I16': [GU + 'test_back_and_forward_keep_case_identity'],
+    'I17': [VG + 'test_app_screens_are_desktop_layouts'],
     'J06': [B + 'test_chronological_evaluation_freezes_fit_and_counts_independent_events'],
     'J10': ['tests/test_docs.py::test_runbook_classifies_every_env_var_and_covers_procedures', 'tests/test_docs.py::test_readme_lists_the_documented_local_commands'],
     'A04': ['tests/api/test_durability.py::test_crashed_worker_lease_is_reclaimed_without_duplicates', 'tests/api/test_durability.py::test_retried_submission_after_restart_does_not_duplicate_case', 'tests/api/test_durability.py::test_worker_loop_survives_database_interruption'],
@@ -158,10 +176,6 @@ PASSES = {
     'J03': ['tests/e2e/test_performance.py::test_ten_thousand_case_directory_reads_stay_fast', 'tests/e2e/test_performance.py::test_directory_and_map_render_are_bounded'],
 }
 PARTIAL = {
-    'I05': 'Partial: 12 key public/workspace pages have no horizontal scroll at 1920-320 px (test_pages_reflow_without_horizontal_scroll[*]); not every page and no map-height/menu assertions.',
-    'I06': 'Partial: keyboard-only reporting with focus on each step heading (test_keyboard_only_report); task, measurement, map alternative, review and acknowledgment paths not yet keyboard-tested.',
-    'I09': 'Partial: OS reduced motion sets reduced mode with no running entrance animation, and the application setting persists (test_reduced_motion_is_honoured); camera flight and shimmer not asserted per page.',
-    'I08': 'Partial: automated axe finds zero serious/critical issues on key public and workspace pages (test_no_serious_accessibility_violations); 200% zoom, reflow and manual checks not done.',
 }
 
 path = Path(__file__).resolve().parents[1] / 'docs/release-results.md'
