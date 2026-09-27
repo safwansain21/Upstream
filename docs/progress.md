@@ -412,10 +412,11 @@ Where things stand:
   studio and edge_runtime off; realtime kept on for the planned live /events streaming). Both seeds stay in the reset procedure.
   The pinned HL7 validator JAR (exports/fhir/.cache, gitignored) had to be downloaded again for F13; after a move, run
   `exports/fhir/validate.py --download` once, or the F13 test is skipped.
-- Phase 2 (remaining pages): not started. Still in old markup: local map, observations, case tasks, packages, field tasks,
-  evidence queue, community, notifications, share page, settings (5 references). Next: local map + observations (partly
-  restyled in bde22d9), then case tasks, then milestone push; follow the Phase 1 motion rules (still plates where water is not
-  visible, pause every loop offscreen/hidden/reduced/save-data, eager images on anything that mounts only briefly).
+- Phase 2 (remaining pages): in progress. Done and milestone-tested (6b597bb; fresh reset + both seeds, 229 passed,
+  2 skipped destructive, 131 PASS, 2026-09-26): local map, observations, case tasks. Coded, not yet built/checked: packages,
+  field tasks, evidence queue, community. Then: Caveat restore for the report notebook note (own checkpoint), notifications,
+  share page, settings (5 references). Follow the Phase 1 motion rules (still plates where water is not visible, pause
+  every loop offscreen/hidden/reduced/save-data, eager images on anything that mounts only briefly).
 - Phase 3 (34-reference visual pass, I01-I14 and I17 evidence, leak click-through): not started.
 - Gates: 131 PASS, 15 FAIL (I01-I14, I17 only). Phase 1 milestone run on the trimmed stack, fresh reset + both seeds:
   229 passed, 2 skipped (destructive), 2026-09-26.
