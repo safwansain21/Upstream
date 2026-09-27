@@ -137,6 +137,49 @@ def test_water_stops_scheduling_frames_when_scene_leaves_view():
         browser.close(); pw.stop()
 
 
+def test_foliage_sway_pauses_with_the_water_offscreen():
+    pw, browser, p = browser_page()
+    try:
+        p.goto(BASE + '/')
+        sway = '''() => document.querySelector(".dusk-scene").getAnimations({subtree: true})
+            .filter(a => a.effect.target.closest(".scene-foliage")).map(a => a.playState)'''
+        expect(p.locator('.dusk-scene:not([data-paused])')).to_have_count(1)
+        assert set(p.evaluate(sway)) == {'running'}
+        p.locator('.site-footer').scroll_into_view_if_needed()
+        expect(p.locator('.dusk-scene[data-paused]')).to_have_count(1)
+        assert set(p.evaluate(sway)) == {'paused'}
+        p.evaluate('window.scrollTo(0, 0)')
+        expect(p.locator('.dusk-scene:not([data-paused])')).to_have_count(1)
+        assert set(p.evaluate(sway)) == {'running'}
+    finally:
+        browser.close(); pw.stop()
+
+
+def test_workspace_navigation_keeps_no_scene_or_webgl_behind():  # one still band, no leak across client navigations
+    pw, browser, p = browser_page()
+    try:
+        p.goto(BASE + '/sign-in')
+        sign_in(p, 'coordinator@example.test')
+        expect(p).to_have_url(re.compile('/investigations'))
+        cdp = p.context.new_cdp_session(p); cdp.send('Performance.enable')
+
+        def nodes():
+            p.wait_for_timeout(800); cdp.send('HeapProfiler.collectGarbage'); cdp.send('HeapProfiler.collectGarbage')
+            return next(m['value'] for m in cdp.send('Performance.getMetrics')['metrics'] if m['name'] == 'Nodes')
+        home, other = f'/app/{ORG}/tasks', f'/app/{ORG}/notifications'
+        p.goto(BASE + home); p.wait_for_load_state('networkidle')
+        counts = []
+        for _ in range(4):
+            for path in (other, home):
+                p.evaluate('path => window.next.router.push(path)', path)
+                p.wait_for_url('**' + path); p.wait_for_load_state('networkidle')
+            counts.append(nodes())
+        assert counts[-1] - counts[0] < 60, counts  # each navigation used to strand a full detached scene (~100 nodes)
+        assert p.locator('.dusk-band').count() == 1 and p.locator('canvas').count() == 0  # the band is a still plate
+    finally:
+        browser.close(); pw.stop()
+
+
 def test_back_and_forward_keep_case_identity():  # I16
     pw, browser, p = browser_page()
     try:

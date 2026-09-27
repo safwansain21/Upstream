@@ -374,3 +374,32 @@ Stragglers (J02, J11, B11, F11; A07 in progress):
   it is now pinned at 6.10.2, the version in the later checkout, and the previously unrun final test group passed 21/21.
 - Remaining UI scope: the local map, observations, case tasks, packages, field tasks, evidence queue, community,
   notifications, share page, and settings still need their reference-level compositions and a complete screenshot pass.
+
+## 2026-09-26 memory and performance pass (Phase 1)
+Measured before fixing (Playwright/CDP probe against `next start`, 1440x900, forced GC; host numbers from process lists).
+- Host: the app stack is small (API 30 MB, worker 24 MB, `next start` 63 MB). Docker VM ~1.4 GB, of which Supabase analytics
+  (Logflare) 547 MB, realtime 241 MB, studio 218 MB; `supabase_vector` is crash-looping. The user's Chrome (61 processes,
+  54 renderers, 10.4 GB) is the largest consumer on the machine. The repo lives in OneDrive: node_modules (737 MB, 26.5k files)
+  and `.next` (1.3 GB, of which a stale 1.1 GB `next dev` cache, now deleted) were being synced.
+- Leak (root cause): every client navigation between workspace pages showed the root `app/loading.tsx`, which mounted a full
+  "screen" DuskScene with lazy images and a WebGL canvas for a moment. A lazy image unmounted before it loads stays registered
+  with the document's media-query matcher, so each flash left a whole detached scene (plus React fibers) alive: +100-200 DOM
+  nodes and ~36 listeners per navigation, unbounded. Fix: `app/app/[org]/loading.tsx` loads inside the shell (header band stays);
+  the root loading screen uses a still scene with eager images. Heap snapshot and 12-cycle loops now flat.
+- Idle cost: the workspace band ran the water shader at 60 fps on every workspace page (28-29% main-thread busy at idle in
+  headless Chromium) although the band shows only a graded sliver of water. The band is now a still plate with no WebGL context
+  (0% idle). Hero/screen water draws at ~30 fps (35-37% -> 16-20% busy in software GL).
+- Foliage sway now pauses with the water (offscreen, hidden tab, reduced motion, save-data) via `data-paused`; the reed drift
+  moved onto the independent `translate` property so the reeds are one composited layer instead of two; the permanent
+  `will-change` was removed. Loading-line and skeleton animations exist only while a LoadingState renders (0 infinite
+  animations on settled workspace pages).
+- MapLibre: one map per mount, `map.remove()` on unmount, sources added once on `style.load`; contexts are released (live
+  count stays 1 on the directory, 0 elsewhere).
+- Removed unused dependencies (never imported): @fontsource/barlow-condensed, @fontsource/caveat, motion, lucide-react,
+  react-hook-form, @hookform/resolvers, zod. No bundle change (they were never in a bundle); smaller install.
+- Simplifications (visual intent kept): workspace band water is a still plate; water frame rate ~30 fps; the loading screen's
+  scene is still (no water) for its brief appearance.
+- Tests added: test_gates_ui.py::test_foliage_sway_pauses_with_the_water_offscreen,
+  test_gates_ui.py::test_workspace_navigation_keeps_no_scene_or_webgl_behind.
+- Landing budget after: desktop LCP 72-132 ms, mobile LCP 2388-2424 ms (before 2380 ms; budget 2500), CLS 0.003, initial JS
+  239 KB gzip (before 236 KB).

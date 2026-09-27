@@ -69,9 +69,10 @@ export function startWater(canvas: HTMLCanvasElement, plate: HTMLImageElement, m
   function draw(now: number) {
     frame = 0;
     if (stopped || lost || !active()) { refresh(); return; }
+    frame = requestAnimationFrame(draw);
+    if (previous && now - previous < 30) return; // ~30 fps: waves this slow read the same at half the GPU work
     elapsed += Math.min((now - (previous || now)) / 1000, .1); previous = now; // continuous across pauses: no phase jump
     gl!.uniform1f(time, elapsed); gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
-    frame = requestAnimationFrame(draw);
   }
   refresh();
   return { refresh, stop: () => { stopped = true; cancelAnimationFrame(frame); frame = 0; observer.disconnect(); matte.onload = null; plate.removeEventListener("load", plateReady); canvas.removeEventListener("webglcontextlost", onLost); gl.getExtension("WEBGL_lose_context")?.loseContext(); } };

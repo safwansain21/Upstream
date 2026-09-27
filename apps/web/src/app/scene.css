@@ -9,15 +9,16 @@
 .scene-art picture, .scene-plate, .scene-water { position: absolute; inset: 0; width: 100%; height: 100%; }
 .scene-plate { object-fit: cover; }
 .scene-water { display: block; }
-.scene-foliage { position: absolute; left: 0; will-change: transform; }
+.scene-foliage { position: absolute; left: 0; }
 .scene-foliage picture, .scene-foliage img { position: static; width: 100%; height: auto; }
 .scene-branches { top: -2%; right: -4%; left: auto; width: calc(640 / 1672 * 72%); transform: scaleX(-1); -webkit-mask-image: linear-gradient(to bottom, #000 62%, transparent 96%); mask-image: linear-gradient(to bottom, #000 62%, transparent 96%); }
 .scene-branches picture { display: block; transform-origin: 0 20%; animation: sway-branch 7.4s ease-in-out infinite alternate; }
-.scene-reeds { top: calc(230 / 941 * 100%); width: calc(1220 / 1672 * 100%); transform-origin: 30% 100%; -webkit-mask-image: linear-gradient(to bottom, transparent, #000 22%); mask-image: linear-gradient(to bottom, transparent, #000 22%); animation: sway-reed 6.1s 1.2s ease-in-out infinite alternate; }
-.scene-reeds picture { animation: sway-drift 9.3s 2s ease-in-out infinite alternate-reverse; }
+.scene-reeds { top: calc(230 / 941 * 100%); width: calc(1220 / 1672 * 100%); transform-origin: 30% 100%; -webkit-mask-image: linear-gradient(to bottom, transparent, #000 22%); mask-image: linear-gradient(to bottom, transparent, #000 22%); animation: sway-reed 6.1s 1.2s ease-in-out infinite alternate, sway-drift 9.3s 2s ease-in-out infinite alternate-reverse; }
 @keyframes sway-branch { from { transform: rotate(-.5deg); } to { transform: rotate(.9deg); } }
 @keyframes sway-reed { from { transform: rotate(-1.1deg) skewX(-.6deg); } to { transform: rotate(1.4deg) skewX(.8deg); } }
-@keyframes sway-drift { from { transform: translateX(-1.5px); } to { transform: translateX(2px); } }
+@keyframes sway-drift { from { translate: -1.5px 0; } to { translate: 2px 0; } } /* own property: one composited reed layer, two phases */
+/* Sway animates transform/translate only and stops with the water (DuskScene sets data-paused offscreen, hidden, reduced, save-data). */
+.dusk-scene[data-paused] .scene-foliage, .dusk-scene[data-paused] .scene-foliage picture { animation-play-state: paused; }
 /* Legibility grade: dark where text sits (left), fades to night at the bottom of screen and band scenes. */
 .scene-grade { position: absolute; inset: 0; }
 .dusk-hero .scene-grade { background: linear-gradient(90deg, rgb(4 14 15 / 84%) 0%, rgb(5 16 17 / 52%) 36%, rgb(5 16 17 / 8%) 70%), linear-gradient(0deg, rgb(3 13 15 / 86%), transparent 30%, transparent 78%, rgb(3 13 15 / 30%)); }
