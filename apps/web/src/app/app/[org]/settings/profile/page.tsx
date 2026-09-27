@@ -41,18 +41,21 @@ export default function Profile() {
   if (me.error) return <PageState title="Profile" error={me.error} retry={() => me.refetch()}/>;
   if (!me.data) return <PageState title="Profile"/>;
   const unsent = (drafts ?? []).filter(d => d.status !== "server_received");
-  return <main id="main-content" className="page-shell"><PageIntro title="Profile and preferences"/>
-    <form className="surface stack" onSubmit={save}><h2>Profile</h2>{error ? <InlineError>{error}</InlineError> : null}
-      <div className="form-field"><label htmlFor="name">Display name</label><input id="name" maxLength={100} value={name} onChange={e => setName(e.target.value)}/></div>
-      <button className="button button-primary" disabled={!name.trim()}>Save</button><p role="status">{saved}</p></form>
-    <MotionSettings/>
-    <section className="surface stack" aria-labelledby="drafts-heading"><h2 id="drafts-heading">Drafts on this device</h2>
-      <p>Drafts are stored in this browser for your account only. Device storage is not encryption.</p>
-      {drafts === null ? <LoadingState/> : <p>{unsent.length} unsent draft(s).</p>}
-      <div className="button-row"><button className="button button-outline" disabled={!unsent.length} onClick={downloadDrafts}>Download drafts</button>
-        <button className="button button-quiet" disabled={!unsent.length} onClick={clearDrafts}>Clear unsent drafts</button></div></section>
-    <section className="surface stack" aria-labelledby="privacy-heading"><h2 id="privacy-heading">Your data</h2>
-      <p>Download everything Upstream holds that identifies you, or ask for your account to be deleted. Deleting disables your account and public identity at once; measurements and reports stay as evidence without your name, and remaining contact data is removed after administrator review.</p>
-      <div className="button-row"><button className="button button-outline" onClick={exportData}>Download my data</button>
-        <button className="button button-quiet" onClick={requestDeletion}>Request account deletion</button></div></section></main>;
+  return <main id="main-content" className="page-shell settings-page"><PageIntro title="Profile and preferences"><p>Manage your account, preferences and data.</p></PageIntro>
+    {error ? <InlineError>{error}</InlineError> : null}
+    <form className="settings-row" onSubmit={save} aria-labelledby="profile-heading"><div className="settings-copy"><h2 id="profile-heading">Display name</h2><p>Used in the app and on your contributions inside this workspace. You can change it at any time.</p></div>
+      <div className="settings-control inline-control"><div className="form-field"><label htmlFor="name">Display name</label><input id="name" maxLength={100} value={name} onChange={e => setName(e.target.value)}/></div>
+        <button className="button button-primary" disabled={!name.trim()}>Save</button><p role="status" className="settings-saved">{saved}</p></div></form>
+    <section className="settings-row" aria-labelledby="motion-heading"><div className="settings-copy"><h2 id="motion-heading">Motion and map</h2><p>Stop the moving water and swaying foliage, or simplify the maps. Every feature stays the same.</p></div>
+      <div className="settings-control"><MotionSettings/></div></section>
+    <section className="settings-row" aria-labelledby="drafts-heading"><div className="settings-copy"><h2 id="drafts-heading">Drafts on this device</h2><p>Unsent observations stored in this browser for your account only.</p></div>
+      <div className="settings-control stack">{drafts === null ? <LoadingState label="Checking this device…"/> : unsent.length ? <ul className="draft-list" aria-label="Unsent drafts">{unsent.map(d => <li key={d.id}>
+          <strong>{d.description?.trim() ? d.description.trim().slice(0, 60) : "Untitled observation"}</strong><span>{d.landmark || "No place yet"} · {d.status === "queued" ? "waiting for a connection" : d.status === "failed" ? "could not send; open it to retry" : "not sent"}</span></li>)}</ul>
+          : <p className="muted">No unsent drafts on this device.</p>}
+        <div className="button-row"><button className="button button-outline" disabled={!unsent.length} onClick={downloadDrafts}>Download drafts</button>
+          <button className="button button-quiet" disabled={!unsent.length} onClick={clearDrafts}>Clear unsent drafts</button></div>
+        <p className="settings-caution">Device storage is not encryption. Anyone using this browser profile could read these drafts.</p></div></section>
+    <section className="settings-row" aria-labelledby="privacy-heading"><div className="settings-copy"><h2 id="privacy-heading">Your data</h2><p>Download everything Upstream holds that identifies you, or ask for your account to be deleted.</p></div>
+      <div className="settings-control settings-split"><div className="stack"><button className="button button-outline" onClick={exportData}>Download my data</button><p className="muted">One JSON file with your profile, contributions and settings.</p></div>
+        <div className="stack"><button className="button button-danger" onClick={requestDeletion}>Request account deletion</button><p className="muted">Deleting disables your account and public identity at once. Measurements and reports stay as evidence without your name; remaining contact data is removed after administrator review.</p></div></div></section></main>;
 }

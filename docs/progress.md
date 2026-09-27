@@ -479,3 +479,12 @@ Memory before/after (Chromium 1440x900 against `next start`, forced GC; busy = m
   "does and does not show" columns; files with plain types, manifest hash and signature note; status, details and
   acknowledgment in a side column. Acknowledging is described as not agreement. Missing API data: file sizes, per-file
   checksums and the sending organization's name are not in the share view.
+- Settings (5 references): a shared settings layout with side navigation (a scrolling row on narrow screens). Profile:
+  labelled rows (display name, motion and map, drafts on this device with a real list of unsent drafts, your data with
+  download and a danger-styled deletion request). Organization: searchable member table and a detail panel with a switch per
+  capability in plain words, the audit reason first, and revoke/restore; qualifications shown in plain words. Instruments:
+  instrument picker, details and history with result dots, and the expert's event form with a result radio group.
+  Protocols: searchable list and detail with numbered instructions when the text has steps. Integrations: provider status
+  strip (AI, email, background map, signing), recipient registry, add-recipient form and delivery ledger. Missing API
+  data: instrument photos, location and a protocol field on calibration events; protocol bounds, reviewer and review
+  date; member emails and join dates; recipient roles. Protocol editing and "new protocol" do not exist, so none is shown.
