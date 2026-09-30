@@ -31,6 +31,7 @@ class ReportCreate(StrictModel):
     media_ids: list[UUID] = Field(default_factory=list, max_length=5)
     new_observation: bool = True
     suggested_case_id: UUID | None = None  # citizen's 'may be the same as'; recorded for the coordinator, never auto-merged
+    ai_run_id: UUID | None = None  # the person's own AI describe run, linked so reviewers see its cross-check; never changes the report
 
     @field_validator('timezone')
     @classmethod

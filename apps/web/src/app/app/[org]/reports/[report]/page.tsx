@@ -5,15 +5,16 @@ import { useParams, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Arrow } from "../../../../../components/brand";
 import { DocumentTitle } from "../../../../../components/document-title";
-import { CalendarIcon, LockIcon, PhotoIcon, PinIcon } from "../../../../../components/icons";
+import { BinocularsIcon, CalendarIcon, LockIcon, PhotoIcon, PinIcon } from "../../../../../components/icons";
 import { ReceiptHistory } from "../../../../../components/receipts";
 import { Timeline } from "../../../../../components/timeline";
 import { CaseStatus, EmptyState, InlineError, LoadingState, OriginBadge } from "../../../../../components/ui";
+import { feature, note, type ReportAi } from "../../../../../lib/ai-checks";
 import { api, type ApiError } from "../../../../../lib/api";
 import { WORKFLOW } from "../../../../../lib/labels";
 import { useOrg } from "../../../../../lib/session";
 
-type Report = { id: string; case_id: string; case_title: string; workflow: string; description: string; categories: string[]; observed_at: string; timezone: string; landmark: string; location_precision: string; latitude: number | null; longitude: number | null; public_visibility: boolean; version: number; data_origin: string; created_at: string; versions: { version: number; created_at: string; change_reason: string | null }[]; media: { id: string; width: number; height: number; consent_original: boolean }[] };
+type Report = { id: string; case_id: string; case_title: string; workflow: string; description: string; categories: string[]; observed_at: string; timezone: string; landmark: string; location_precision: string; latitude: number | null; longitude: number | null; public_visibility: boolean; version: number; data_origin: string; created_at: string; versions: { version: number; created_at: string; change_reason: string | null }[]; media: { id: string; width: number; height: number; consent_original: boolean }[]; ai: ReportAi };
 const LABELS: Record<string, string> = { unusual_foam: "Unusual foam", colour_change: "Change in colour", odour: "Odour noticed", dead_wildlife: "Dead wildlife", visible_discharge: "Visible discharge", habitat_access: "Habitat or access concern", other: "Something else" };
 
 function Receipt() {
@@ -45,6 +46,10 @@ function Receipt() {
           <div className="icon-line"><CalendarIcon/><div><dt>Observed</dt><dd>{new Date(r.observed_at).toLocaleString()} ({r.timezone})</dd></div></div>
           <div className="icon-line"><PinIcon/><div><dt>Location</dt><dd>{r.latitude === null ? `Location to be confirmed: “${r.landmark}”` : `${r.latitude.toFixed(5)}, ${r.longitude!.toFixed(5)}`}</dd></div></div>
           <div className="icon-line"><PhotoIcon/><div><dt>Photos</dt><dd>{r.media.length ? `${r.media.length} ${r.media.length === 1 ? "photo" : "photos"} attached. Location data embedded in photos was removed from shared copies${r.media.some(m => m.consent_original) ? "; originals are kept privately for the review team" : ""}.` : "No photos attached."}</dd></div></div>
+          {r.ai ? <div className="icon-line"><BinocularsIcon/><div><dt>AI cross-check</dt><dd>
+            {!r.ai.photos ? "Wording help only; no photos were compared." : r.ai.checks.length ? <ul className="plain-list">{r.ai.checks.map((c, i) => <li key={i}>{note(c)}</li>)}</ul> : "The text and the photos sent agree."}
+            {r.ai.accepted?.length ? <span className="subtle small">{` Wording added from an AI suggestion: ${r.ai.accepted.map(feature).join(", ")}.`}</span> : null}
+            <span className="subtle small"> Prompts for a person to weigh, not a finding.</span></dd></div></div> : null}
         </dl>
         <p className="subtle small">Submitted {new Date(r.created_at).toLocaleString()} · version {r.version} · <OriginBadge origin={r.data_origin}/></p>
       </section>

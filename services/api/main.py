@@ -159,13 +159,19 @@ def patch_profile(body: ProfilePatch, request: Request, user: Identity = Depends
 @app.post('/api/v1/orgs/{org}/reports', status_code=201)
 def create_report(org: UUID, body: ReportCreate, request: Request, key: UUID = Depends(idem_key),
                   user: Identity = Depends(identity)):
-    result = rpc(user, 'select public.submit_report(%s,%s,%s::jsonb)', (org, key, body.model_dump_json()))
+    result = rpc(user, 'select public.submit_report(%s,%s,%s::jsonb)', (org, key, body.model_dump_json(exclude={'ai_run_id'})))
+    if body.ai_run_id and result.get('id'):  # only the author's own run, only once; the run never alters the report
+        with transaction(worker=True) as db:
+            db.execute('update ai_runs set report_id=%s where id=%s and org_id=%s and owner_id=%s and report_id is null',
+                       (result['id'], body.ai_run_id, org, user.user_id))
     return envelope(result, request, 201)
 
 
 REPORT_COLUMNS = '''r.id,r.case_id,r.categories,r.description,r.observed_at,r.timezone,r.landmark,r.location_precision,
  r.accuracy_m,r.location_method,r.public_visibility,r.version,r.created_at,r.data_origin,c.title case_title,c.workflow,
- extensions.st_y(r.location) latitude,extensions.st_x(r.location) longitude'''
+ extensions.st_y(r.location) latitude,extensions.st_x(r.location) longitude,
+ (select json_build_object('checks',a.checks,'photos',jsonb_array_length(a.input_refs->'media'),'model',a.model,'accepted',case when a.disposition like '{%%' then a.disposition::jsonb->'accepted_codes' end)
+  from ai_runs a where a.report_id=r.id order by a.created_at desc limit 1) ai'''
 
 
 @app.get('/api/v1/orgs/{org}/reports')
@@ -1503,17 +1509,19 @@ def ai_describe(org: UUID, body: DescribeRequest, request: Request, user: Identi
     try:
         suggestion = ai_adapter.describe(body.text, [(str(m['id']), storage('GET', m['derivative_key'])) for m in media])
         output, disposition = suggestion.model_dump_json(), 'pending_review'
+        checks = ai_adapter.consistency(suggestion, [str(m) for m in body.media_ids])  # in the order the person attached them
     except ai_adapter.ProviderUnavailable:
-        suggestion, output, disposition = None, None, 'unavailable'
+        suggestion, output, disposition, checks = None, None, 'unavailable', []
     cfg = settings()
+    provider = ('gemini-generate-content' if cfg.ai_provider == 'gemini' else 'openai-responses') if ai_adapter.configured() else 'disabled'
     with transaction(worker=True) as db:
-        rid = db.execute('''insert into ai_runs(org_id,owner_id,purpose,consent,provider,model,schema_version,input_refs,output,disposition)
-            values(%s,%s,'describe',%s,%s,%s,%s,%s,%s,%s) returning id''', (run['org_id'], run['owner_id'], run['consent'],
-            'openai-responses' if ai_adapter.configured() else 'disabled', cfg.ai_model or None, ai_adapter.SCHEMA_VERSION,
-            run['input_refs'], output, disposition)).fetchone()['id']
+        rid = db.execute('''insert into ai_runs(org_id,owner_id,purpose,consent,provider,model,schema_version,input_refs,output,disposition,checks)
+            values(%s,%s,'describe',%s,%s,%s,%s,%s,%s,%s,%s) returning id''', (run['org_id'], run['owner_id'], run['consent'],
+            provider, (suggestion.model_id if suggestion else cfg.ai_model) or None, ai_adapter.SCHEMA_VERSION,
+            run['input_refs'], output, disposition, json.dumps(checks))).fetchone()['id']
     if suggestion is None:
         raise DomainError('PROVIDER_UNAVAILABLE', ai_adapter.UNAVAILABLE, 503, True)
-    return envelope({'run_id': rid, 'suggestion': suggestion.model_dump()}, request)
+    return envelope({'run_id': rid, 'suggestion': suggestion.model_dump(), 'checks': checks}, request)
 
 
 @app.post('/api/v1/orgs/{org}/ai/runs/{run}/review')

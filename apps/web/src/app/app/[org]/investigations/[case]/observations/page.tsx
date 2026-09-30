@@ -7,12 +7,13 @@ import { CaseHeader } from "../../../../../../components/case-tabs";
 import { FlaskIcon, PeopleIcon } from "../../../../../../components/icons";
 import { Term } from "../../../../../../components/term";
 import { EmptyState, InlineError, LoadingState, OriginBadge, PageIntro, PageState } from "../../../../../../components/ui";
+import { summary, type ReportAi } from "../../../../../../lib/ai-checks";
 import { api } from "../../../../../../lib/api";
 import { REPORT_CATEGORIES } from "../../../../../../lib/labels";
 import { useOrg } from "../../../../../../lib/session";
 
 type Report = { id: string; description: string; categories: string[]; observed_at: string; timezone: string; landmark: string; location_precision: string; accuracy_m: string | null;
-  latitude: number | null; longitude: number | null; data_origin: string };
+  latitude: number | null; longitude: number | null; data_origin: string; ai?: ReportAi };
 type Reading = { id: string; entity_id: string; version: number; station_code: string; instrument_serial: string; mode: string; value: string; unit: string; temperature: string | null;
   measured_at: string; received_at: string; eligible: boolean; ineligibility_reasons: string[]; quality: string | null; quality_reason: string | null; comparable: boolean | null; visit_id: string; data_origin: string };
 
@@ -75,6 +76,7 @@ export default function Observations() {
             <span className="report-title">{r.description ? r.description.split(/(?<=[.!?])\s/)[0].slice(0, 80) : r.categories.map(c => CATEGORY[c] ?? c).join(", ") || "Community observation"}</span>
             {r.description && r.description.length > 80 ? <span className="report-text">{r.description}</span> : null}
             <span className="report-card-place">{r.latitude === null ? `Location to be confirmed: “${r.landmark}”` : `${r.landmark ? `${r.landmark} · ` : ""}${r.latitude.toFixed(4)}, ${r.longitude!.toFixed(4)}`}{r.accuracy_m ? ` · ± ${Math.round(Number(r.accuracy_m))} m` : ` · ${r.location_precision}`}</span>
+            {r.ai && summary(r.ai) ? <span className="report-card-ai">{summary(r.ai)}</span> : null}
             {r.data_origin !== "real" ? <OriginBadge origin={r.data_origin}/> : null}
             <span className="row-chevron" aria-hidden="true">›</span></Link></li>)}</ol>}
     </section>

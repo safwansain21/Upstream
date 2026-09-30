@@ -31,6 +31,12 @@ export async function claim(id: string, from: Draft["status"][]) {
   });
 }
 
+/** Upload one photo (EXIF removed server-side); used at submit and when the person sends photos to the AI assistant. */
+export async function uploadPhoto(draft: Draft, photo: Photo) {
+  const form = new FormData(); form.append("file", photo.blob, photo.name); form.append("keep_original", String(draft.keepOriginals));
+  return (await api<{ id: string }>(`/orgs/${draft.org}/uploads`, { method: "POST", body: form })).id;
+}
+
 /**
  * Send one draft: photos first (their ids are persisted so a retry reuses them), then the report with the draft's
  * UUIDv7 as idempotency key, so a repeated send returns the original result instead of a second report.
@@ -41,10 +47,8 @@ export async function sendDraft(draft: Draft, save: (patch: Partial<Draft>) => v
   for (let i = 0; i < photos.length; i++) {
     if (photos[i].mediaId) continue;
     await save({ error: `Uploading photo ${i + 1} of ${photos.length}…` });
-    const form = new FormData(); form.append("file", photos[i].blob, photos[i].name); form.append("keep_original", String(draft.keepOriginals));
     try {
-      const r = await api<{ id: string }>(`/orgs/${draft.org}/uploads`, { method: "POST", body: form });
-      photos[i] = { ...photos[i], mediaId: r.id, error: undefined };
+      photos[i] = { ...photos[i], mediaId: await uploadPhoto(draft, photos[i]), error: undefined };
       await save({ photos });
     } catch (e) {
       const err = e as ApiError;

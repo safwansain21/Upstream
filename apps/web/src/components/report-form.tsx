@@ -6,7 +6,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api, supabase } from "../lib/api";
 import { claimGuestDrafts, db, MAX_PHOTO_BYTES, PHOTO_TYPES, toReportBody, uuidv7, validate, type Draft } from "../lib/drafts";
-import { claim, sendDraft } from "../lib/submit";
+import { prompt, type AiCheck } from "../lib/ai-checks";
+import { claim, sendDraft, uploadPhoto } from "../lib/submit";
 import { Arrow } from "./brand";
 import { AlertIcon, CalendarIcon, DocIcon, LockIcon, PhotoIcon, PinIcon, ShieldIcon } from "./icons";
 import { InkNote } from "./ink-note";
@@ -217,12 +218,19 @@ const AI_CATEGORY: Record<string, string> = { foam_visible: "unusual_foam", colo
 /** Optional helper: proposes observable wording only. Nothing is added unless the person accepts it (B10). */
 function AiAssist({ draft, onAccept }: { draft: Draft; onAccept: (patch: Partial<Draft>) => void }) {
   const [consent, setConsent] = useState(false); const [busy, setBusy] = useState(false); const [note, setNote] = useState("");
-  const [result, setResult] = useState<{ run_id: string; suggestion: AiSuggestion } | null>(null); const [accepted, setAccepted] = useState<string[]>([]);
+  const [result, setResult] = useState<{ run_id: string; suggestion: AiSuggestion; checks: AiCheck[] } | null>(null); const [accepted, setAccepted] = useState<string[]>([]);
   async function ask() {
     setBusy(true); setNote(""); setResult(null);
     try {
-      const media = (draft.photos ?? []).map(p => p.mediaId).filter(Boolean) as string[];
-      setResult(await api(`/orgs/${draft.org}/ai/describe`, { method: "POST", json: { text: draft.description, media_ids: consent ? media : [], consent_photos: consent && media.length > 0 } }));
+      let photos = draft.photos ?? [];
+      if (consent && photos.some(p => !p.mediaId)) { // photos normally upload at submit; the AI can only see uploaded, EXIF-free copies
+        photos = [...photos];
+        for (let i = 0; i < photos.length; i++) if (!photos[i].mediaId) photos[i] = { ...photos[i], mediaId: await uploadPhoto(draft, photos[i]), error: undefined };
+        onAccept({ photos });
+      }
+      const media = photos.map(p => p.mediaId).filter(Boolean) as string[];
+      const r = await api<{ run_id: string; suggestion: AiSuggestion; checks: AiCheck[] }>(`/orgs/${draft.org}/ai/describe`, { method: "POST", json: { text: draft.description, media_ids: consent ? media : [], consent_photos: consent && media.length > 0 } });
+      setResult(r); setAccepted([]); onAccept({ aiRunId: r.run_id });
     } catch (e) { setNote((e as Error).message || "AI assistance is unavailable; you can continue manually."); }
     finally { setBusy(false); }
   }
@@ -233,15 +241,19 @@ function AiAssist({ draft, onAccept }: { draft: Draft; onAccept: (patch: Partial
     const next = [...accepted, c.code]; setAccepted(next);
     api(`/orgs/${draft.org}/ai/runs/${result!.run_id}/review`, { method: "POST", json: { accepted_codes: next, edited: true } }).catch(() => undefined);
   }
-  const uploaded = (draft.photos ?? []).some(p => p.mediaId);
-  return <details className="ai-assist"><summary>Optional: suggest wording from your text{uploaded ? " and photos" : ""}</summary>
-    <p className="field-help">Suggestions describe only what is visible or written. They never identify a pollutant, a cause or a safety risk, and nothing is added unless you accept it.</p>
-    {uploaded ? <label className="checkbox-field"><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}/><span>Send my uploaded photos (location data removed) to the AI provider for this suggestion</span></label> : null}
+  const hasPhotos = (draft.photos ?? []).length > 0;
+  const wording = result ? result.suggestion.observation_candidates.filter(c => c.code !== "image_quality_issue") : []; // photo quality is a check, not wording
+  return <details className="ai-assist"><summary>Optional: suggest wording{hasPhotos ? " and check your photos" : " from your text"}</summary>
+    <p className="field-help">Suggestions describe only what is visible or written. They never identify a pollutant, a cause or a safety risk, and nothing is added unless you accept it.{hasPhotos ? " With your photos, it also points out where your words and photos differ, so you can check before sending." : ""}</p>
+    {hasPhotos ? <label className="checkbox-field"><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}/><span>Send my photos (location data removed) to the AI provider for this suggestion</span></label> : null}
     <button type="button" className="button button-outline" disabled={busy || (!draft.description.trim() && !consent)} onClick={ask}>{busy ? "Asking…" : "Suggest wording"}</button>
     {note ? <p role="status" className="notice">{note}</p> : null}
-    {result ? <div role="status">{result.suggestion.abstained || !result.suggestion.observation_candidates.length ? <p>No suggestion. You can continue manually.</p> :
-      <ul>{result.suggestion.observation_candidates.map((c, i) => <li key={i}>{c.description} <span className="muted">(from {c.input_reference === "text" ? "your text" : "a photo"})</span>{" "}
-        {accepted.includes(c.code) ? <strong>Added</strong> : <button type="button" className="button button-quiet" onClick={() => accept(c)}>Add to my report</button>}</li>)}</ul>}
-      {result.suggestion.suggested_questions.map((q, i) => <p key={i} className="muted">{q.text}</p>)}</div> : null}
+    {result ? <div role="status">{result.suggestion.abstained || !wording.length ? <p>No wording to suggest. You can continue manually.</p> :
+      <ul>{wording.map((c, i) => <li key={i}>{c.description} <span className="muted">(from {c.input_reference === "text" ? "your text" : "a photo"})</span>{" "}
+        {c.code === "location_detail_needed" ? null : accepted.includes(c.code) ? <strong>Added</strong> : <button type="button" className="button button-quiet" onClick={() => accept(c)}>Add to my report</button>}</li>)}</ul>}
+      {result.suggestion.suggested_questions.map((q, i) => <p key={i} className="muted">{q.text}</p>)}
+      {result.checks.length ? <><p className="ai-checks-head">Worth a second look</p><ul className="ai-checks">{result.checks.map((c, i) => <li key={i}>{prompt(c)}</li>)}</ul>
+        <p className="field-help">These are prompts, not judgments. Your report is sent as you wrote it, and the reviewer sees the same notes.</p></>
+        : consent && hasPhotos && !result.suggestion.abstained ? <p className="muted">Your words and photos agree.</p> : null}</div> : null}
   </details>;
 }

@@ -33,6 +33,10 @@ def answer(body):
         base['observation_candidates'][0]['input_reference'] = 'report-that-does-not-exist'
     elif mode == 'diagnosis':
         base['observation_candidates'][0]['code'] = 'sewage_detected'
+    elif mode == 'mismatch':  # text says foam; the photo shows a colour change instead and is blurred
+        base['observation_candidates'] = [{'code': 'foam_visible', 'description': 'Foam near the footbridge', 'input_reference': 'text'},
+                                          {'code': 'colour_change_visible', 'description': 'Brown water', 'input_reference': photo},
+                                          {'code': 'image_quality_issue', 'description': 'The photo is blurred', 'input_reference': photo}]
     if 'contents' in body:
         return {'candidates': [{'content': {'role': 'model', 'parts': [{'text': json.dumps(base)}]}}]}
     return {'output_text': json.dumps(base)}
@@ -149,6 +153,46 @@ def test_gemini_adapter_uses_the_same_schema_and_rejections(provider, monkeypatc
         assert r.json()['data']['suggestion']['observation_candidates'][0]['input_reference'] == up['id']
     else:
         assert r.status_code == 503 and r.json()['error']['code'] == 'PROVIDER_UNAVAILABLE'
+
+
+def test_consistency_compares_text_and_photos_from_cited_inputs_only():  # Track 3 validation check, deterministic
+    def s(*cands, abstained=False):
+        return ai.Suggestion(schema_version='describe-v1', model_id='m', suggested_questions=[], reasons=[], abstained=abstained,
+                             observation_candidates=[ai.Candidate(code=c, description='seen', input_reference=r) for c, r in cands])
+    both = s(('foam_visible', 'text'), ('foam_visible', 'p1'))
+    assert ai.consistency(both, ['p1']) == []  # text and photo agree
+    assert ai.consistency(s(('foam_visible', 'text')), []) == []  # nothing to compare without a photo
+    assert ai.consistency(s(('foam_visible', 'text')), ['p1']) == [{'kind': 'not_in_photos', 'code': 'foam_visible'}]
+    assert ai.consistency(s(('debris_visible', 'p2'), ('debris_visible', 'p1')), ['p1', 'p2']) == \
+        [{'kind': 'not_in_text', 'code': 'debris_visible', 'photo': 1}]  # named once, by the first photo showing it
+    assert ai.consistency(s(('image_quality_issue', 'p2'), ('location_detail_needed', 'text')), ['p1', 'p2']) == [{'kind': 'photo_quality', 'photo': 2}]
+    assert ai.consistency(s(('foam_visible', 'text'), abstained=True), ['p1']) == []  # an abstaining model raises no prompts
+
+
+def test_consistency_checks_reach_the_reviewer_through_the_submitted_report(provider):  # Track 3 human in the loop
+    MODE['value'] = 'mismatch'
+    author = token(fresh_contributor.__wrapped__())
+    up = client.post(f'/api/v1/orgs/{ORG}/uploads', files={'file': ('p.jpg', jpeg_with_gps(), 'image/jpeg')}, headers=author).json()['data']
+    r = client.post(f'/api/v1/orgs/{ORG}/ai/describe', headers=author, json={'text': 'Foam near the footbridge', 'media_ids': [up['id']], 'consent_photos': True})
+    assert r.status_code == 200, r.text
+    run, checks = r.json()['data']['run_id'], r.json()['data']['checks']
+    assert checks == [{'kind': 'not_in_photos', 'code': 'foam_visible'}, {'kind': 'not_in_text', 'code': 'colour_change_visible', 'photo': 1},
+                      {'kind': 'photo_quality', 'photo': 1}]
+    # another person cannot attach this run to their own report
+    other = client.post(f'/api/v1/orgs/{ORG}/reports', json=report(ai_run_id=run), headers=as_('reporter') | {'Idempotency-Key': str(uuid4())})
+    assert other.status_code == 201 and other.json()['data'] and client.get(f"/api/v1/orgs/{ORG}/reports/{other.json()['data']['id']}", headers=as_('reporter')).json()['data']['ai'] is None
+    client.post(f'/api/v1/orgs/{ORG}/ai/runs/{run}/review', json={'accepted_codes': ['colour_change_visible'], 'edited': True}, headers=author)
+    sent = client.post(f'/api/v1/orgs/{ORG}/reports', json=report(ai_run_id=run, description='Foam near the footbridge', media_ids=[up['id']]),
+                       headers=author | {'Idempotency-Key': str(uuid4())})
+    assert sent.status_code == 201, sent.text
+    rid, case = sent.json()['data']['id'], sent.json()['data']['case_id']
+    mine = client.get(f'/api/v1/orgs/{ORG}/reports/{rid}', headers=author).json()['data']['ai']
+    assert mine == {'checks': checks, 'photos': 1, 'model': 'fake-model', 'accepted': ['colour_change_visible']}
+    reviewed = next(x for x in client.get(f'/api/v1/orgs/{ORG}/cases/{case}', headers=as_('coordinator')).json()['data']['reports'] if x['id'] == rid)
+    assert reviewed['ai'] == mine  # the coordinator sees the cross-check and which wording came from the AI
+    with transaction(worker=True) as db:
+        row = db.execute('select provider,report_id from ai_runs where id=%s', (run,)).fetchone()
+    assert row['provider'] == 'openai-responses' and str(row['report_id']) == rid
 
 
 def test_only_https_or_local_test_providers_are_allowed(monkeypatch):

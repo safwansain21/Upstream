@@ -1,4 +1,5 @@
 """Browser checks for B05, B15, G07 (unsafe HTML), I15 and I16."""
+import json
 import re
 from uuid import uuid4
 
@@ -223,6 +224,50 @@ def test_origin_is_labelled_on_maps_observations_receipts_and_examples():  # J04
         report_id = client.get(f'/api/v1/orgs/{ORG}/cases/{mill}', headers=as_('coordinator')).json()['data']['reports'][0]['id']
         q.goto(f'{BASE}/app/{ORG}/reports/{report_id}')
         expect(q.get_by_text('Synthetic example').first).to_be_visible()
+    finally:
+        browser.close(); pw.stop()
+
+
+def test_ai_cross_check_prompts_before_sending_and_links_the_run(tmp_path):  # Track 3: validation check, human in the loop
+    from PIL import Image
+    photo = tmp_path / 'weir.jpg'
+    Image.new('RGB', (320, 240), (110, 80, 45)).save(photo)
+    pw, browser, p = browser_page()
+    sent = {}
+    try:
+        p.goto(BASE + '/sign-in')
+        sign_in(p, fresh_contributor())
+        expect(p).to_have_url(re.compile('/investigations|/onboarding'))
+
+        def fake(route):  # the provider's answer is fixed; the API's own check is tests/api/test_ai.py
+            sent['describe'] = json.loads(route.request.post_data)
+            media = sent['describe']['media_ids'][0]
+            route.fulfill(status=200, content_type='application/json', body=json.dumps({'data': {'run_id': '01995d20-0000-7000-8000-00000000a1a1',
+                'suggestion': {'observation_candidates': [{'code': 'foam_visible', 'description': 'White foam at the weir', 'input_reference': 'text'},
+                                                          {'code': 'image_quality_issue', 'description': 'Blurred photo', 'input_reference': media}],
+                               'suggested_questions': [], 'abstained': False},
+                'checks': [{'kind': 'not_in_photos', 'code': 'foam_visible'}, {'kind': 'photo_quality', 'photo': 1}]}}))
+        p.route(re.compile(r'.*/api/v1/orgs/[^/]+/ai/describe$'), fake)
+        p.on('request', lambda r: sent.__setitem__('report', json.loads(r.post_data)) if r.method == 'POST' and re.search(r'/orgs/[^/]+/reports$', r.url) else None)
+        p.goto(BASE + '/report/new')
+        p.get_by_label('Describe your observation').fill('White foam building up against the weir')
+        p.get_by_label('Photos (optional, up to 5)').set_input_files(str(photo))
+        p.get_by_text(re.compile('Optional: suggest wording and check your photos')).click()
+        p.get_by_label(re.compile('Send my photos')).check()
+        p.get_by_role('button', name='Suggest wording').click()
+        expect(p.get_by_text('Worth a second look')).to_be_visible()
+        assert sent['describe']['consent_photos'] and len(sent['describe']['media_ids']) == 1  # uploaded (EXIF removed) before the AI saw it
+        expect(p.get_by_text(re.compile('Your text mentions foam, but the photos you sent'))).to_be_visible()
+        expect(p.get_by_text(re.compile('Photo 1 may be too dark, blurred or distant'))).to_be_visible()
+        expect(p.get_by_text('Blurred photo')).to_have_count(0)  # a quality finding is a check, never wording to add
+        expect(p.get_by_label('Describe your observation')).to_have_value('White foam building up against the weir')  # nothing changed
+        p.get_by_role('button', name='Continue to location').click()
+        p.get_by_label('Landmark or directions').fill('Weir by the mill')
+        p.get_by_role('button', name='Continue to review').click()
+        p.get_by_role('button', name='Submit report').click()
+        expect(p).to_have_url(re.compile(r'/reports/[0-9a-f-]+'))
+        assert sent['report']['ai_run_id'] == '01995d20-0000-7000-8000-00000000a1a1'
+        assert sent['report']['media_ids'] == sent['describe']['media_ids']  # the same upload, not a second copy
     finally:
         browser.close(); pw.stop()
 

@@ -406,6 +406,9 @@ html[data-motion="reduced"] .example-trace circle, html:not([data-motion]) .exam
 .ai-assist > summary { cursor: pointer; color: var(--mist); }
 .ai-assist[open] > summary { margin-bottom: 12px; }
 .ai-assist > * + * { margin-top: 10px; }
+.ai-checks { display: grid; gap: 6px; margin: 0; padding: 0 0 0 14px; list-style: none; border-left: 1px solid var(--amber); color: var(--mist); }
+.ai-checks-head { margin: 16px 0 8px; font-family: var(--display); font-style: italic; color: var(--amber); }
+.plain-list { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .map-surface .atlas-map-frame { border-radius: var(--radius); overflow: hidden; }
 .field-notebook { position: absolute; left: clamp(4px, 1vw, 24px); top: min(58vh, 600px); width: min(21vw, 330px); aspect-ratio: 1536 / 1024; margin: 0; pointer-events: none; container-type: inline-size; }
 .field-notebook picture, .field-notebook img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; filter: brightness(.82); }
@@ -697,6 +700,7 @@ html[data-simplify-map="true"] .map-connectors { display: none; }
 .report-title { font-family: var(--display); font-size: 1.22rem; color: var(--mist); line-height: 1.25; }
 .report-text { color: var(--quiet); font-size: .92rem; }
 .report-card-place { color: var(--quiet); font-size: .82rem; }
+.report-card-ai { color: var(--caution); font-size: .82rem; }
 .report-row .badge { justify-self: start; }
 .row-chevron { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 1.5rem; color: var(--quiet); transition: transform .18s var(--ease-settle, ease); }
 .report-row:hover .row-chevron { transform: translate(3px, -50%); }
