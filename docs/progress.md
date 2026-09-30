@@ -692,3 +692,51 @@ after the suite has run against the database. Seeds and test data are unchanged.
   asserting the environment has none; tests/e2e/test_gates_ui.py::test_ai_unavailable_is_labelled_and_manual_reporting_continues
   makes the describe call fail in the browser, since the running API may now have a provider.
   test_ai.py + test_gates_misc.py + that browser test: 20 passed. Full suite not yet rerun for this change.
+
+## 2026-09-29 AI consistency check (Track 3: validation checks, explainable, human in the loop)
+- What it does: when a contributor sends photos to the AI assistant, the answer is cross-checked against the text.
+  `services/api/ai.py::consistency` is deterministic over the cited inputs of the validated answer (the model only says
+  what each input shows): `not_in_photos` (the text mentions a visible feature no sent photo shows), `not_in_text` (a photo
+  shows a feature the text does not mention; named once, by the first photo), `photo_quality` (a photo too dark, blurred,
+  distant or obstructed). No photo or an abstaining model gives no checks. Checks are prompts, never a verdict; nothing blocks
+  or changes the report, its case or any assessment.
+- Form: photos used to upload only at submit, so the AI never saw a photo in the normal flow. With consent the form now
+  uploads them first (same EXIF-free upload as submit, ids reused at submit), then shows "Worth a second look" prompts in the
+  AI panel. Photo quality and location findings are not offered as wording to add.
+- Reviewer: the report is linked to the person's own latest run (`ai_run_id` on submit; only the author's run, only once).
+  Migration 202609290017 adds `ai_runs.report_id`, `ai_runs.checks` and a read policy that follows the report's own read
+  policy. Case observations rows show "AI cross-check: N differences to look at" and "wording partly AI-suggested (...)";
+  the report page lists each note and which wording came from the AI. Wording lives in apps/web/src/lib/ai-checks.ts.
+- Audit: `ai_runs.provider` now records the real adapter (was always "openai-responses"), and `model` records the provider's
+  reported model version instead of the model's self-reported id. Provider failures log the status or error type only.
+- Model: AI_MODEL=gemini-3.5-flash-lite locally. Live: 1.4-1.6 s, correctly flagged foam in the text but not in a synthetic
+  brown-water photo and flagged the photo as unclear; gemini-3.5-flash took 21 s and invented a discharge feature from
+  "weir". The free-tier quota for gemini-3.8-flash (20 requests) was used up during testing; quotas are per model.
+- Live browser run (production build, real Gemini): contributor panel showed both prompts; coordinator's observations row
+  showed "AI cross-check: 2 differences to look at"; report page listed both notes.
+- Tests added: tests/api/test_ai.py::test_consistency_compares_text_and_photos_from_cited_inputs_only,
+  tests/api/test_ai.py::test_consistency_checks_reach_the_reviewer_through_the_submitted_report,
+  tests/e2e/test_gates_ui.py::test_ai_cross_check_prompts_before_sending_and_links_the_run. AI, report, offline and UI gate
+  files: 58 passed. Full suite not yet rerun.
+
+## 2026-09-29 Submission README, license, example context and wording
+- README rewritten for judges: problem, the loop, Track 3 mapping (AI prompts, validation checks, explainable, human in the
+  loop), One Health shown not claimed, FHIR and reliability, architecture diagram, local setup (the commands
+  tests/test_docs.py requires are kept), AI setup, limits stated plainly. Screenshots in docs/screenshots (JPEG, 1200 px
+  wide, about 100-140 KB each; docs only, not served by the web app). Claims checked against code: package artifacts are
+  PDF/JSON/GeoJSON/FHIR (CSV is the readings download), FHIR bundle resources per exports/fhir/example-bundle.json, no
+  OneAquaHealth integration claimed.
+- LICENSE: MIT, copyright safwansain21. Bundled fonts keep their own licenses in apps/web/public/licenses.
+- docs/runbook.md documents AI_PROVIDER (tests/test_docs.py requires every .env.example variable in the runbook; the
+  Gemini commit had added AI_PROVIDER without it).
+- Wording: "not proven clean" (network legend, case analysis, evidence limitations, how it works, glossary comment) is now
+  "not proven free of impact", matching the decision view; the design rules forbid "clean".
+- Example data: Mill Brook had no context layers, so the One Health "people and animals" statement on its decision view was
+  empty. scripts/seed_example.py now adds three synthetic, CC0, sensitive layers (footpath and paddling spot, cattle
+  drinking point, kingfisher nesting bank; origin shown by the app, not repeated in the name) and two example portal recipients whose concerns match them. Context never
+  enters the engine snapshot (tests/api/test_gates_misc.py::test_context_layers_do_not_change_compatibility_inputs).
+- Verification 2026-09-29 on a fresh `supabase db reset` + seed_example + seed_load, production build:
+  tests/test_docs.py, tests/api/test_ai.py, tests/api/test_context.py, tests/api/test_gates_misc.py,
+  tests/e2e/test_gates_ui.py, test_review_flow.py, test_export_flow.py, test_report_flow.py, test_visual_gates.py,
+  test_responsive_a11y.py, test_routes.py: 76 passed. Secret scan: 0 findings. The full suite (release gate count) has not
+  been rerun since 2026-09-27; do it before submission.
