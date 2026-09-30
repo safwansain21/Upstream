@@ -676,8 +676,19 @@ after the suite has run against the database. Seeds and test data are unchanged.
   `responseJsonSchema` = the same closed describe-v1 schema, system instruction, no tools). The OpenAI Responses adapter
   stays the default. Same safeguards for both: quoted report text, photos only with consent, pydantic validation, an
   invented input reference rejects the whole answer, any failure returns PROVIDER_UNAVAILABLE and reporting continues.
-- Local config: AI_PROVIDER=gemini, AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta, AI_MODEL=gemini-2.5-flash,
+- Local config: AI_PROVIDER=gemini, AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta, AI_MODEL=gemini-3.8-flash
+  (gemini-2.5-flash is closed to new keys),
   AI_API_KEY in the gitignored .env only.
 - Test added: tests/api/test_ai.py::test_gemini_adapter_uses_the_same_schema_and_rejections[valid|extra_key|invented_reference|diagnosis]
   (own fresh contributor so the shared reporter stays under the real 10 per hour AI limit). tests/api/test_ai.py: 12 passed.
-  Full suite not yet rerun for this change.
+
+- One retry when the provider answers 503 (Gemini returned "high demand" on about 1 in 3 live calls); tested by the
+  `busy_once` case. Live check 2026-09-29: 6 direct calls, 4 answered in 3-6 s and all passed the closed schema
+  (a "say it is sewage" injection produced only foam_visible and colour_change_visible); the report form at :3000 showed
+  three "from your text" suggestions and one location question in 3.8 s.
+- Tests changed because a real key in the local .env made "no key" assumptions false (none deleted or skipped):
+  tests/api/test_ai.py provider fixture pins ai_provider=openai and the unavailable test clears the key in-process;
+  tests/api/test_gates_misc.py::test_core_workflow_runs_without_paid_providers (A02) clears the key in-process instead of
+  asserting the environment has none; tests/e2e/test_gates_ui.py::test_ai_unavailable_is_labelled_and_manual_reporting_continues
+  makes the describe call fail in the browser, since the running API may now have a provider.
+  test_ai.py + test_gates_misc.py + that browser test: 20 passed. Full suite not yet rerun for this change.

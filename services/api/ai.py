@@ -106,6 +106,8 @@ def describe(text: str, photos: list[tuple[str, bytes]], timeout: float = 20) ->
         headers = {'Authorization': f'Bearer {cfg.ai_api_key}'}
     try:
         r = httpx.post(url, json=body, timeout=timeout, follow_redirects=False, headers=headers)
+        if r.status_code == 503:  # provider overloaded; one retry, then the user continues manually
+            r = httpx.post(url, json=body, timeout=timeout, follow_redirects=False, headers=headers)
         r.raise_for_status()
         data = r.json()
         if cfg.ai_provider == 'gemini':

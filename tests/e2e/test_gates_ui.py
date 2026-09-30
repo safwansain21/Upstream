@@ -233,6 +233,9 @@ def test_ai_unavailable_is_labelled_and_manual_reporting_continues():  # H08 B10
         p.goto(BASE + '/sign-in')
         sign_in(p, fresh_contributor())
         expect(p).to_have_url(re.compile('/investigations|/onboarding'))
+        # the provider fails whatever the local .env configures; the API's own no-provider path is tests/api/test_ai.py
+        p.route(re.compile(r'.*/api/v1/orgs/[^/]+/ai/describe$'), lambda route: route.fulfill(status=503, content_type='application/json',
+                body='{"error":{"code":"PROVIDER_UNAVAILABLE","message":"AI assistance is unavailable; you can continue manually.","retryable":true,"request_id":"x"}}'))
         p.goto(BASE + '/report/new')
         p.get_by_label('Describe your observation').fill('White foam building up against the weir')
         p.get_by_text(re.compile('Optional: suggest wording')).click()
