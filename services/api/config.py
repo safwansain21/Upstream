@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     storage_bucket: str = 'evidence-private'
     intake_org_id: str = '01995d20-0000-7000-8000-000000000001'
     example_mode: bool = True
+    ai_provider: str = 'openai'  # 'openai' (Responses API) or 'gemini' (generateContent)
     ai_api_key: str = ''
     ai_model: str = ''
     ai_base_url: str = 'https://api.openai.com/v1'

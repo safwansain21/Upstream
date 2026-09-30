@@ -670,3 +670,14 @@ after the suite has run against the database. Seeds and test data are unchanged.
   editing; recipient roles). The directory accumulates synthetic test cases whenever the suite runs against the
   database; a fresh reset with both seeds shows the four curated cases (seeds unchanged). Commit 5a0ef99 has a "wip:"
   title from before the convention reminder; left as is (renaming it needs a force push).
+
+## 2026-09-29 Gemini adapter for the AI description assistant
+- `AI_PROVIDER=gemini` selects a Gemini `generateContent` adapter in services/api/ai.py (key in `x-goog-api-key`,
+  `responseJsonSchema` = the same closed describe-v1 schema, system instruction, no tools). The OpenAI Responses adapter
+  stays the default. Same safeguards for both: quoted report text, photos only with consent, pydantic validation, an
+  invented input reference rejects the whole answer, any failure returns PROVIDER_UNAVAILABLE and reporting continues.
+- Local config: AI_PROVIDER=gemini, AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta, AI_MODEL=gemini-2.5-flash,
+  AI_API_KEY in the gitignored .env only.
+- Test added: tests/api/test_ai.py::test_gemini_adapter_uses_the_same_schema_and_rejections[valid|extra_key|invented_reference|diagnosis]
+  (own fresh contributor so the shared reporter stays under the real 10 per hour AI limit). tests/api/test_ai.py: 12 passed.
+  Full suite not yet rerun for this change.
