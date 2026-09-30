@@ -138,7 +138,7 @@ export function CaseAnalysis({ org, caseId, canAnalyse, canReview, dataOrigin = 
             <p className="area-figure"><strong className="numeric">{km(a.retained_length_m)}</strong><span><Term k="retained">retained</Term>{a.outside_domain_unresolved ? " within the mapped domain; upstream extent unresolved" : " under stated assumptions"}</span></p>
             <p className="muted small">{net ? `${segments(net, retained)} separate retained segment(s) · ` : ""}{a.classes.filter(c => c.status === "compatible").length} compatible, {a.classes.filter(c => c.status === "unresolved").length} unresolved, {a.classes.filter(c => c.status === "incompatible").length} ruled out under current bounds</p>
             <p><CaseStatus tone={a.publication === "approved" ? "accepted" : "warning"}>{a.publication === "draft" ? "Draft · awaiting expert review" : a.publication}</CaseStatus> <span className="subtle small">Assessment {a.revision} · {new Date(a.created_at).toLocaleString()}</span></p>
-            <p className="subtle small">Ruled-out stretches are incompatible under stated assumptions, not proven clean. Retained stretches are worth checking, not proven responsible.</p>
+            <p className="subtle small">Ruled-out stretches are incompatible under stated assumptions, not proven free of impact. Retained stretches are worth checking, not proven responsible.</p>
           </> : <>
             <p><strong>Investigation area not yet established.</strong></p>
             {a ? <p className="muted small">Assessment {a.revision} is mathematically inspectable but not eligible to rule anything out: {a.readiness_reasons.join("; ")}</p> : null}

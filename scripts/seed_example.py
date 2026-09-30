@@ -264,6 +264,17 @@ def main():
         db.execute("update cases set locality='Harbour (synthetic)', workflow='triage' where id=%s", (tidal['case_id'],))
         seed_network(db, org, mill['case_id'], network1(), (0, 0), mixing=True)
         seed_evidence(db, org, mill['case_id'], ids['monitor@example.test'], ids['expert@example.test'])
+        # One Health context for the decision view: where people and animals meet the water. Attention and recipient
+        # suggestions only; the engine snapshot has no context fields (E22, F11).
+        for key, kind, source in (('footpath', 'public_access', 'East footbridge footpath and paddling spot'),
+                                  ('cattle', 'animal_access', 'Cattle drinking point below B33'),
+                                  ('kingfisher', 'habitat', 'Kingfisher nesting bank on the lower reach')):
+            db.execute('''insert into context_features(id,org_id,case_id,kind,source,license,sensitive,data_origin)
+                values(%s,%s,%s,%s,%s,'CC0-1.0',true,'synthetic') on conflict do nothing''', (sid(f'context:{key}'), org, mill['case_id'], kind, source))
+        for key, name, concerns in (('parks', 'Parks and open spaces team (example)', ['public_access']),
+                                    ('ecology', 'County ecology and animal health officer (example)', ['animal_access', 'habitat'])):
+            db.execute('''insert into recipients(id,org_id,name,method,concerns) values(%s,%s,%s,'portal',%s)
+                on conflict do nothing''', (sid(f'recipient:{key}'), org, name, concerns))
         seed_network(db, org, tidal['case_id'], unsupported_networks()[1], (-.05, -.05))
     revised = seed_revised_scenario(org)
     enqueue_analysis(org, [mill['case_id'], revised])  # the worker computes them; nothing is precomputed or hardcoded

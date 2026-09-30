@@ -1,6 +1,6 @@
 /**
  * Plain-language explanations for technical terms, shown in context by <Term>. They restate, never change, the
- * scientific meaning: "ruled out" is incompatible under stated assumptions (not clean); "retained" is worth
+ * scientific meaning: "ruled out" is incompatible under stated assumptions (not proven free of impact); "retained" is worth
  * checking (not responsible).
  */
 export const GLOSSARY = {

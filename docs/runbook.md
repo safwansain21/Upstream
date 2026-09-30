@@ -18,7 +18,7 @@ This describes how to run Upstream outside local development. No live deployment
 | `EXAMPLE_MODE` | config | must be `false` in production (startup validation refuses otherwise) |
 | `MAP_STYLE_URL` | config, optional (default in `.env.example`: OpenFreeMap Dark, `https://tiles.openfreemap.org/styles/dark`, chosen for the dark interface) | empty: maps show Upstream data on a plain labelled background. Baked into the web build (`NEXT_PUBLIC_MAP_STYLE_URL`), so rebuild after changing it. OpenFreeMap needs no key, account or payment (A02 holds); its OpenFreeMap / OpenMapTiles / OpenStreetMap attribution comes from the tile source and is shown on every map. If the basemap fails, the caption says so and the list or coordinate fields carry the same information |
 | `GEOCODER_BASE_URL` | config, optional | not used by this build: there is no place-name search; reporters use GPS, a map pin, coordinates or a landmark description |
-| `AI_API_KEY`, `AI_MODEL`, `AI_BASE_URL` | secret/config, optional | AI assistance shown as unavailable; all work continues manually |
+| `AI_PROVIDER`, `AI_API_KEY`, `AI_MODEL`, `AI_BASE_URL` | secret/config, optional | `AI_PROVIDER` is `openai` (Responses API, default) or `gemini` (generateContent; `AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta`). Without a key, AI assistance is shown as unavailable and all work continues manually |
 | `EXPORT_SIGNING_KEY_ID`, `EXPORT_SIGNING_PRIVATE_KEY` | secret, optional | packages are explicitly unsigned |
 | `FHIR_CANONICAL_BASE` | config | profile URLs in the optional FHIR adapter |
 | `LOG_LEVEL` | config | defaults to INFO |

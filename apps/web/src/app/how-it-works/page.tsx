@@ -38,7 +38,7 @@ export default function HowItWorksPage() {
         <h2>Evidence first.<br/>Uncertainty visible.</h2>
         <p className="lead">A photo can document a change. It cannot identify a pollutant or establish water safety.</p>
         <p>Conductivity alone does not identify a chemical or prove a source. Source-area analysis needs a reviewed network, comparable measurements and explicit uncertainty bounds. When those are missing, the investigation stays open and the next step is to build that foundation.</p>
-        <p>A reach that remains under consideration is not proven responsible. An excluded reach is incompatible under stated assumptions, not proven clean. New evidence can expand the area under consideration.</p>
+        <p>A reach that remains under consideration is not proven responsible. An excluded reach is incompatible under stated assumptions, not proven free of impact. New evidence can expand the area under consideration.</p>
         <Link href="/example" className="text-link">See how an investigation changes <Arrow/></Link>
       </Reveal>
     </section>

@@ -79,7 +79,7 @@ export function NetworkDiagram({ stations, reaches, selectedStation, onSelectSta
 export function ReachLegend({ unmapped = false }: { unmapped?: boolean }) {
   return <ul className="reach-legend" aria-label="Map legend">
     <li><span className="legend-reach candidate"/><span><strong>Retained</strong> · still worth checking</span></li>
-    <li><span className="legend-reach excluded"/><span><strong>Ruled out</strong> · incompatible under stated assumptions, not proven clean</span></li>
+    <li><span className="legend-reach excluded"/><span><strong>Ruled out</strong> · incompatible under stated assumptions, not proven free of impact</span></li>
     <li><span className="legend-reach unreviewed"/><span><strong>Not assessed</strong> · no conclusion yet</span></li>
     <li><span className="legend-station"/><span>Station</span></li>
     {unmapped ? <li><span className="legend-station uncertain"/><span>Location being confirmed</span></li> : null}

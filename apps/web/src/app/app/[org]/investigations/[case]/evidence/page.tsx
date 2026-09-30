@@ -93,7 +93,7 @@ export default function EvidenceReview() {
       {can("expert") && L ? <aside className="evidence-rail"><section className="surface" aria-labelledby="decide-heading"><h2 id="decide-heading">Review the evidence</h2>
         <p className="muted small">Decide whether the draft is ready to approve, needs more information, or should be rejected.</p>
         {L.assumptions?.length ? <details className="rail-block" open><summary>Key assumptions ({L.assumptions.length})</summary><ul>{L.assumptions.map((x, i) => <li key={i}>{x}</li>)}</ul></details> : null}
-        <details className="rail-block"><summary>Limitations</summary><ul><li>Results depend on the stated assumptions and may change as new information arrives.</li><li>Ruled-out stretches are incompatible under those assumptions, not proven clean.</li><li>Retained stretches are worth checking, not proven responsible.</li></ul></details>
+        <details className="rail-block"><summary>Limitations</summary><ul><li>Results depend on the stated assumptions and may change as new information arrives.</li><li>Ruled-out stretches are incompatible under those assumptions, not proven free of impact.</li><li>Retained stretches are worth checking, not proven responsible.</li></ul></details>
         <h3 className="rail-heading">Your decision</h3>
         <div className="form-field"><label htmlFor="rationale">Rationale (required)</label><textarea id="rationale" rows={3} value={reason} onChange={e => setReason(e.target.value)}/></div>
         {last(latestHist) === "draft" ? <div className="button-row">
