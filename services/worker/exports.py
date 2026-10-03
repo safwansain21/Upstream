@@ -98,7 +98,8 @@ def export(db, job):
     package_id = str(uuid4())
     data, prior = payload(db, org, aid, package_id)
     key, kid = signing_key()
-    package = build_package(data, private_key=key, key_id=kid, pdf_renderer=render_pdf)
+    package = build_package(data, private_key=key, key_id=kid, pdf_renderer=render_pdf,  # the FHIR R4 bundle travels with every package
+                            include_fhir=True, fhir_base=settings().fhir_canonical_base)
     keys = {}
     for name, content in package.artifacts.items():
         keys[name] = f'packages/{org}/{package_id}/{name}'
