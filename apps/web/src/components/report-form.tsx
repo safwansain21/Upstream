@@ -132,7 +132,7 @@ export function ReportForm({ draftId, intro }: { draftId: string; intro: (step: 
         {draft.photos?.length ? <ul className="photo-list" aria-label="Attached photos">{draft.photos.map(p => <li key={p.id}><PhotoIcon size={18}/><span>{p.name}</span><span className="subtle">{(p.size / 1048576).toFixed(1)} MB{p.mediaId ? " · uploaded" : ""}</span>{p.error ? <span className="field-error">{p.error}</span> : null}<button type="button" className="button button-quiet" aria-label={`Remove ${p.name}`} onClick={() => update({ photos: draft.photos.filter(x => x.id !== p.id) })}>Remove</button></li>)}</ul> : null}
         {draft.photos?.length ? <label className="checkbox-field"><input type="checkbox" checked={draft.keepOriginals} onChange={e => update({ keepOriginals: e.target.checked })}/><span>Keep my original photo files privately for the review team</span></label> : null}
         <p className="icon-line small muted"><LockIcon size={18}/><span>Location data embedded in photos is removed from shared copies. Photos help others understand what you saw.</span></p>
-        {account ? <AiAssist draft={draft} onAccept={patch => update(patch)}/> : null}
+        {account ? <AiAssist draft={draft} onAccept={patch => update(patch)}/> : <p className="subtle small ai-guest">Signed in, you can ask an optional AI assistant to suggest wording and to check your photos against what you wrote. You always decide what is kept.</p>}
       </div></div>
       <div className="report-actions"><p className="safety-line"><AlertIcon size={20}/>Stay on safe, permitted access routes.</p><button type="button" className="button button-primary" onClick={() => go(2)}>Continue to location <Arrow/></button></div></section> : null}
 

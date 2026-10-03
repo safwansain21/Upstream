@@ -136,7 +136,7 @@ export function CaseAnalysis({ org, caseId, canAnalyse, canReview, dataOrigin = 
         {!canReview ? <p className="muted">Assessment details are shared with the review team. Your contribution receipt shows what your report changed.</p>
           : assessment.isPending ? <LoadingState/> : a?.eligible ? <>
             <p className="area-figure"><strong className="numeric">{km(a.retained_length_m)}</strong><span><Term k="retained">retained</Term>{a.outside_domain_unresolved ? " within the mapped domain; upstream extent unresolved" : " under stated assumptions"}</span></p>
-            <p className="muted small">{net ? `${segments(net, retained)} separate retained segment(s) · ` : ""}{a.classes.filter(c => c.status === "compatible").length} compatible, {a.classes.filter(c => c.status === "unresolved").length} unresolved, {a.classes.filter(c => c.status === "incompatible").length} ruled out under current bounds</p>
+            <p className="muted small">{net ? (n => `${n} separate retained ${n === 1 ? "segment" : "segments"} · `)(segments(net, retained)) : ""}{a.classes.filter(c => c.status === "compatible").length} compatible, {a.classes.filter(c => c.status === "unresolved").length} unresolved, {a.classes.filter(c => c.status === "incompatible").length} ruled out under current bounds</p>
             <p><CaseStatus tone={a.publication === "approved" ? "accepted" : "warning"}>{a.publication === "draft" ? "Draft · awaiting expert review" : a.publication}</CaseStatus> <span className="subtle small">Assessment {a.revision} · {new Date(a.created_at).toLocaleString()}</span></p>
             <p className="subtle small">Ruled-out stretches are incompatible under stated assumptions, not proven free of impact. Retained stretches are worth checking, not proven responsible.</p>
           </> : <>
@@ -153,9 +153,11 @@ export function CaseAnalysis({ org, caseId, canAnalyse, canReview, dataOrigin = 
 
       {canReview && readiness.data ? <section className="surface" aria-labelledby="ready-heading"><h2 id="ready-heading">Readiness</h2>
         <p className="subtle small">Until every <Term k="readiness">readiness</Term> check passes, nothing is ruled out.</p>
-        <ul className="readiness-list">{readiness.data.checks.map(c => { const help = READINESS_HELP[c.label]; return <li key={c.label} className={c.state === "ready" ? "is-ready" : c.state === "missing" ? "is-missing" : "is-pending"}>
+        {readiness.data.checks.every(c => c.state === "ready") ? <details className="readiness-all is-ready"><summary><span className="check-mark" aria-hidden="true"/>All {readiness.data.checks.length} checks pass. Show them</summary>
+          <ul className="readiness-list">{readiness.data.checks.map(c => <li key={c.label} className="is-ready"><span className="check-mark" aria-hidden="true"/><div><strong>{c.label}</strong></div></li>)}</ul></details>
+        : <ul className="readiness-list">{readiness.data.checks.map(c => { const help = READINESS_HELP[c.label]; return <li key={c.label} className={c.state === "ready" ? "is-ready" : c.state === "missing" ? "is-missing" : "is-pending"}>
           <span className="check-mark" aria-hidden="true"/><div><strong>{c.label}</strong>
-            {c.state === "ready" ? <p>Ready</p> : c.state === "missing" ? <><p>{help ? `${help.missing} ${help.role}` : "Review needed."}</p>{c.reasons.length ? <p className="subtle small">{c.reasons.join("; ")}</p> : null}</> : <p>Checked once the earlier prerequisites are in place.</p>}</div></li>; })}</ul>
+            {c.state === "ready" ? <p>Ready</p> : c.state === "missing" ? <><p>{help ? `${help.missing} ${help.role}` : "Review needed."}</p>{c.reasons.length ? <p className="subtle small">{c.reasons.join("; ")}</p> : null}</> : <p>Checked once the earlier prerequisites are in place.</p>}</div></li>; })}</ul>}
       </section> : null}
     </div>
   </div>;

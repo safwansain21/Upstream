@@ -73,7 +73,7 @@ export default function HomePage() {
             <li className="origin"><span className="ledger-who">A neighbour reports</span><strong>Foam collecting beside the east footbridge.</strong><span>A photo, a place and a time. Nothing more is asked.</span></li>
             <li><span className="ledger-who">A trained monitor measures</span><strong>An anchor reading at O, then one at A3.</strong><span>Both quality-reviewed before they count.</span></li>
             <li><span className="ledger-who">The exact engine answers</span><strong>Three upper reaches ruled out.</strong><span>Incompatible under the stated assumptions. The rest stay worth checking.</span></li>
-            <li className="next"><span className="ledger-who">A coordinator decides</span><strong>A visit at B2 is possible.</strong><span>It cannot promise to narrow the search at this precision, and the case says so.</span></li>
+            <li className="next"><span className="ledger-who">A coordinator decides</span><strong>The next useful reading is named.</strong><span>The planner shows how far it could narrow the search; a person decides whether to send someone.</span></li>
           </ol>
         </Reveal>
       </section>

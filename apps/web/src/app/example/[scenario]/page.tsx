@@ -56,7 +56,7 @@ export default function ExampleScenario() {
         </aside>
       </div>
       {e.readings.length ? <section className="stack" aria-labelledby="ev-h"><h2 id="ev-h">Synthetic evidence</h2>
-        <div className="table-scroll" role="region" aria-label="Example readings" tabIndex={0}><table className="data-table"><thead><tr><th scope="col">Station</th><th scope="col">Value</th><th scope="col">Quality</th></tr></thead>
+        <div className="table-scroll" role="region" aria-label="Example readings" tabIndex={0}><table className="data-table"><thead><tr><th scope="col">Station</th><th scope="col" className="numeric">Value</th><th scope="col">Quality</th></tr></thead>
           <tbody>{e.readings.map((r, i) => <tr key={i}><td>{r.station}</td><td className="numeric">{r.lower ? <>true <Term k="sc25">SC25</Term> in [{r.lower}, {r.upper}] µS/cm</> : `${r.value} ${r.unit}`}</td><td>{r.quality ?? "pending review"}</td></tr>)}</tbody></table></div></section> : null}
       <div className="example-foot"><Timeline steps={steps} label="How this example unfolded"/>
         <div className="example-actions"><Link className="button button-primary" href="/example">More examples <Arrow/></Link><p className="subtle small">See how other examples unfold.</p>

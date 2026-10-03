@@ -517,6 +517,7 @@ def submit_readings(org: UUID, task: UUID, body: ReadingSet, request: Request, u
 @app.get('/api/v1/orgs/{org}/cases/{case}/readings')
 def case_readings(org: UUID, case: UUID, request: Request, user: Identity = Depends(identity)):
     return envelope(rows(user, '''select r.id,r.entity_id,r.version,r.mode,r.value,r.unit,r.temperature,r.measured_at,r.received_at,r.eligible,
+        r.bounds->'enclosure'->>'lower' lower,r.bounds->'enclosure'->>'upper' upper,
         r.ineligibility_reasons,r.data_origin,r.visit_id,s.code station_code,i.serial instrument_serial,
         q.disposition quality,q.reason quality_reason,q.comparable
         from reading_versions r join stations s on s.id=r.station_id join instruments i on i.id=r.instrument_id
@@ -1379,7 +1380,7 @@ def change_membership(org: UUID, member: UUID, body: MembershipChange, request: 
 # ---- public read-only examples (example organizations only) ----
 
 EXAMPLES = {  # slug -> seeded synthetic case title, walkthrough summary
-    'useful-evidence': ('Mill Brook', 'A reviewed network and a synthetic anchor let the exact engine exclude three upper reaches. The next visit at B2 cannot promise narrowing at this precision.'),
+    'useful-evidence': ('Mill Brook', 'A reviewed network and a synthetic anchor let the exact engine rule out three upper reaches. The planner names the reading that would narrow the rest most; a person decides whether to send someone.'),
     'revised-evidence': ('Hollin Beck', 'A B2 reading narrows the area; a later instrument check puts it under review, and excluding it expands the area again.'),
     'unmapped': ('Allotment ditch', 'A report on an unnamed channel opens a useful case before any map, station or measurement exists.'),
     'tidal': ('Harbour channel', 'The case works, but the steady directed-tree model does not apply to a tidal reach, so localization stays unsupported.'),

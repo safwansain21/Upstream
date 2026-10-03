@@ -9,13 +9,14 @@ import { api } from "../../../../../../lib/api";
 import { schematic } from "../../../../../../lib/geo";
 import { CaseHeader } from "../../../../../../components/case-tabs";
 import { useOrg } from "../../../../../../lib/session";
+import { Term } from "../../../../../../components/term";
 
 type Hist = { id: string; revision: number; retained_length_m: string | null; created_at: string; eligible: boolean; current: boolean; publications: { status: string; reason: string; at: string }[] };
 type Assessment = { id: string; revision: number; retained_length_m: string; eligible: boolean; publication: string; created_at: string; snapshot_hash: string; readiness_reasons: string[]; assumptions: string[];
   retained_geometry_ids: string[]; classes: { id: string; reach_ids: string[]; length_m: string; status: string; reason: string }[];
   dependencies: { entity_type: string; entity_id: string; version: number; reason: string }[] };
 type Net = { id: string; nodes: { code: string; kind: string; lon: number; lat: number }[]; edges: { id: string; code: string; from_code: string; to_code: string; length_m: string }[]; stations: { code: string }[] } | null;
-type Reading = { id: string; station_code: string; instrument_serial: string; mode: string; value: string; unit: string; measured_at: string; quality: string | null; quality_reason: string | null; eligible: boolean };
+type Reading = { id: string; station_code: string; instrument_serial: string; mode: string; value: string; unit: string; measured_at: string; quality: string | null; quality_reason: string | null; eligible: boolean; lower: string | null; upper: string | null };
 const km = (m: string | number | null) => m === null ? "—" : `${(Number(m) / 1000).toFixed(2)} km`;
 const last = (h: Hist) => h.publications[h.publications.length - 1]?.status ?? "draft";
 
@@ -27,7 +28,7 @@ function Panel({ title, a, net }: { title: string; a: Assessment; net: Net }) {
   return <section className="surface revision-panel" aria-label={title}><div className="spread"><h2 className="revision-title">{title}</h2><CaseStatus tone={a.publication === "approved" ? "accepted" : "warning"}>{a.publication === "approved" ? "Approved" : a.publication === "draft" ? "Under review" : a.publication}</CaseStatus></div>
     <p className="numeric revision-length"><strong>{a.eligible ? km(a.retained_length_m) : "Not eligible for localization"}</strong> · {a.publication}</p>
     {view ? <NetworkDiagram compact label={`${title} schematic`} stations={view.stations} reaches={view.reaches}/> : <p className="muted">This assessment used a different network version; the map is not shown side by side because lengths may not be like-for-like.</p>}
-    <ul className="class-list">{a.classes.map(c => <li key={c.id} className={c.status}>{c.reach_ids.join(", ")} · {km(c.length_m)} · {c.status === "incompatible" ? "excluded under current bounds" : c.status}</li>)}</ul></section>;
+    <ul className="class-list">{a.classes.map(c => <li key={c.id} className={c.status}>{c.reach_ids.join(", ")} · {km(c.length_m)} · {c.status === "incompatible" ? "ruled out under current bounds" : c.status === "compatible" ? "retained · worth checking" : "unresolved · kept under consideration"}</li>)}</ul></section>;
 }
 
 export default function EvidenceReview() {
@@ -83,8 +84,8 @@ export default function EvidenceReview() {
       </section> : null}
       <section className="surface stack" aria-labelledby="evidence-heading"><h2 id="evidence-heading">Evidence considered</h2>
         {readings.error ? <InlineError>{readings.error.message}</InlineError> : !readings.data ? <LoadingState/> : !readings.data.length ? <p>No readings recorded.</p> :
-          <div className="table-scroll" role="region" aria-label="Readings" tabIndex={0}><table className="data-table"><thead><tr><th scope="col">Station</th><th scope="col">Instrument</th><th scope="col">Value</th><th scope="col">Measured</th><th scope="col">Status</th></tr></thead>
-            <tbody>{readings.data.map(r => <tr key={r.id}><td>{r.station_code}</td><td className="mono">{r.instrument_serial}</td><td className="numeric">{r.mode === "true_sc25_enclosure" ? "reviewed enclosure" : `${r.value} ${r.unit}`}</td><td>{new Date(r.measured_at).toLocaleString()}</td>
+          <div className="table-scroll" role="region" aria-label="Readings" tabIndex={0}><table className="data-table"><thead><tr><th scope="col">Station</th><th scope="col">Instrument</th><th scope="col" className="numeric">Value</th><th scope="col">Measured</th><th scope="col">Status</th></tr></thead>
+            <tbody>{readings.data.map(r => <tr key={r.id}><td>{r.station_code}</td><td className="mono">{r.instrument_serial}</td><td className="numeric">{r.mode === "true_sc25_enclosure" ? r.lower ? <>true <Term k="sc25">SC25</Term> in [{r.lower}, {r.upper}] µS/cm</> : "reviewed range" : `${r.value} ${r.unit.replace("uS/cm", "µS/cm")}`}</td><td>{new Date(r.measured_at).toLocaleString()}</td>
               <td><CaseStatus tone={r.quality === "accepted" ? "accepted" : r.quality ? "warning" : "neutral"}>{r.quality ?? "pending review"}</CaseStatus></td></tr>)}</tbody></table></div>}
       </section>
       <section className="surface stack" aria-labelledby="audit-heading"><h2 id="audit-heading">Revision audit</h2>

@@ -32,7 +32,9 @@ export function OfflineStatus() {
     try {
       const { data } = await supabase.auth.refreshSession().catch(() => ({ data: { session: null } }));  // session and permissions first
       const account = data.session?.user.id;
-      if (!account) { setMessage("Sign in again to send drafts saved on this device."); return; }
+      if (!account) { // only when this device really holds something waiting to be sent (a first-time guest has nothing)
+        const waiting = await db.drafts.filter(d => d.status === "queued" || d.status === "submitting").count().catch(() => 0);
+        setMessage(waiting ? "Sign in again to send drafts saved on this device." : ""); return; }
       await load();  // interrupted sends become queued again before sending
       const drafts = await db.drafts.where("account").equals(account).filter(d => d.status === "queued").toArray();
       let sent = 0, stopped = "";

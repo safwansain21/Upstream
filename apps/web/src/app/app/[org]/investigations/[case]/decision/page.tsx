@@ -52,11 +52,12 @@ export default function Decision() {
     <CaseHeader caseId={caseId} current="decision"/>
     <PageIntro title="Decision and context"><p>Current workflow: {WORKFLOW[c.data.workflow] ?? c.data.workflow}. A decision is conditional on its evidence and assumptions, never a verdict on the water.</p></PageIntro>
     <div className="decision-grid">
-      <section className="surface" aria-labelledby="current-heading"><h2 id="current-heading">Current assessment</h2>
+      <div className="decision-side"><section className="surface" aria-labelledby="current-heading"><h2 id="current-heading">Current assessment</h2>
         {a.data ? <p className="lead">{a.data.eligible ? <>Candidate area <Term k="retained">retained</Term> under stated assumptions: <span className="numeric">{km(a.data.retained_length_m)}</span>.</> : "Not yet eligible to rule anything out."}</p> : <p className="lead">No assessment yet.</p>}
         <p className="muted">A retained stretch is worth checking; it is not confirmed as the cause, and stretches outside it are not proven free of impact.</p>
         {view && view.stations.length ? <><NetworkDiagram compact label="Current assessment schematic" stations={view.stations} reaches={view.reaches}/><ReachLegend/></> : null}
       </section>
+      {can("expert") ? null : <EmptyState title="Decisions are recorded by expert reviewers" steps={["You can read the assessment and its context here.", "An expert records inspection, escalation or closure decisions."]}/>}</div>
       <section className="surface means" aria-labelledby="means-heading"><h2 id="means-heading">What this means</h2>
         <article className="statement" aria-labelledby="obs-heading"><BinocularsIcon size={30}/><div><p className="eyebrow">1 · Environment</p><h3 id="obs-heading">Environmental observations</h3>
           {a.data ? <p>Assessment {a.data.revision}: {a.data.eligible ? `${km(a.data.retained_length_m)} retained under stated assumptions.` : "localization not eligible."} The cause is not established.</p> : <p>No assessment yet. {c.data.reports.length} report(s) describe the change.</p>}</div></article>
@@ -65,7 +66,7 @@ export default function Decision() {
             {ctx.data.layers.length ? <ul>{ctx.data.layers.map(l => <li key={l.id}>{cite(l)} · licence {l.license}</li>)}</ul>
               : <p>No public-access, animal-access or habitat layers are recorded for this case.</p>}
             <p><strong>Attention: {ctx.data.attention.level}</strong>{ctx.data.attention.because.length ? ` because of ${ctx.data.attention.because.map(cite).join("; ")}` : ""}.</p>
-            {ctx.data.suggestions.length ? <><h4>Suggested recipients</h4><ul>{ctx.data.suggestions.map(r => <li key={r.recipient_id}>{r.name}: handles {r.because.map(cite).join("; ")}</li>)}</ul>
+            {ctx.data.suggestions.length ? <><h4>Suggested recipients</h4><ul>{ctx.data.suggestions.map(r => <li key={r.recipient_id}>{r.name}: handles {[...new Set(r.because.map(c => (LAYER[c.kind] ?? c.kind).toLowerCase()))].join(" and ")}</li>)}</ul>
               <p className="subtle small">Suggestions come from recipients your administrators configured. The expert chooses recipients and purpose.</p></> : null}
             <p className="subtle small">{ctx.data.statement}</p></>}</div></article>
         <article className="statement health" aria-labelledby="health-heading"><AlertIcon size={30}/><div><p className="eyebrow">3 · Health</p><h3 id="health-heading">No health outcome is established or assessed by Upstream.</h3>
@@ -83,6 +84,6 @@ export default function Decision() {
       <div className="form-field"><label htmlFor="rationale">Rationale <span className="subtle">(required)</span></label><textarea id="rationale" rows={3} placeholder="Summarise the evidence, assumptions and your reasoning." value={reason} onChange={e => setReason(e.target.value)}/></div>
       <div className="spread"><p className="field-help">An inspection recommendation does not change localization results. Closing with no anomaly is not a water safety certification.</p>
         <button className="button button-primary" disabled={reason.length < 10}>Record decision</button></div></form>
-      : <EmptyState title="Decisions are recorded by expert reviewers" steps={["You can read the assessment and its context here.", "An expert records inspection, escalation or closure decisions."]}/>}
+      : null}
   </main>;
 }
