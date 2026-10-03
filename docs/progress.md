@@ -900,3 +900,31 @@ after the suite has run against the database. Seeds and test data are unchanged.
   outfall: a reading that changes across it keeps the branch worth checking).
 - Changed test: test_hero_branch_ends_name_who_meets_the_water renamed test_hero_branch_ends_name_where_water_joins.
   18 passed (hero, water, visual gate, responsive/a11y, axe, performance). J01 mobile LCP 2380 ms, desktop 448 ms.
+
+### 2026-10-03, main branch, water and route, AI case summary, judge pass
+
+- Branch: build/upstream fast-forwarded into main (owner's request) and pushed; work continues on main (CLAUDE.md updated).
+- Landing: route starts the moment the scene can draw it (origin at 0 s, ends by ~1.8 s, clock fallback 600 ms); the sun
+  rises with the first dot over 1.7 s and the night lifts over 1.9 s. Water: rolling wavelets (crests travelling toward the
+  bank, broken by noise so they never form stripes). Route: light in the water rather than a stroke on it (screened into
+  the water, strongest where crests catch it, refracted with the surface); comets still run upstream.
+- Wide screens (>= 900 px) load a high-quality plate (plate-hq-1672: AVIF 184 KB, WebP 183 KB); phones keep the 79 KB
+  plate, so mobile LCP is unchanged. Fixes the soft, blocky look of the how-it-works hero.
+- Story figure: the footpath is a dotted sand trail along the bank (it was an amber stroke across the stream); legend keys
+  match; at step 3 the place labels fade so none half-shows behind the evidence package card.
+- AI case summary (PRD 9.2): POST /api/v1/orgs/{org}/cases/{case}/ai/summary, services/api/ai_summary.py,
+  components/case-summary.tsx in "Investigation at a glance". Records read as the caller (RLS); the model gets only
+  structured records (report categories and dates, readings with quality, the assessment, the next visit), never free text
+  or photos. Rejected whole for an unknown citation, an uncited sentence, a number not in the cited records, or a cause,
+  source, safety or health claim; then a fixed template over the same records. Logged in ai_runs (purpose 'summary').
+  Live with gemini-3.5-flash-lite: four sentences, all citations and numbers checked.
+- Judge pass fixes: example and landing copy no longer claim "the next visit at B2 cannot narrow" (the engine names B1
+  with a 3.8 km bound; copy now states the planner names the next reading); example notes on a readable panel; stage labels
+  legible over the sun's reflection; readiness collapses to "All N checks pass" when every check passes; decision page keeps
+  the reviewer note in the left column (no blank column); recipients name only the layer they handle; evidence table shows
+  the reviewed SC25 range and uses ruled out / worth checking; the "sign in again" banner shows only when unsent drafts
+  exist; guests see a one-line note about the optional AI assistant; the photo picker uses the design's button.
+- Tests added: tests/api/test_ai_summary.py (8), tests/e2e/test_gates_ui.py::test_case_summary_cites_its_records_and_says_where_it_came_from.
+  Release evidence: G07 and H08 cite the summary tests too.
+- Open for submission: no hosted demo yet (judges need a working prototype link; free tiers: Vercel + Supabase + a free
+  API host); demo database must be reset and reseeded before recording (local test runs leave synthetic test cases).

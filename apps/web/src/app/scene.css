@@ -84,10 +84,10 @@ html[data-route-gl] .light-route.route-sync, html[data-route-gl] .spine-stop::be
 .branch-marks { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
 .branch-mark { position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; padding: 0; border: 0; border-radius: 50%; background: none; color: inherit; font: inherit; cursor: pointer; pointer-events: auto; animation: fade-in .6s calc(1.8s + var(--i) * .1s) both; }
 .branch-mark.out { visibility: hidden; pointer-events: none; }
-.branch-mark::before { content: ""; position: absolute; inset: 10px; border-radius: 50%; border: 1.5px solid rgb(250 244 232 / 90%); opacity: 0; animation: branch-call 3s calc(2.2s + var(--i) * 1s) cubic-bezier(.2, .6, .35, 1) infinite; }
+.branch-mark::before { content: ""; position: absolute; inset: 10px; border-radius: 50%; border: 1.5px solid rgb(250 244 232 / 90%); opacity: 0; animation: branch-call 3s calc(2.2s + var(--i) * 1s) cubic-bezier(.2, .6, .35, 1) 4; } /* a few calls, then still */
 /* a bright core over the drawn end dot that breathes, so the ends read as something to touch */
 .branch-mark::after { content: ""; position: absolute; inset: 13px; border-radius: 50%; background: radial-gradient(circle, #fffaf0 0 38%, rgb(255 246 228 / 70%) 60%, rgb(255 240 214 / 0%) 100%);
-  box-shadow: 0 0 10px 3px rgb(255 238 208 / 45%), 0 0 26px 8px rgb(255 226 184 / 18%); animation: branch-breathe 2.4s calc(var(--i) * .4s) ease-in-out infinite alternate; transition: box-shadow .35s var(--ease-settle); }
+  box-shadow: 0 0 10px 3px rgb(255 238 208 / 45%), 0 0 26px 8px rgb(255 226 184 / 18%); animation: branch-breathe 2.4s calc(var(--i) * .4s) ease-in-out 6 alternate; transition: box-shadow .35s var(--ease-settle); }
 @keyframes branch-breathe { from { scale: .8; opacity: .75; } to { scale: 1.15; opacity: 1; } }
 .branch-mark:hover::before, .branch-mark:focus-visible::before, .branch-mark:focus::before { animation: none; opacity: .85; scale: 1.35; transition: scale .35s var(--ease-settle), opacity .35s; }
 .branch-mark:hover::after, .branch-mark:focus::after { animation-play-state: paused; box-shadow: 0 0 14px 5px rgb(255 238 208 / 65%), 0 0 34px 12px rgb(255 226 184 / 26%); }
@@ -101,8 +101,8 @@ html[data-route-gl] .light-route.route-sync, html[data-route-gl] .spine-stop::be
 .below .branch-note { right: 50%; top: calc(50% + 7px); padding: 16px 12px 0 0; border-right: 1px solid rgb(244 240 232 / 55%); translate: 0 -4px; }
 .left .branch-note { right: calc(50% + 22px); top: 50%; padding-right: 12px; border-right: 1px solid rgb(244 240 232 / 55%); translate: 0 -50%; }
 .right .branch-note { left: calc(50% + 22px); top: 50%; padding-left: 12px; border-left: 1px solid rgb(244 240 232 / 55%); text-align: left; translate: 0 -50%; }
-.branch-mark:hover .branch-note, .branch-mark:focus .branch-note { opacity: 1; translate: 0 0; }
-.left.branch-mark:hover .branch-note, .left.branch-mark:focus .branch-note, .right.branch-mark:hover .branch-note, .right.branch-mark:focus .branch-note { translate: 0 -50%; }
+.branch-mark:hover .branch-note, .branch-mark:focus .branch-note, .branch-mark.is-open .branch-note { opacity: 1; translate: 0 0; }
+.left.branch-mark:hover .branch-note, .left.branch-mark:focus .branch-note, .right.branch-mark:hover .branch-note, .right.branch-mark:focus .branch-note, .left.branch-mark.is-open .branch-note, .right.branch-mark.is-open .branch-note { translate: 0 -50%; }
 .branch-term { font-size: .72rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--mist); }
 .branch-line { font-family: var(--display); font-style: italic; font-size: clamp(1rem, 1.1vw, 1.12rem); line-height: 1.3; color: rgb(244 240 232 / 92%); }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }

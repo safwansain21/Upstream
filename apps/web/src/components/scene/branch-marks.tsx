@@ -16,6 +16,7 @@ const PLATE_BOX: [number, number] = [1672, 941];
 export function BranchMarks({ marks, box = PLATE_BOX }: { marks: Mark[]; box?: [number, number] }) {
   const ref = useRef<HTMLDivElement>(null);
   const [spots, setSpots] = useState<({ x: number; y: number; place: Place } | null)[]>([]);
+  const [pinned, setPinned] = useState<number | null>(null); // a tap keeps a note open (touch has no hover)
   useEffect(() => {
     const layer = ref.current; if (!layer) return;
     const measure = () => {
@@ -54,7 +55,7 @@ export function BranchMarks({ marks, box = PLATE_BOX }: { marks: Mark[]; box?: [
     return () => { observer.disconnect(); cancelAnimationFrame(frame); clearTimeout(start); };
   }, [marks, box]);
   return <div ref={ref} className="branch-marks">
-    {marks.map((m, i) => { const s = spots[i]; return <button key={m.term} type="button" className={`branch-mark route-label ${s ? s.place : "out"}`}
+    {marks.map((m, i) => { const s = spots[i]; return <button key={m.term} type="button" aria-expanded={pinned === i} onClick={() => setPinned(pinned === i ? null : i)} className={`branch-mark route-label ${s ? s.place : "out"}${pinned === i ? " is-open" : ""}`}
       style={{ left: s?.x ?? 0, top: s?.y ?? 0, "--i": i } as CSSProperties}>
       <span className="branch-note"><span className="branch-term">{m.term}</span><span className="branch-line">{m.line}</span></span>
     </button>; })}

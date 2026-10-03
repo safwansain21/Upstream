@@ -102,7 +102,7 @@ def test_decision_view_shows_sourced_context_and_suggestions(page):  # F11 (brow
     expect(page.get_by_text(f'{cattle} · licence CC0-1.0')).to_be_visible()
     expect(page.get_by_text('Habitat (source: Example otter holt register (synthetic), synthetic) · licence CC0-1.0')).to_be_visible()
     expect(page.get_by_text('Attention: elevated')).to_be_visible()
-    expect(page.get_by_text(f'{name}: handles {cattle}')).to_be_visible()
+    expect(page.get_by_text(f'{name}: handles animal access')).to_be_visible()  # the layer's source is cited once, above
     expect(page.get_by_text('The expert chooses recipients and purpose.', exact=False)).to_be_visible()
     expect(page.get_by_text('No health outcome is established or assessed by Upstream.')).to_be_visible()
 

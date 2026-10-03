@@ -181,7 +181,7 @@ html[data-motion="full"] .reveal:not(.is-visible) .case-ledger li { opacity: 0; 
 .spine-label { position: absolute; left: 0; bottom: 14px; display: grid; gap: 3px; width: max-content; max-width: 13.5em; padding: 0 0 12px 12px; border-left: 1px solid rgb(244 240 232 / 50%); color: var(--quiet); font-size: clamp(.78rem, .86vw, .9rem); line-height: 1.35; animation: fade-in .5s calc(var(--t) + .08s) both; }
 .spine-label strong { font-family: var(--display); font-weight: 500; font-size: 1.3em; color: var(--mist); }
 .spine-label { isolation: isolate; text-shadow: 0 1px 10px rgb(3 12 14 / 95%), 0 0 2px rgb(3 12 14 / 90%); color: rgb(226 232 230); }
-.spine-label::before { content: ""; position: absolute; inset: -14px -22px -6px -6px; z-index: -1; background: radial-gradient(closest-side, rgb(4 14 15 / 62%), rgb(4 14 15 / 0%)); pointer-events: none; } /* legible over the sun's reflection */
+.spine-label::before { content: ""; position: absolute; inset: -14px 0 -6px -6px; z-index: -1; background: radial-gradient(closest-side, rgb(4 14 15 / 62%), rgb(4 14 15 / 0%)); pointer-events: none; } /* legible over the sun's reflection */
 .origin .spine-label { border-left-color: rgb(238 175 99 / 70%); }
 html[data-motion="reduced"] .spine-stop::before, html[data-motion="reduced"] .spine-label { animation: none; }
 @media (prefers-reduced-motion: reduce) { .spine-stop::before, .spine-label { animation: none; } }
