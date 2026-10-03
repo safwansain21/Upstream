@@ -201,6 +201,41 @@ def enqueue_analysis(org, cases):
                 json.dumps({'engine': snapshot.model_dump(mode='json'), 'dependencies': deps, 'context': context}, default=str)))
 
 
+def compute_now(org, cases, timeout=300):
+    """Run the queued analyses here (or let a running worker finish them); every result still comes from the engine."""
+    import time
+    from services.worker.__main__ import work_once
+    deadline = time.monotonic() + timeout
+    while True:
+        with transaction(worker=True) as db:
+            pending = db.execute("""select count(*) n from analysis_jobs where org_id=%s and case_id=any(%s::uuid[])
+                and state not in ('done','failed','cancelled')""", (org, [str(c) for c in cases])).fetchone()['n']
+        if not pending:
+            return
+        if time.monotonic() > deadline:
+            raise SystemExit('Example analyses did not finish; is the database reachable?')
+        if not work_once():
+            time.sleep(.3)
+
+
+def revise_scenario(org, case):
+    """Scenario 3, played through: assessment 1 uses the B2 reading; an instrument check puts it under review, the expert
+    excludes it, and the engine recomputes (assessment 2), reopening the area. Through the same RPCs a person would use."""
+    compute_now(org, [case])
+    with transaction(worker=True) as db:
+        expert = str(db.execute("select id from auth.users where email='expert@example.test'").fetchone()['id'])
+        b2 = db.execute("""select r.id from reading_versions r join stations s on s.id=r.station_id
+            where r.case_id=%s and s.code='B2' order by r.measured_at limit 1""", (case,)).fetchone()['id']
+    with transaction(expert) as db:
+        db.execute('select public.record_quality(%s,%s,%s,%s,%s)', (org, b2, 'suspect',
+                   'Post-visit check: meter SC-014 drifted outside its calibration tolerance (synthetic)', None))
+    with transaction(expert) as db:  # a later decision, in its own transaction (decisions are ordered by time)
+        db.execute('select public.record_quality(%s,%s,%s,%s,%s)', (org, b2, 'excluded',
+                   'Excluded after review: the SC-014 calibration failure makes this reading unusable (synthetic)', None))
+    enqueue_analysis(org, [case])
+    compute_now(org, [case])
+
+
 def submit(user_id, org, key, body):
     with transaction(user_id) as db:
         return db.execute('select public.submit_report(%s::uuid,%s::uuid,%s::jsonb) r', (org, sid(key), json.dumps(body))).fetchone()['r']
@@ -278,6 +313,7 @@ def main():
         seed_network(db, org, tidal['case_id'], unsupported_networks()[1], (-.05, -.05))
     revised = seed_revised_scenario(org)
     enqueue_analysis(org, [mill['case_id'], revised])  # the worker computes them; nothing is precomputed or hardcoded
+    revise_scenario(org, revised)
     print(f'Seeded synthetic example workspace in organization {org}. Users: {", ".join(USERS)}; password: {PASSWORD}')
 
 

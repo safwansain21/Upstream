@@ -84,8 +84,8 @@ export default function EvidenceReview() {
       </section> : null}
       <section className="surface stack" aria-labelledby="evidence-heading"><h2 id="evidence-heading">Evidence considered</h2>
         {readings.error ? <InlineError>{readings.error.message}</InlineError> : !readings.data ? <LoadingState/> : !readings.data.length ? <p>No readings recorded.</p> :
-          <div className="table-scroll" role="region" aria-label="Readings" tabIndex={0}><table className="data-table"><thead><tr><th scope="col">Station</th><th scope="col">Instrument</th><th scope="col" className="numeric">Value</th><th scope="col">Measured</th><th scope="col">Status</th></tr></thead>
-            <tbody>{readings.data.map(r => <tr key={r.id}><td>{r.station_code}</td><td className="mono">{r.instrument_serial}</td><td className="numeric">{r.mode === "true_sc25_enclosure" ? r.lower ? <>true <Term k="sc25">SC25</Term> in [{r.lower}, {r.upper}] µS/cm</> : "reviewed range" : `${r.value} ${r.unit.replace("uS/cm", "µS/cm")}`}</td><td>{new Date(r.measured_at).toLocaleString()}</td>
+          <div className="table-scroll" role="region" aria-label="Readings" tabIndex={0}><table className="data-table"><thead><tr><th scope="col">Station</th><th scope="col">Instrument</th><th scope="col">Reviewed value</th><th scope="col">Measured</th><th scope="col">Status</th></tr></thead>
+            <tbody>{readings.data.map(r => <tr key={r.id}><td>{r.station_code}</td><td className="mono">{r.instrument_serial}</td><td className="tabular">{r.mode === "true_sc25_enclosure" ? r.lower ? <>true <Term k="sc25">SC25</Term> in [{r.lower}, {r.upper}] µS/cm</> : "reviewed range" : `${r.value} ${r.unit.replace("uS/cm", "µS/cm")}`}</td><td>{new Date(r.measured_at).toLocaleString()}</td>
               <td><CaseStatus tone={r.quality === "accepted" ? "accepted" : r.quality ? "warning" : "neutral"}>{r.quality ?? "pending review"}</CaseStatus></td></tr>)}</tbody></table></div>}
       </section>
       <section className="surface stack" aria-labelledby="audit-heading"><h2 id="audit-heading">Revision audit</h2>

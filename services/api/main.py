@@ -1421,7 +1421,10 @@ def example(slug: str, request: Request):
         recs = db.execute('''select action->>'id' action_id,score_bound_m,rationale from recommendations where assessment_id=%s
             order by (constraints->>'rank')::int limit 3''', (a['id'],)).fetchall() if a else []
     result = a['result'] if a else None
-    return envelope({'slug': slug, 'title': c['title'], 'summary': EXAMPLES[slug][1], 'workflow': c['workflow'], 'locality': c['locality'], 'data_origin': c['data_origin'],
+    with transaction(worker=True) as db:  # the revision before this one, so the page can say how the area changed
+        prev = db.execute('''select revision,retained_length_m,(result->>'eligible')::boolean eligible from assessments
+            where case_id=%s and revision<%s order by revision desc limit 1''', (c['id'], a['revision'])).fetchone() if a else None
+    return envelope({'slug': slug, 'title': c['title'], 'summary': EXAMPLES[slug][1], 'previous': prev, 'workflow': c['workflow'], 'locality': c['locality'], 'data_origin': c['data_origin'],
                      'network': net, 'readings': readings, 'recommendations': recs,
                      'assessment': None if not a else {'revision': a['revision'], 'retained_length_m': a['retained_length_m'], 'eligible': result['eligible'],
                                                        'readiness_reasons': result['readiness_reasons'], 'retained_geometry_ids': result['retained_geometry_ids'],

@@ -928,3 +928,21 @@ after the suite has run against the database. Seeds and test data are unchanged.
   Release evidence: G07 and H08 cite the summary tests too.
 - Open for submission: no hosted demo yet (judges need a working prototype link; free tiers: Vercel + Supabase + a free
   API host); demo database must be reset and reseeded before recording (local test runs leave synthetic test cases).
+
+### 2026-10-03, demo-screen polish
+
+- One page edge: --edge (the page column's edge, never closer than the gutter) now sets the header, landing and how it
+  works heroes, footer, policy, report, onboarding and state pages, so logo, headlines and content share one left line.
+- Landing process row: columns top-aligned (the unmapped column sat 17 px low; grid rows no longer stretch), wider text.
+- Sunrise: the night lifts in one continuous fade (a middle keyframe made it stall).
+- Story figure: stations A3/B2 and the report dot sit exactly on their Béziers (points computed from the curves); the upper
+  reach joins smoothly; the footpath trail runs on the bank clear of B2 with a two-line label inside the frame; the cattle
+  point no longer touches the stem.
+- Examples: on wide screens the three secondary examples are photo-over-text cards in one row under the featured card.
+- Hollin Beck plays scenario 3 through in the seed (scripts/seed_example.py revise_scenario): assessment 1 with B2, the expert
+  marks B2 suspect then excluded through record_quality, the engine recomputes, assessment 2 reopens 2.30 km to 5.30 km.
+  The public example API returns the previous revision and the page states the change; reading quality shows as pills.
+- Report form: the description box and the map fill their panels; the review step shows a readable date.
+- Decision: attention names layer kinds once (sources are listed above).
+- Tests: 70 passed across gates_ui, visual_gates, responsive_a11y, routes, review_flow, report_flow, content_audit,
+  performance and api/test_http. J01 mobile LCP 2292 ms, desktop 160 ms, CLS 0.001.

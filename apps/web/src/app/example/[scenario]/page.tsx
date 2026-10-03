@@ -14,7 +14,7 @@ import { api, ApiError } from "../../../lib/api";
 import { schematic } from "../../../lib/geo";
 import { WORKFLOW } from "../../../lib/labels";
 
-type Example = { title: string; summary: string; workflow: string; locality: string | null; data_origin: string;
+type Example = { title: string; summary: string; workflow: string; locality: string | null; data_origin: string; previous: { revision: number; retained_length_m: string; eligible: boolean } | null;
   network: { nodes: { code: string; kind: string; lon: number; lat: number }[]; edges: { id: string; code: string; from_code: string; to_code: string; length_m: string; flow_status: string }[]; stations: { code: string }[] } | null;
   readings: { station: string; mode: string; lower: string | null; upper: string | null; value: string; unit: string; measured_at: string; quality: string | null }[];
   recommendations: { action_id: string; score_bound_m: string | null; rationale: string }[];
@@ -33,10 +33,14 @@ export default function ExampleScenario() {
     const view = e.network ? schematic(e.network.nodes, e.network.edges, new Set(e.network.stations.map(s => s.code)), x => !a?.eligible ? "unreviewed" : kept.has(x.id) ? "candidate" : "excluded") : null;
     const excluded = a?.eligible ? a.classes.filter(c => c.status === "incompatible").reduce((s, c) => s + Number(c.length_m), 0) : 0;
     const next = e.recommendations[0];
+    // how the latest engine result moved the area compared with the one before it, and the readings excluded since
+    const prev = a?.eligible && e.previous?.eligible ? e.previous : null;
+    const delta = prev ? Number(a!.retained_length_m) - Number(prev.retained_length_m) : 0;
+    const excludedAt = e.readings.filter(r => r.quality === "excluded").map(r => r.station);
     const steps: TimelineStep[] = [
       { title: "Report received", detail: "A community member shared an observation.", state: "done" },
       { title: "Local map reviewed", detail: e.network ? "The reading was compared with the mapped network." : "No local network yet: the report stays a useful record.", state: e.network ? "done" : "pending" },
-      { title: "Readings assessed", detail: a ? (a.eligible ? `Assessment ${a.revision} kept ${km(a.retained_length_m)} under consideration.` : "Computed, but not yet eligible to rule anything out.") : "No assessment computed yet.", state: a ? "done" : "pending" },
+      { title: "Readings assessed", detail: a ? (a.eligible ? `Assessment ${a.revision} kept ${km(a.retained_length_m)} under consideration${prev && delta ? ` (assessment ${prev.revision}: ${km(prev.retained_length_m)})` : ""}.` : "Computed, but not yet eligible to rule anything out.") : "No assessment computed yet.", state: a ? "done" : "pending" },
       { title: "Next useful observation", detail: next ? next.action_id.replace("visit-", "Measure at ") : "Nothing proposed yet.", state: next ? "current" : "pending" },
     ];
     body = <>
@@ -49,6 +53,7 @@ export default function ExampleScenario() {
             {!a ? <p className="muted">No assessment has been computed for this example yet.</p>
               : a.eligible ? <p className="muted"><span className="numeric">{km(a.retained_length_m)}</span> of stream is <Term k="retained">retained</Term>: a possible source there still fits every accepted reading. {excluded ? <><span className="numeric">{km(excluded)}</span> is <Term k="ruledOut">ruled out</Term> under the stated assumptions.</> : "Nothing is ruled out yet."}</p>
               : <><p className="muted">Nothing can be ruled out yet, because a <Term k="readiness">readiness</Term> check has not passed:</p><ul className="muted">{a.readiness_reasons.map(r => <li key={r}>{r}</li>)}</ul></>}
+            {prev && delta ? <p className="muted revision-note">Assessment {a!.revision} {delta > 0 ? "reopened" : "narrowed"} the area from <span className="numeric">{km(prev.retained_length_m)}</span> to <span className="numeric">{km(a!.retained_length_m)}</span>{excludedAt.length ? <> after the reading at {excludedAt.join(", ")} was excluded</> : null}. New evidence can widen the search as well as narrow it.</p> : null}
             {next ? <p className="muted">Next useful observation: <strong className="text-mist">{next.action_id.replace("visit-", "a reading at station ")}</strong>. {next.score_bound_m === null ? `Not scored: ${next.rationale}` : Number(next.score_bound_m) >= Number(a?.retained_length_m ?? 0) ? "No single reading can guarantee to narrow the area, but it can still help." : `Whatever it shows, at most ${km(next.score_bound_m)} would remain.`}</p> : null}</section>
           <section aria-labelledby="unknown-h" className="stack-tight"><h2 id="unknown-h">What remains unknown</h2>
             <p className="muted">The source of the change is unconfirmed. Neither the retained nor the ruled-out stretches prove a source or indicate water safety. More observations and context are needed.</p></section>
@@ -56,8 +61,8 @@ export default function ExampleScenario() {
         </aside>
       </div>
       {e.readings.length ? <section className="stack" aria-labelledby="ev-h"><h2 id="ev-h">Synthetic evidence</h2>
-        <div className="table-scroll" role="region" aria-label="Example readings" tabIndex={0}><table className="data-table"><thead><tr><th scope="col">Station</th><th scope="col" className="numeric">Value</th><th scope="col">Quality</th></tr></thead>
-          <tbody>{e.readings.map((r, i) => <tr key={i}><td>{r.station}</td><td className="numeric">{r.lower ? <>true <Term k="sc25">SC25</Term> in [{r.lower}, {r.upper}] µS/cm</> : `${r.value} ${r.unit}`}</td><td>{r.quality ?? "pending review"}</td></tr>)}</tbody></table></div></section> : null}
+        <div className="table-scroll" role="region" aria-label="Example readings" tabIndex={0}><table className="data-table"><thead><tr><th scope="col">Station</th><th scope="col">Reviewed value</th><th scope="col">Quality</th></tr></thead>
+          <tbody>{e.readings.map((r, i) => <tr key={i}><td>{r.station}</td><td className="tabular">{r.lower ? <>true <Term k="sc25">SC25</Term> in [{r.lower}, {r.upper}] µS/cm</> : `${r.value} ${r.unit}`}</td><td><CaseStatus tone={r.quality === "accepted" ? "accepted" : r.quality ? "warning" : "neutral"}>{r.quality ?? "pending review"}</CaseStatus></td></tr>)}</tbody></table></div></section> : null}
       <div className="example-foot"><Timeline steps={steps} label="How this example unfolded"/>
         <div className="example-actions"><Link className="button button-primary" href="/example">More examples <Arrow/></Link><p className="subtle small">See how other examples unfold.</p>
           <Link className="button button-outline" href="/report/new">Start your own observation</Link><p className="subtle small">See something in your local water?</p></div></div>

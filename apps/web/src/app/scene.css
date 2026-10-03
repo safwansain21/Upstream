@@ -40,8 +40,8 @@
 .sun-glow { width: 92%; aspect-ratio: 1.45; background: radial-gradient(closest-side, rgb(255 214 150 / 55%), rgb(255 170 90 / 22%) 45%, rgb(255 150 80 / 0%)); mix-blend-mode: screen; animation: sun-bloom 1.7s ease-out both; }
 @keyframes sun-rise { from { transform: translateY(34.4%); } to { transform: translateY(0); } }
 @keyframes sun-bloom { from { opacity: .15; scale: .55; } to { opacity: 1; scale: 1; } }
-.scene-dawn { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgb(6 12 28 / 92%), rgb(4 10 22 / 88%) 55%, rgb(3 8 16 / 92%)); animation: dawn-lift 1.9s cubic-bezier(.45, 0, .35, 1) both; }
-@keyframes dawn-lift { from { opacity: 1; } 30% { opacity: .8; } to { opacity: 0; } }
+.scene-dawn { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgb(6 12 28 / 92%), rgb(4 10 22 / 88%) 55%, rgb(3 8 16 / 92%)); animation: dawn-lift 2s cubic-bezier(.33, 0, .25, 1) both; }
+@keyframes dawn-lift { from { opacity: 1; } to { opacity: 0; } } /* one continuous lift: a middle keyframe made it stall */
 /* the sunrise keeps the route's clock: it waits with the line and finishes as the branch ends arrive */
 html:not([data-route-clock]) .scene-dawn, html:not([data-route-clock]) .sun-body, html:not([data-route-clock]) .sun-glow { animation-play-state: paused; }
 .dusk-hero .scene-grade { background: linear-gradient(90deg, rgb(4 14 15 / 84%) 0%, rgb(5 16 17 / 52%) 36%, rgb(5 16 17 / 8%) 70%), linear-gradient(0deg, rgb(3 13 15 / 86%), transparent 30%, transparent 78%, rgb(3 13 15 / 30%)); }

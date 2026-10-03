@@ -65,7 +65,7 @@ export default function Decision() {
           {ctx.error ? <InlineError>{ctx.error.message}</InlineError> : !ctx.data ? <LoadingState/> : <>
             {ctx.data.layers.length ? <ul>{ctx.data.layers.map(l => <li key={l.id}>{cite(l)} · licence {l.license}</li>)}</ul>
               : <p>No public-access, animal-access or habitat layers are recorded for this case.</p>}
-            <p><strong>Attention: {ctx.data.attention.level}</strong>{ctx.data.attention.because.length ? ` because of ${ctx.data.attention.because.map(cite).join("; ")}` : ""}.</p>
+            <p><strong>Attention: {ctx.data.attention.level}</strong>{ctx.data.attention.because.length ? ` because of ${[...new Set(ctx.data.attention.because.map(c => (LAYER[c.kind] ?? c.kind).toLowerCase()))].join(" and ")}` : ""}.</p>
             {ctx.data.suggestions.length ? <><h4>Suggested recipients</h4><ul>{ctx.data.suggestions.map(r => <li key={r.recipient_id}>{r.name}: handles {[...new Set(r.because.map(c => (LAYER[c.kind] ?? c.kind).toLowerCase()))].join(" and ")}</li>)}</ul>
               <p className="subtle small">Suggestions come from recipients your administrators configured. The expert chooses recipients and purpose.</p></> : null}
             <p className="subtle small">{ctx.data.statement}</p></>}</div></article>
