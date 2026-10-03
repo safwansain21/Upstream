@@ -41,7 +41,10 @@ export function DuskScene({ variant, route, eager = false, still = false, reeds 
     // scene) or if it is slow to get ready, the SVG copy and the labels start on their own.
     // Only a live scene owns the clock (a still band further down the page never does).
     const owner = Boolean(surface);
-    if (owner) resetRouteClock();
+    // only the scene that owns the clock may clear it: a scene leaving the page (a loading screen, the previous page)
+    // must not reset the clock the next page already started
+    const token = {}; const w = window as RouteWindow & { __routeOwner?: object };
+    if (owner) { w.__routeOwner = token; resetRouteClock(); }
     let fallback = owner ? window.setTimeout(() => { // after this commit's routes have published themselves
       const waits = water && active() && (window as RouteWindow).__upstreamRoute;
       if (waits) fallback = window.setTimeout(startRouteClock, 600); else startRouteClock();
@@ -57,7 +60,7 @@ export function DuskScene({ variant, route, eager = false, still = false, reeds 
     window.addEventListener("upstream-preferences", refresh);
     motion.addEventListener("change", refresh);
     refresh();
-    return () => { if (owner) { window.clearTimeout(fallback); window.removeEventListener("upstream-route", takeRoute); resetRouteClock(); } io.disconnect(); document.removeEventListener("visibilitychange", refresh); window.removeEventListener("upstream-preferences", refresh); motion.removeEventListener("change", refresh); water?.stop(); };
+    return () => { if (owner) { window.clearTimeout(fallback); window.removeEventListener("upstream-route", takeRoute); if (w.__routeOwner === token) { delete w.__routeOwner; resetRouteClock(); } } io.disconnect(); document.removeEventListener("visibilitychange", refresh); window.removeEventListener("upstream-preferences", refresh); motion.removeEventListener("change", refresh); water?.stop(); };
   }, []);
   return <div ref={host} className={`dusk-scene dusk-${variant}${fixed ? " dusk-fixed" : ""}`} data-scene="river" aria-hidden="true">
     <div className="scene-art">

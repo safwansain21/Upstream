@@ -253,7 +253,8 @@ export function startWater(canvas: HTMLCanvasElement, plate: HTMLImageElement, m
     frame = 0;
     if (stopped || lost || !active()) { refresh(); return; }
     frame = requestAnimationFrame(draw);
-    const clock = (window as ClockWindow).__routeClock;
+    // the labels wait for this clock: if the route is drawing without one (it was reset under us), start it now
+    const clock = route && painted ? startRouteClock() : (window as ClockWindow).__routeClock;
     const rt = route && painted && clock !== undefined ? (now - clock) / 1000 / total : 2;
     if (coarse && rt > 1.05 && previous && now - previous < 30) return; // touch devices settle to ~30 fps once the route is drawn
     elapsed += Math.min((now - (previous || now)) / 1000, .1); previous = now; // continuous across pauses: no phase jump

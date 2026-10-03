@@ -157,3 +157,4 @@ vite.config.ts.timestamp-*
 # local browser run artifacts
 .playwright-cli/
 output/
+demo/
