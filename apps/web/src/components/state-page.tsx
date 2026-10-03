@@ -3,7 +3,7 @@ import { AppHeader } from "./app-header";
 import { DuskScene } from "./scene/dusk-scene";
 import { SceneRoute, type Stop } from "./scene/scene-route";
 
-const ROUTE: Stop[] = [{ x: 750, y: 880, tone: "origin" }, { x: 1000, y: 842, ghost: true }, { x: 1170, y: 790, ghost: true }, { x: 1286, y: 700, ghost: true }, { x: 1300, y: 640 }];
+const ROUTE: Stop[] = [{ x: 878, y: 704, tone: "origin" }, { x: 980, y: 694, ghost: true }, { x: 1110, y: 676, ghost: true }, { x: 1240, y: 636, ghost: true }, { x: 1300, y: 596 }];
 
 /** Loading, error and not-found share one quiet composition: the scene, one line, a plain message and a way on. */
 export function StatePage({ label, title, children, busy = false }: { label: string; title: string; children?: ReactNode; busy?: boolean }) {

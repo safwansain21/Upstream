@@ -16,5 +16,6 @@ import "./pages.css";
 export const metadata: Metadata = { title: { default: "Upstream — Follow it upstream", template: "%s · Upstream" }, description: "Turn local stream observations into a coordinated, reviewable investigation. Notice a change, collect useful evidence, and decide the next step together." };
 export const viewport: Viewport = { themeColor: "#071113", colorScheme: "dark" };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body><MotionPreferences/><a href="#main-content" className="skip-link">Skip to main content</a><Providers>{children}<RouteFocus/></Providers></body></html>;
+  // the night colour inline: a full page load (a new build, a slow stylesheet) paints dark from the first frame
+  return <html lang="en" style={{ backgroundColor: "#071113", colorScheme: "dark" }}><body><MotionPreferences/><a href="#main-content" className="skip-link">Skip to main content</a><Providers>{children}<RouteFocus/></Providers></body></html>;
 }

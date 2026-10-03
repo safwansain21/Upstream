@@ -7,7 +7,7 @@ import { Footer } from "../../components/ui";
 
 export const metadata: Metadata = { title: "Terms of use" };
 export default function TermsPage() {
-  return <><AppHeader/><PolicyDoc numbered eyebrow="Terms of use" title="Taking part responsibly."
+  return <><AppHeader fixedScene/><PolicyDoc numbered eyebrow="Terms of use" title="Taking part responsibly."
     intro={<p>Upstream supports environmental observations, coordinated field work, and reviewable evidence. Each investigation depends on the quality of its records and the limits of its methods.</p>}
     aside={<><p className="policy-callout"><ShieldIcon size={30}/>A report never requires entering a stream, crossing private land, or approaching a hazard.</p>
       <p className="policy-callout"><AlertIcon size={30}/>Reports and analysis do not establish water safety or identify a pollutant from a photograph.</p></>}

@@ -14,7 +14,7 @@ const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2)
 
 /** Public and workspace header. The workspace variant carries the account menu (settings, sign out) and the bell.
  *  `scene={false}` when the page renders its own DuskScene (landing, pages with a scene route). */
-export function AppHeader({ org, scene = true }: { org?: string; scene?: boolean }) {
+export function AppHeader({ org, scene = true, fixedScene = false }: { org?: string; scene?: boolean; fixedScene?: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
@@ -27,7 +27,7 @@ export function AppHeader({ org, scene = true }: { org?: string; scene?: boolean
     ? [["Investigations", `${base}/investigations`], ["Field tasks", `${base}/tasks`], ...(can("expert") || can("coordinate") || can("evidence_view") ? [["Evidence review", `${base}/evidence`] as [string, string]] : []), ["Community", `${base}/community`]]
     : [["How it works", "/how-it-works"], ["Investigations", "/example"], ["For communities", "/how-it-works#communities"]];
   const active = (href: string) => pathname === href || (!!org && pathname.startsWith(href)) || (!org && href === "/example" && pathname.startsWith("/example"));
-  return <>{!scene || pathname === "/" ? null : <DuskScene variant={org ? "band" : "screen"}/>}
+  return <>{!scene || pathname === "/" ? null : <DuskScene variant={org ? "band" : "screen"} fixed={fixedScene}/>}
     <header className="app-header"><div className="header-inner"><Brand/>{membership?.example ? <span className="workspace-origin" title="Every record in this workspace is synthetic">Example workspace</span> : null}
       <button className="menu-toggle button button-outline" aria-expanded={open} aria-controls="primary-navigation" onClick={() => setOpen(!open)}>{open ? "Close menu" : "Menu"}</button>
       <nav id="primary-navigation" aria-label="Primary" className={open ? "primary-nav is-open" : "primary-nav"}>

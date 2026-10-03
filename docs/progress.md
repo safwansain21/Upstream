@@ -740,3 +740,163 @@ after the suite has run against the database. Seeds and test data are unchanged.
   tests/e2e/test_gates_ui.py, test_review_flow.py, test_export_flow.py, test_report_flow.py, test_visual_gates.py,
   test_responsive_a11y.py, test_routes.py: 76 passed. Secret scan: 0 findings. The full suite (release gate count) has not
   been rerun since 2026-09-27; do it before submission.
+
+## 2026-09-30: public scene fixes (routes, water, how it works, sign in)
+
+- Light routes: one renderer (apps/web/src/components/scene/light-route.tsx) for the landing, sign-in, onboarding, state
+  pages and example cards. Lines are smooth curves through points (route-geometry.ts); branches leave their junction along
+  the main line's tangent, so they connect. Drawn with pathLength=1 dash offsets (the old px lengths from getTotalLength
+  did not match non-scaling strokes, so lines stopped short or looked broken at most widths); stroke widths are
+  compensated for the art-box scale instead. Glow is a drop-shadow on the SVG plus a faint wide haze (CSS blur on SVG
+  children did nothing in Chromium). Sparkles and dots arrive as the line reaches them; ruled-out branches are dashes lit
+  in order. Final state is the plain style, so reduced motion and no-JS see the finished route.
+- Landing geometry re-derived from 07-visible-current onto the plate: origin above the process bar, S-curve main line to
+  one junction, three fanning branches and a faint upstream tail. Timing: origin 0.5 s, main 0.65-2.0 s, branches
+  2.0-2.9 s, end dots on completion.
+- Water: the shader's displacement was 0.06-0.22% of the image, too small to see. It now runs perspective ripple bands
+  (denser toward the horizon), mostly vertical displacement of reflections, and glints on swell crests where light
+  already falls; canvas resolution 0.85 of CSS px (was 0.7). Same matte, same pause rules.
+- How it works: the five-stage line is its own box under the actions (px height, % x), not scene coordinates, so labels
+  cannot overlap the heading or buttons; hidden below 900 px where the text list shows. Role figures redrawn as hairline
+  illustrations (kneeling at the water, wading with a probe and meter, reviewing at a laptop).
+- Sign in (and every .screen-top page): the scene now spans the whole first block, sized with container query units, so a
+  form taller than the viewport no longer runs past the background.
+- Removed the header bottom rule and the section rules drawn over the scene (how it works roles, examples heading).
+- Example cards: each synthetic example has its own illustrative route (retained solid, ruled out dashed) in a
+  plate-aligned art box, so the lines stay on the water at every card size.
+- Changed tests (selectors only, intentional markup change): tests/e2e/test_gates_ui.py
+  test_home_route_is_actually_drawn and test_illustrative_traces_are_visible_after_drawing (new classes; a path with
+  pathLength is complete when its dash covers pathLength), tests/e2e/test_visual_gates.py landing check (.lr-origin,
+  .lr-main).
+
+### 2026-09-30, second pass: routes drawn in the water, landing story, closing scene
+
+- Routes on live scenes (landing, sign-in, onboarding, state pages, how it works) are now drawn by WebGL in the same
+  wave field as the water (apps/web/src/components/scene/water.ts). Each route is rasterized once into a line texture
+  and a glow texture whose green channel is the pixel's arrival time; one clock reveals it on the GPU (no per-frame
+  DOM or SVG repaint, which is what made the dash animations stutter during hydration). On water the line is refracted
+  by the swells, its glow scatters on their crests and each dot casts a rippled reflection; on land it is still. The
+  route layer is a second canvas above the foliage (the origins sit among the reeds). LightRoute `publish` hands the
+  route to the scene in plate coordinates, measured from where its SVG sits, so the how-it-works spine (laid out in its
+  own box) is drawn in the water too. The SVG stays as the fallback (no WebGL, reduced motion, save-data, offscreen) and
+  is hidden only while the water draws; labels, notes and the SVG wait for the shared route clock (html[data-route-clock]).
+- Water sharpness: the canvas renders at device resolution (capped near 3.6 MP) instead of 0.85x, and a light unsharp
+  step restores the plate's detail (the plate's largest variant is 1672 px, so it is upscaled on large screens).
+- Example cards (still pictures, no live water): SVG lines get a turbulence displacement, dot reflections and a screen
+  blend so they sit in the picture.
+- Landing: the faint tail beyond the upper-left end dot is gone; the origin note moves beside the dot or hides when a
+  short window would put it on the buttons; the hero grows to at least 800 px so the origin never sits on the process
+  line. The story steps now have a companion figure (components/story-visual.tsx): one illustrative network that shows
+  ruled-out and retained stretches, then the recorded contact layers, then the evidence package, following the step in
+  view. The example card shows the Mill Brook case as its four actual steps (report, readings at O and A3, three upper
+  reaches ruled out, a B2 visit that cannot promise narrowing) instead of decorative lines. The limits and the
+  invitation are one closing section over the river scene (still plate, same file as the hero), without divider rules.
+- Changed test: tests/e2e/test_gates_ui.py::test_illustrative_traces_are_visible_after_drawing no longer checks '/'
+  (the landing card has no drawn trace now); /example is still checked.
+- Mobile LCP (throttled profile, local production build): 2.3 s, element IMG.scene-plate (budget 2.5 s).
+
+### 2026-09-30, third pass: routes in the picture, report and policy pages, how it works close
+
+- Every route now starts on open water: origins were chosen by sampling the reed layer's alpha (hero 776,602 in a gap
+  between blades; sign-in 470,420 left of the form; state pages 878,704). How it works drops the reed overlay and shows a
+  closer, right-aligned view of the water (--scene-zoom 1.3) so stage 01 starts on water, with a lighter grade along the line.
+- The route is drawn in the water shader again (one canvas), under the reeds and the scene grade, so grass passes in front
+  of it and it is graded with the photograph. Added: a short vertical reflection streak under the line (broken by the
+  swells), a tint from the water under it, slight dimming with distance, and a calmer origin (smaller, no flare).
+- Origin note: display italic, to the left of its stem, clear of the line.
+- Report, step 1: "When did you notice it?" moved to the right-hand panel and both panels stretch to one height, so
+  neither column ends in empty space.
+- Privacy and terms: the river stays fixed behind the page while reading; privacy's right column adds an "In short"
+  list whose four lines restate the sections (organization access, photo location data removed, drafts in the browser,
+  corrections through the organization).
+- How it works: "Evidence first. Uncertainty visible." and "Start with what you can safely observe" are one closing
+  section over the river (same composition as the landing close), without divider rules.
+- Example cards now use separate scene photographs for revised evidence (overcast rocky brook), the unmapped case
+  (daylight allotment ditch), and the tidal case (foggy harbour). Their routes follow the visible water in each crop;
+  the original Mill Brook card keeps the dusk plate. The four desktop AVIF card assets total 225.4 KiB at their largest
+  selected widths (370.4 KiB with WebP fallback). Production build and desktop/mobile visual checks passed.
+
+### 2026-09-30, example cards without routes
+
+- The example cards no longer draw a route. A case's network changes as people add locations, so a fixed line on the
+  photo implied a map the card cannot know. (A per-case ring animation was tried and dropped: each photo's water sits
+  differently, so the rings could not sit convincingly on all of them.) Each card is now a photograph that settles in
+  the first time it comes on screen (fade from dark and a slight zoom, staggered down the list), then drifts very slowly
+  like a held camera while visible; hover passes one soft band of evening light across it and eases the photo in.
+  CSS only; the drift pauses off screen; reduced motion shows the still photo. No new images.
+- The revised-evidence example is renamed from "Mill Brook (revised evidence)" to "Hollin Beck" (services/api/main.py
+  EXAMPLES and scripts/seed_example.py seed_revised_scenario default). Its synthetic network and engine data are unchanged;
+  it now reads as its own place, matching its own photograph.
+- Changed tests: tests/e2e/test_gates_ui.py::test_illustrative_traces_are_visible_after_drawing is replaced by
+  test_example_cards_are_distinct_places_that_settle_in (no path on the cards, four distinct photos, the first card is
+  fully shown once on screen). tests/e2e/test_visual_gates.py::test_side_by_side_with_the_dark_primary_references
+  now accepts the hero route drawn by WebGL (html[data-route-gl]); its SVG copy must still exist and is checked as
+  visible only when WebGL is not drawing.
+- J01 (landing, unchanged by this step): mobile LCP measured 2284-2604 ms over five runs (budget 2.5 s; element
+  IMG.scene-plate); desktop 204-532 ms, CLS 0.060, initial JS 239 KB gzip. Borderline and noisy on this machine; needs
+  a look before release.
+
+### 2026-09-30, hero branch ends
+
+- The three branch ends on the landing hero now each carry one outcome a stretch upstream can have: Ruled out, Worth
+  checking, Not yet measured. They are parallel (every stretch ends in one of them), so they do not repeat the report,
+  evidence, review sequence below. Hover, keyboard focus or tap opens a note in the origin note's treatment (display
+  italic on a hairline stem, small-caps term); a faint ring pulses from each end after the route draws to invite a look.
+  Copy uses the glossary meanings: ruled out = incompatible under stated assumptions; worth checking = still fits every
+  reading. Component: apps/web/src/components/scene/branch-marks.tsx (buttons above the scene, placed in plate
+  coordinates; each note takes its preferred side that clears the hero's text, buttons and process line; an end cropped
+  out of view is left out).
+- New test: tests/e2e/test_gates_ui.py::test_hero_branch_ends_explain_the_three_outcomes (three terms in order, notes
+  hidden until hover, shown on hover and on keyboard focus, clear of the hero's buttons, subtitle and process line).
+  Also run: test_home_route_is_actually_drawn, test_side_by_side_with_the_dark_primary_references,
+  test_routes.py::test_no_serious_accessibility_violations, test_contrast_zoom_reflow_and_no_colour_only_status,
+  test_responsive_a11y.py (all passed). J01: desktop LCP 544 ms, mobile LCP 2472 ms (budget 2.5 s), CLS 0.059.
+
+### 2026-09-30, branch notes, brighter ends, no page scrollbar, dark first paint
+
+- Branch notes now name who meets the water along each branch: People (a footpath and a paddling spot), Livestock (cattle
+  drink from the bank), Wildlife (kingfishers nest in the bank), the same context layers the landing story names in its
+  second step. The earlier outcome labels (ruled out, worth checking, not yet measured) did not read as a branching idea.
+- End dots: a bright breathing core over each drawn end and a brighter ring that pulses every 3 s, to invite a hover;
+  hover or focus holds the glow. Notes balance their line breaks. Measurement starts 1.8 s after mount (the marks appear
+  at about 3 s), so nothing runs while the page loads.
+- No page scrollbar on any page (scrollbar-width: none and ::-webkit-scrollbar); scrolling by wheel, touch and keyboard
+  is unchanged.
+- White flash between pages: not reproduced (CDP screencast over 12 client navigations in headless Chromium and headed
+  Edge; no frame above mean luminance 49). Most likely a full reload after a local rebuild (an open tab's next navigation
+  after a new build reloads the document). The root html now carries the night colour inline, so a full load paints
+  dark from its first frame.
+- Changed test: test_hero_branch_ends_explain_the_three_outcomes renamed test_hero_branch_ends_name_who_meets_the_water
+  (terms people, livestock, wildlife). Passed with the accessibility, reflow and reduced-motion tests.
+- J01 mobile LCP over 6 runs: 2268-2680 ms (budget 2.5 s), borderline and noisy as before this change (2284-2604 ms
+  earlier today without the branch marks). Needs attention before release.
+
+### 2026-10-03, landing: clearer water, comets upstream, sunrise
+
+- Water: the shader no longer sharpens the plate (the unsharp step amplified the AVIF blocks into smeared horizontal
+  bands); refraction is about two thirds of before and the swells' brightness stripes and crest glints are about half.
+- Route: after it draws, the line settles to a fine filament and comets of light run upstream along it for as long as the
+  page is open (report to junction to each branch end). Each pixel's arrival time doubles as its distance along the
+  route, so the shader moves a sawtooth along it with no extra geometry; heads burn slightly warmer, a passing comet's
+  glow lights the ripples under it, and roughly a quarter of the slots stay dark so the rhythm is irregular.
+- Sunrise: the landing opens before dawn. A 230x160 sky patch with the sun painted out (made from the handoff's clean plate,
+  sun-patch-230 AVIF 4.7 KB / WebP 4.6 KB, via ScenePicture) covers the plate's sun; a drawn sun rises 55 plate px from
+  behind the ridge (masked by sun-sky.webp, 1.1 KB) to (1315,190) over 4.2 s while a night layer lifts off the scene.
+  CSS only, runs before hydration; reduced motion shows the risen sun at once. Added image transfer about 6 KB.
+- Tests run: test_hero_branch_ends_name_who_meets_the_water, test_home_route_is_actually_drawn,
+  test_water_stops_scheduling_frames_when_scene_leaves_view, test_side_by_side_with_the_dark_primary_references,
+  test_responsive_a11y.py, test_no_serious_accessibility_violations, test_performance.py: 18 passed. J01 mobile LCP
+  2396, 2220, 2272 ms (budget 2.5 s), desktop 156-448 ms, CLS 0.060, initial JS 241 KB gzip.
+
+### 2026-10-03, water wavelets, sunrise on the route clock, branch notes
+
+- Water: the periodic sine swells (which read as stripes over the photo's own ripples) are replaced by two layers of
+  smooth value noise, stretched wide and flat and smaller toward the horizon, drifting toward the viewer; refraction
+  is a gentle vertical shimmer (0.05-0.17% of the box). Highp where the GPU has it.
+- Sunrise: now 2.4 s and on the route clock (paused until html[data-route-clock], like the route labels), so the sun clears
+  the ridge while the line draws and stands risen as the branch ends arrive; the night lifts over 2.6 s.
+- Branch notes: each end is a place where water joins upstream and how readings settle it (Field drain: a reading either
+  side shows whether it changes the water; Road culvert: matching readings above and below rule the branch out; Pipe
+  outfall: a reading that changes across it keeps the branch worth checking).
+- Changed test: test_hero_branch_ends_name_who_meets_the_water renamed test_hero_branch_ends_name_where_water_joins.
+  18 passed (hero, water, visual gate, responsive/a11y, axe, performance). J01 mobile LCP 2380 ms, desktop 448 ms.

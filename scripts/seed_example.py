@@ -174,7 +174,7 @@ def seed_evidence(db, org, case, monitor, expert, branch=None):
             values(%s,%s,'accepted','Synthetic fixture reading accepted for the example episode',%s)''', (org, rid, expert))
 
 
-def seed_revised_scenario(org, key='revised', title='Mill Brook (revised evidence)'):
+def seed_revised_scenario(org, key='revised', title='Hollin Beck'):
     """Scenario 3: accepted B2=600 reading (fixture 'high' branch) that a later instrument check can revise. Returns case id."""
     with transaction(worker=True) as db:
         users = {r['email']: str(r['id']) for r in db.execute('select id,email from auth.users where email like %s', ('%@example.test',))}

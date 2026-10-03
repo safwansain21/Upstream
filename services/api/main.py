@@ -1380,7 +1380,7 @@ def change_membership(org: UUID, member: UUID, body: MembershipChange, request: 
 
 EXAMPLES = {  # slug -> seeded synthetic case title, walkthrough summary
     'useful-evidence': ('Mill Brook', 'A reviewed network and a synthetic anchor let the exact engine exclude three upper reaches. The next visit at B2 cannot promise narrowing at this precision.'),
-    'revised-evidence': ('Mill Brook (revised evidence)', 'A B2 reading narrows the area; a later instrument check puts it under review, and excluding it expands the area again.'),
+    'revised-evidence': ('Hollin Beck', 'A B2 reading narrows the area; a later instrument check puts it under review, and excluding it expands the area again.'),
     'unmapped': ('Allotment ditch', 'A report on an unnamed channel opens a useful case before any map, station or measurement exists.'),
     'tidal': ('Harbour channel', 'The case works, but the steady directed-tree model does not apply to a tidal reach, so localization stays unsupported.'),
 }

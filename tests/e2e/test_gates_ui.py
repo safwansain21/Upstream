@@ -85,10 +85,10 @@ def test_home_route_is_actually_drawn():  # I10: visible line, not just a finish
     pw, browser, p = browser_page()
     try:
         p.goto(BASE + '/')
-        expect(p.locator('.hero-route .route-ink .route-main')).to_be_visible()
-        p.wait_for_timeout(3500)
-        paths = p.locator('.hero-route .route-ink path').evaluate_all('''paths => paths.map(path => ({
-            length: path.getTotalLength(),
+        expect(p.locator('.hero-route .lr-main .lr-line')).to_be_visible()
+        p.wait_for_timeout(3800)
+        paths = p.locator('.hero-route path.lr-draw').evaluate_all('''paths => paths.map(path => ({
+            length: path.hasAttribute('pathLength') ? Number(path.getAttribute('pathLength')) : path.getTotalLength(),
             dash: parseFloat(getComputedStyle(path).strokeDasharray),
             offset: parseFloat(getComputedStyle(path).strokeDashoffset)
         }))''')
@@ -97,20 +97,46 @@ def test_home_route_is_actually_drawn():  # I10: visible line, not just a finish
         browser.close(); pw.stop()
 
 
-def test_illustrative_traces_are_visible_after_drawing():
+def test_hero_branch_ends_name_where_water_joins():
+    """Each branch end opens its note on hover or keyboard focus, clear of the hero's text and buttons."""
     pw, browser, p = browser_page()
     try:
-        for url, selector in [('/', '.example-trace path'), ('/example', '.example-art path')]:
-            p.goto(BASE + url)
-            expect(p.locator(selector).first).to_be_visible()
-            p.locator(selector).first.scroll_into_view_if_needed()
-            p.wait_for_timeout(2600)
-            paths = p.locator(selector).evaluate_all('''paths => paths.map(path => ({
-                length: path.getTotalLength(),
-                dash: parseFloat(getComputedStyle(path).strokeDasharray),
-                offset: parseFloat(getComputedStyle(path).strokeDashoffset)
-            }))''')
-            assert paths and all(path['dash'] >= path['length'] and abs(path['offset']) < 1 for path in paths), (url, paths)
+        p.goto(BASE + '/')
+        p.wait_for_timeout(3800)
+        marks = p.locator('.branch-mark')
+        assert marks.count() == 3
+        assert [m.inner_text().split('\n')[0].strip().lower() for m in marks.all()] == ['field drain', 'road culvert', 'pipe outfall']
+        blockers = p.evaluate('''() => [...document.querySelectorAll(".hero-actions .button, .hero-subtitle, .hero-process li")].map(b => b.getBoundingClientRect().toJSON())''')
+        for m in marks.all():
+            assert 'out' not in m.get_attribute('class').split(), m.get_attribute('class')
+            note = m.locator('.branch-note')
+            assert float(note.evaluate('n => getComputedStyle(n).opacity')) == 0
+            m.hover(); p.wait_for_timeout(500)
+            assert float(note.evaluate('n => getComputedStyle(n).opacity')) == 1
+            box = note.bounding_box()
+            assert not any(box['x'] < b['right'] and box['x'] + box['width'] > b['left'] and box['y'] < b['bottom'] and box['y'] + box['height'] > b['top'] for b in blockers), box
+        p.mouse.move(5, 5); p.locator('body').focus()
+        marks.nth(1).focus(); p.wait_for_timeout(500)
+        assert float(marks.nth(1).locator('.branch-note').evaluate('n => getComputedStyle(n).opacity')) == 1
+    finally:
+        browser.close(); pw.stop()
+
+
+def test_example_cards_are_distinct_places_that_settle_in():
+    """Each example card is its own photograph with no network drawn on it; it settles in fully once on screen."""
+    pw, browser, p = browser_page()
+    try:
+        p.goto(BASE + '/example')
+        arts = p.locator('.example-art')
+        expect(arts.first).to_be_visible()
+        assert p.locator('.example-art svg path').count() == 0
+        scenes = arts.evaluate_all('arts => arts.map(a => a.dataset.scene)')
+        assert len(scenes) >= 4 and len(set(scenes)) == len(scenes), scenes
+        arts.first.scroll_into_view_if_needed()
+        p.wait_for_timeout(2800)
+        first = arts.first
+        assert first.get_attribute('data-live') == 'true' and first.get_attribute('data-seen') is not None
+        assert float(first.locator('.example-art-box').evaluate('b => getComputedStyle(b).opacity')) == 1
     finally:
         browser.close(); pw.stop()
 

@@ -7,7 +7,7 @@ import { Arrow } from "../../components/brand";
 import { DocumentTitle } from "../../components/document-title";
 import { EyeIcon, LockIcon } from "../../components/icons";
 import { DuskScene } from "../../components/scene/dusk-scene";
-import { SceneRoute } from "../../components/scene/scene-route";
+import { SceneRoute, type Stop } from "../../components/scene/scene-route";
 import { InlineError } from "../../components/ui";
 import { safeNext, supabase } from "../../lib/api";
 
@@ -48,5 +48,7 @@ function SignIn() {
     <p className="access-privacy"><LockIcon size={18}/> Your information stays private and is used only to support your investigations on Upstream.</p>
   </main>;
 }
-const ROUTE = [{ x: 352, y: 742, tone: "origin" as const }, { x: 392, y: 668, ghost: true }, { x: 590, y: 598, ghost: true }, { x: 1098, y: 520, ghost: true }, { x: 1300, y: 486, ghost: true }, { x: 1432, y: 452 }, { x: 1180, y: 392, ghost: true }, { x: 1250, y: 368 }];
+/* starts on the open water left of the form (never in the reeds), passes behind it, and winds upstream on the right */
+const ROUTE: Stop[] = [{ x: 470, y: 420, tone: "origin" }, ...[[522, 446], [572, 474], [620, 500], [700, 530], [830, 562], [1063, 547], [1278, 513]].map(([x, y]) => ({ x, y, ghost: true })),
+  { x: 1410, y: 477 }, { x: 1330, y: 447, ghost: true }, { x: 1258, y: 436 }, { x: 1150, y: 414, ghost: true }, { x: 1228, y: 396 }];
 export default function Page() { return <div className="screen-top"><DuskScene variant="screen" route={<SceneRoute stops={ROUTE} duration={2.4}/>}/><AppHeader scene={false}/><Suspense><SignIn/></Suspense></div>; }

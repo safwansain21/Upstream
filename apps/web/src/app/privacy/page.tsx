@@ -6,9 +6,14 @@ import { Footer } from "../../components/ui";
 
 export const metadata: Metadata = { title: "Privacy" };
 export default function PrivacyPage() {
-  return <><AppHeader/><PolicyDoc eyebrow="Privacy" title="Your observations. Handled with care."
+  return <><AppHeader fixedScene/><PolicyDoc eyebrow="Privacy" title="Your observations. Handled with care."
     intro={<p>Reports can include a description, location, time, and optional photographs. Signed-in activity is connected to your account and organization so a coordinator can review contributions and follow up.</p>}
-    aside={<p className="margin-line">Private by default. Shared on purpose.</p>}
+    aside={<><p className="margin-line">Private by default. Shared on purpose.</p>
+      <div className="policy-glance"><p className="eyebrow">In short</p><ul>
+        <li>A report is seen by the organization handling it and the people it assigns, not the public.</li>
+        <li>Photos are shared without the location data embedded in them.</li>
+        <li>Unsent drafts stay in this browser until you send them.</li>
+        <li>You can ask the organization for a correction, a copy, or a privacy review.</li></ul></div></>}
     sections={[
       { id: "who-can-see", title: "Who can see a report", body: <p>Access to working records is controlled by organization membership and assigned capabilities. A shared evidence package has a separate access scope. Public examples are explicitly synthetic; they are not a public feed of private contributions.</p> },
       { id: "locations-photos", title: "Locations and photographs", body: <p>Only include the detail needed to describe the observation. Avoid faces, vehicle plates, private documents, and sensitive locations in photos. A precise location can reveal where you were. Check the report before submitting and use a nearby landmark when that better fits the observation. Location data embedded in photos is removed from shared copies.</p> },

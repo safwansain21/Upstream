@@ -419,7 +419,9 @@ def test_side_by_side_with_the_dark_primary_references(tmp_path):  # I01 (per th
         settle(p, '/')
         p.wait_for_timeout(3000)
         assert p.locator('.dusk-hero .scene-plate').count() == 1 and p.locator('.dusk-hero .scene-water').count() == 1
-        assert p.locator('.hero-route .route-origin').is_visible() and p.locator('.hero-route .route-main').count() >= 1
+        # the route is drawn into the water (WebGL); its SVG copy stays in the DOM and shows only without WebGL
+        assert p.locator('.hero-route .lr-origin').count() == 1 and p.locator('.hero-route .lr-main').count() >= 1
+        assert p.evaluate('() => "routeGl" in document.documentElement.dataset') or p.locator('.hero-route .lr-origin').is_visible()
         assert p.get_by_role('navigation', name='Primary').get_by_role('link').count() >= 3
         assert p.locator('#main-content a.button-primary').first.is_visible()
         pair(p, 'landing', f'{HANDOFF}/07-visible-current.png')

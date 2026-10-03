@@ -35,7 +35,8 @@
 
 /* ---------- base ---------- */
 *, *::before, *::after { box-sizing: border-box; }
-html { background: var(--night); scroll-behavior: smooth; scroll-padding-top: 96px; scrollbar-color: #3f5d62 var(--night); -webkit-text-size-adjust: 100%; }
+html { background: var(--night); scroll-behavior: smooth; scroll-padding-top: 96px; scrollbar-width: none; -webkit-text-size-adjust: 100%; }
+html::-webkit-scrollbar { display: none; } /* pages run edge to edge; wheel, touch, keyboard and scrolling are unchanged */
 html[data-motion="reduced"] { scroll-behavior: auto; }
 body { position: relative; isolation: isolate; margin: 0; min-height: 100vh; background: transparent; color: var(--mist); font-family: var(--body); font-size: var(--size-body); line-height: 1.55; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-variant-numeric: lining-nums; }
 ::selection { background: #c6dfe0; color: var(--night); }
@@ -231,7 +232,7 @@ input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; margin:
 .term-gloss[hidden] { display: none; }
 
 /* ---------- application chrome ---------- */
-.app-header { position: relative; z-index: 30; border-bottom: 1px solid rgb(194 205 203 / 12%); }
+.app-header { position: relative; z-index: 30; }
 .header-inner { display: flex; align-items: center; gap: clamp(20px, 3.2vw, 56px); max-width: none; min-height: 74px; padding: 10px var(--gutter); }
 .brand { display: inline-flex; align-items: center; gap: 12px; flex: none; color: var(--mist); text-decoration: none; }
 .brand svg { width: 52px; height: 32px; }
@@ -261,7 +262,7 @@ input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; margin:
 .menu-panel .menu-meta { padding: 8px 12px 10px; border-bottom: 1px solid var(--line-soft); margin-bottom: 6px; color: var(--quiet); font-size: var(--size-small); }
 .bell { position: relative; }
 .bell .unread { position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 2px var(--night); }
-.site-footer { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4) var(--s6); padding: var(--s6) var(--gutter); border-top: 1px solid var(--line-soft); color: var(--quiet); font-size: var(--size-small); }
+.site-footer { position: relative; background: var(--night); display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4) var(--s6); padding: var(--s6) var(--gutter); border-top: 1px solid var(--line-soft); color: var(--quiet); font-size: var(--size-small); }
 .site-footer .brand svg { width: 38px; height: 24px; }
 .site-footer .brand span { font-size: 1.35rem; }
 .site-footer nav { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s5); }

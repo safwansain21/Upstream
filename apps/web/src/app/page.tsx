@@ -3,13 +3,15 @@ import { AppHeader } from "../components/app-header";
 import { Arrow } from "../components/brand";
 import { Reveal } from "../components/reveal";
 import { DuskScene } from "../components/scene/dusk-scene";
-import { HeroRoute } from "../components/scene/hero-route";
+import { BranchMarks } from "../components/scene/branch-marks";
+import { BRANCH_MARKS, HeroRoute } from "../components/scene/hero-route";
+import { StoryVisual } from "../components/story-visual";
 import { Footer } from "../components/ui";
 
 /** The landing story continues the hero's line: where a change enters, who reaches that water, who needs the evidence. */
 export default function HomePage() {
   return <>
-    <div className="landing-top"><DuskScene variant="hero" eager route={<HeroRoute note="A report begins with what you notice"/>}/><AppHeader/>
+    <div className="landing-top"><DuskScene variant="hero" eager sunrise route={<HeroRoute note="A report begins with what you notice"/>}/><AppHeader/>
       <main id="main-content">
         <section className="landing-hero" aria-labelledby="hero-title">
           <div className="hero-content">
@@ -27,12 +29,14 @@ export default function HomePage() {
             <li className="unmapped-process"><strong>No mapped stream nearby?</strong><span><Link href="/report/new">You can still report an observation.</Link></span></li>
           </ol>
           <span className="scene-disclosure">Illustrative scene · not a real investigation map</span>
+          <BranchMarks marks={BRANCH_MARKS}/>
         </section>
       </main>
     </div>
     <div className="landing-story">
       <section className="story-spine section-shell" aria-labelledby="story-heading">
         <h2 id="story-heading" className="visually-hidden">What happens after a report</h2>
+        <StoryVisual/>
         <Reveal as="article" className="story-step" aria-labelledby="enter-heading">
           <span className="story-marker" aria-hidden="true"/>
           <p className="eyebrow amber">01 · The stream</p>
@@ -65,17 +69,27 @@ export default function HomePage() {
             <h2 id="example-heading">A small stream.<br/>A shared investigation.</h2>
             <p>Follow Mill Brook from the first observation to a reviewable next step, computed by the real engine. See what happens when evidence is useful, uncertain, or revised.</p>
             <Link href="/example" className="button button-primary">Explore the investigation <Arrow/></Link></div>
-          <svg className="example-trace" viewBox="0 0 520 260" aria-hidden="true"><path d="M18 222 C120 210 160 170 232 150 S330 118 372 84 S460 40 506 30"/><path className="branch" d="M372 84 C390 110 430 124 488 120"/><path className="branch dashed" d="M232 150 C250 118 250 76 286 44"/><circle className="origin" cx="18" cy="222" r="6"/><circle cx="506" cy="30" r="4"/><circle cx="488" cy="120" r="4"/><circle cx="286" cy="44" r="4"/></svg>
+          <ol className="case-ledger" aria-label="Mill Brook, step by step">
+            <li className="origin"><span className="ledger-who">A neighbour reports</span><strong>Foam collecting beside the east footbridge.</strong><span>A photo, a place and a time. Nothing more is asked.</span></li>
+            <li><span className="ledger-who">A trained monitor measures</span><strong>An anchor reading at O, then one at A3.</strong><span>Both quality-reviewed before they count.</span></li>
+            <li><span className="ledger-who">The exact engine answers</span><strong>Three upper reaches ruled out.</strong><span>Incompatible under the stated assumptions. The rest stay worth checking.</span></li>
+            <li className="next"><span className="ledger-who">A coordinator decides</span><strong>A visit at B2 is possible.</strong><span>It cannot promise to narrow the search at this precision, and the case says so.</span></li>
+          </ol>
         </Reveal>
       </section>
-      <section className="landing-limits section-shell" aria-labelledby="limits-heading">
-        <Reveal><h2 id="limits-heading">Better questions.<br/>Grounded decisions.</h2></Reveal>
-        <Reveal className="limits-copy"><h3>What an observation can do</h3><p>A report can document a change, start a local case, and help organize the next useful evidence.</p>
-          <h3>What it cannot tell you alone</h3><p>A photo does not identify a pollutant or establish water safety. Measurements, appropriate assumptions, and expert review are needed for interpretation.</p></Reveal>
-      </section>
-      <section className="community-invitation section-shell" aria-labelledby="community-heading">
-        <h2 id="community-heading">Care about your local stream?<br/>There’s a place for you here.</h2>
-        <Link href="/how-it-works#communities" className="button button-outline">Find your part <Arrow/></Link>
+      <section className="landing-close" aria-labelledby="limits-heading">
+        <DuskScene variant="band"/>
+        <div className="landing-close-inner section-shell">
+          <Reveal className="close-heading"><h2 id="limits-heading">Better questions.<br/>Grounded decisions.</h2></Reveal>
+          <Reveal className="close-limits">
+            <div><h3>What an observation can do</h3><p>A report can document a change, start a local case, and help organize the next useful evidence.</p></div>
+            <div><h3>What it cannot tell you alone</h3><p>A photo does not identify a pollutant or establish water safety. Measurements, appropriate assumptions, and expert review are needed for interpretation.</p></div>
+          </Reveal>
+          <Reveal className="close-invitation">
+            <h2 id="community-heading">Care about your local stream?<br/>There’s a place for you here.</h2>
+            <div className="button-row"><Link href="/report/new" className="button button-primary">Report an observation</Link><Link href="/how-it-works#communities" className="button button-outline">Find your part <Arrow/></Link></div>
+          </Reveal>
+        </div>
       </section>
     </div>
     <Footer/>
