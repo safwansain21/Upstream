@@ -33,14 +33,14 @@
 .scene-sunrise { position: absolute; left: 71.77%; top: 11.69%; width: 13.756%; height: 17.003%; pointer-events: none; }
 .scene-sunrise picture, .scene-sunrise img { position: absolute; inset: 0; width: 100%; height: 100%; }
 .sun-sky { position: absolute; inset: 0; -webkit-mask: url("/upstream-dark/scene/sun-sky.webp") 0 0 / 100% 100% no-repeat; mask: url("/upstream-dark/scene/sun-sky.webp") 0 0 / 100% 100% no-repeat; }
-.sun-body { position: absolute; inset: 0; animation: sun-rise 2.4s .3s cubic-bezier(.3, .5, .3, 1) both; }
+.sun-body { position: absolute; inset: 0; animation: sun-rise 1.7s cubic-bezier(.3, .5, .3, 1) both; }
 .sun-disc, .sun-glow { position: absolute; left: 50%; top: 50%; border-radius: 50%; translate: -50% -50%; }
 .sun-disc { width: 13.9%; aspect-ratio: 1; background: radial-gradient(circle, #fffbea 0 46%, #ffe7b2 62%, rgb(255 206 140 / 70%) 74%, rgb(255 190 120 / 0%) 100%);
   box-shadow: 0 0 10px 3px rgb(255 214 150 / 55%); }
-.sun-glow { width: 92%; aspect-ratio: 1.45; background: radial-gradient(closest-side, rgb(255 214 150 / 55%), rgb(255 170 90 / 22%) 45%, rgb(255 150 80 / 0%)); mix-blend-mode: screen; animation: sun-bloom 2.4s .3s ease-out both; }
+.sun-glow { width: 92%; aspect-ratio: 1.45; background: radial-gradient(closest-side, rgb(255 214 150 / 55%), rgb(255 170 90 / 22%) 45%, rgb(255 150 80 / 0%)); mix-blend-mode: screen; animation: sun-bloom 1.7s ease-out both; }
 @keyframes sun-rise { from { transform: translateY(34.4%); } to { transform: translateY(0); } }
 @keyframes sun-bloom { from { opacity: .15; scale: .55; } to { opacity: 1; scale: 1; } }
-.scene-dawn { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgb(6 12 28 / 92%), rgb(4 10 22 / 88%) 55%, rgb(3 8 16 / 92%)); animation: dawn-lift 2.6s .15s cubic-bezier(.45, 0, .35, 1) both; }
+.scene-dawn { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgb(6 12 28 / 92%), rgb(4 10 22 / 88%) 55%, rgb(3 8 16 / 92%)); animation: dawn-lift 1.9s cubic-bezier(.45, 0, .35, 1) both; }
 @keyframes dawn-lift { from { opacity: 1; } 30% { opacity: .8; } to { opacity: 0; } }
 /* the sunrise keeps the route's clock: it waits with the line and finishes as the branch ends arrive */
 html:not([data-route-clock]) .scene-dawn, html:not([data-route-clock]) .sun-body, html:not([data-route-clock]) .sun-glow { animation-play-state: paused; }
@@ -76,15 +76,15 @@ html[data-route-gl] .light-route.route-sync, html[data-route-gl] .spine-stop::be
 @keyframes lr-spark { from { opacity: 0; } 35% { opacity: 1; } to { opacity: var(--o); } }
 @keyframes dot-arrive { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: scale(1); } }
 /* the note stands to the left of its stem, away from the line that leaves the origin up and to the right */
-.hero-origin-note { position: absolute; margin: 0; transform: translate(calc(-100% + 1px), calc(-100% - 12px)); padding: 0 12px 26px 0; border-right: 1px solid rgb(238 175 99 / 55%); text-align: right; color: rgb(238 175 99 / 92%); font-family: var(--display); font-style: italic; font-size: clamp(1rem, 1.15vw, 1.2rem); letter-spacing: .005em; white-space: nowrap; animation: fade-in .7s .9s both; }
+.hero-origin-note { position: absolute; margin: 0; transform: translate(calc(-100% + 1px), calc(-100% - 12px)); padding: 0 12px 26px 0; border-right: 1px solid rgb(238 175 99 / 55%); text-align: right; color: rgb(238 175 99 / 92%); font-family: var(--display); font-style: italic; font-size: clamp(1rem, 1.15vw, 1.2rem); letter-spacing: .005em; white-space: nowrap; animation: fade-in .7s .25s both; }
 .hero-origin-note.beside { transform: translate(calc(-100% - 22px), -50%); padding: 0 10px 0 0; }
 .hero-origin-note.hidden { display: none; }
 
 /* the hero's branch ends (branch-marks.tsx): a quiet ring invites a look; the note uses the origin note's stem */
 .branch-marks { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
-.branch-mark { position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; padding: 0; border: 0; border-radius: 50%; background: none; color: inherit; font: inherit; cursor: pointer; pointer-events: auto; animation: fade-in .6s calc(2.9s + var(--i) * .1s) both; }
+.branch-mark { position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; padding: 0; border: 0; border-radius: 50%; background: none; color: inherit; font: inherit; cursor: pointer; pointer-events: auto; animation: fade-in .6s calc(1.8s + var(--i) * .1s) both; }
 .branch-mark.out { visibility: hidden; pointer-events: none; }
-.branch-mark::before { content: ""; position: absolute; inset: 10px; border-radius: 50%; border: 1.5px solid rgb(250 244 232 / 90%); opacity: 0; animation: branch-call 3s calc(3.2s + var(--i) * 1s) cubic-bezier(.2, .6, .35, 1) infinite; }
+.branch-mark::before { content: ""; position: absolute; inset: 10px; border-radius: 50%; border: 1.5px solid rgb(250 244 232 / 90%); opacity: 0; animation: branch-call 3s calc(2.2s + var(--i) * 1s) cubic-bezier(.2, .6, .35, 1) infinite; }
 /* a bright core over the drawn end dot that breathes, so the ends read as something to touch */
 .branch-mark::after { content: ""; position: absolute; inset: 13px; border-radius: 50%; background: radial-gradient(circle, #fffaf0 0 38%, rgb(255 246 228 / 70%) 60%, rgb(255 240 214 / 0%) 100%);
   box-shadow: 0 0 10px 3px rgb(255 238 208 / 45%), 0 0 26px 8px rgb(255 226 184 / 18%); animation: branch-breathe 2.4s calc(var(--i) * .4s) ease-in-out infinite alternate; transition: box-shadow .35s var(--ease-settle); }

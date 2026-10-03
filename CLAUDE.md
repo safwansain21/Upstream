@@ -3,7 +3,7 @@
 Spec: `docs/specification/` (UPSTREAM-PRD.md, SCIENTIFIC-ENGINE.md, ACCEPTANCE.md). Status: `docs/release-results.md`, `docs/progress.md`.
 
 ## Git
-- Only commit and push to `build/upstream`. Never push to `main`.
+- Commit and push to `main` (build/upstream was merged into main on 2026-10-03 at the owner's request; work continues on main).
 - Commit and push after every working chunk. Sessions can end without warning.
 - Commit style: one lowercase imperative line describing the change (e.g. `add optional AI suggestion panel to the report form and record AI gate evidence`).
 - Never include "built with Claude Code", "Generated with Claude Code", a Co-Authored-By trailer, or any other tool attribution in commits, pushes, PRs, or repo files.

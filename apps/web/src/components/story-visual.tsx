@@ -42,7 +42,7 @@ export function StoryVisual() {
         <g className="sv-ruled">{RULED.map((d, i) => <path key={i} d={d} pathLength={1} style={{ "--i": i + 4 } as React.CSSProperties}/>)}</g>
         <g className="sv-retained">{RETAINED.map((d, i) => <path key={i} d={d} pathLength={1} style={{ "--i": i } as React.CSSProperties}/>)}</g>
         <g className="sv-context">
-          <path className="sv-people" d="M252 318 C272 312 300 316 330 306 C352 298 372 300 392 292"/><text x="336" y="330">footpath, paddling spot</text>
+          <path className="sv-people" d="M262 372 C288 350 312 334 330 306 C344 284 362 268 384 258"/><circle className="sv-people-spot" cx="331" cy="304" r="4.5"/><text x="342" y="322">footpath, paddling spot</text>
           <circle className="sv-animals" cx="252" cy="418" r="9"/><text x="268" y="422">cattle drinking point</text>
           <path className="sv-habitat" d="M226 470 C224 452 230 440 229 426"/><text x="216" y="452" textAnchor="end">kingfisher bank</text>
         </g>

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { CaseAnalysis, km } from "../../../../../components/case-analysis";
 import { CaseHeader } from "../../../../../components/case-tabs";
+import { CaseSummary } from "../../../../../components/case-summary";
 import { DocIcon, QuestionIcon, StationIcon, ListIcon, PeopleIcon } from "../../../../../components/icons";
 import { EmptyState, InlineError, PageState } from "../../../../../components/ui";
 import { api } from "../../../../../lib/api";
@@ -38,6 +39,7 @@ export default function CaseOverview() {
       <li><span className="glance-icon"><StationIcon/></span><strong className="numeric">{approved}</strong><span>{approved === 1 ? "station" : "stations"} ready for field readings</span></li>
       {review ? <li><span className="glance-icon"><DocIcon/></span><strong className="numeric">{history.data?.length ?? 0}</strong><span>{latest ? `assessment${history.data!.length === 1 ? "" : "s"} · latest keeps ${latest.eligible ? km(latest.retained_length_m) : "everything"} under consideration` : "assessments so far"}</span></li> : null}
     </ul>
+    <CaseSummary org={org} caseId={id}/>
     <section className="glance-block" aria-labelledby="know-h"><h3 id="know-h"><ListIcon/> What we know</h3>
       <p className="muted">{first ? `The first observation was made on ${new Date(first.observed_at).toLocaleDateString()}.` : "No observations are attached yet."} {c.reports.length > 1 ? `${c.reports.length} reports describe this change.` : ""} {network.data ? `A local map is recorded (version ${network.data.version}, ${network.data.status}).` : "No local stream map is recorded yet."}</p></section>
     <section className="glance-block" aria-labelledby="unknown-h"><h3 id="unknown-h"><QuestionIcon/> What remains unknown</h3>

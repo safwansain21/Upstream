@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, type ReactNode } from "react";
-import { BRANCHES, PLATE, REEDS, SUN_PATCH, ScenePicture } from "./scene-picture";
+import { BRANCHES, PLATE, PLATE_HQ, REEDS, SUN_PATCH, ScenePicture } from "./scene-picture";
 import { resetRouteClock, startRouteClock, startWater, type GlRoute } from "./water";
 
 type RouteWindow = Window & { __upstreamRoute?: GlRoute | null };
@@ -44,7 +44,7 @@ export function DuskScene({ variant, route, eager = false, still = false, reeds 
     if (owner) resetRouteClock();
     let fallback = owner ? window.setTimeout(() => { // after this commit's routes have published themselves
       const waits = water && active() && (window as RouteWindow).__upstreamRoute;
-      if (waits) fallback = window.setTimeout(startRouteClock, 1600); else startRouteClock();
+      if (waits) fallback = window.setTimeout(startRouteClock, 600); else startRouteClock();
     }, 0) : 0;
     const takeRoute = () => water?.setRoute((window as RouteWindow).__upstreamRoute ?? null);
     if (owner) { window.addEventListener("upstream-route", takeRoute); takeRoute(); }
@@ -61,7 +61,7 @@ export function DuskScene({ variant, route, eager = false, still = false, reeds 
   }, []);
   return <div ref={host} className={`dusk-scene dusk-${variant}${fixed ? " dusk-fixed" : ""}`} data-scene="river" aria-hidden="true">
     <div className="scene-art">
-      {still ? <div className="scene-plate scene-plate-still"/> : <ScenePicture asset={PLATE} className="scene-plate" eager={eager} sizes={variant === "band" ? "(max-width: 750px) 750px, 100vw" : "(max-aspect-ratio: 1672/941) 178vh, 100vw"}/>}
+      {still ? <div className="scene-plate scene-plate-still"/> : <ScenePicture asset={PLATE} wide={variant === "band" ? undefined : PLATE_HQ} className="scene-plate" eager={eager} sizes={variant === "band" ? "(max-width: 750px) 750px, 100vw" : "(max-aspect-ratio: 1672/941) 178vh, 100vw"}/>}
       {sunrise ? <div className="scene-sunrise"><ScenePicture asset={SUN_PATCH} eager sizes="15vw"/>
         <div className="sun-sky"><div className="sun-body"><span className="sun-glow"/><span className="sun-disc"/></div></div></div> : null}
       {live ? <canvas ref={canvas} className="scene-water" data-motion="water"/> : null}

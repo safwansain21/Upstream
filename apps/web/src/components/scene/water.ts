@@ -21,7 +21,7 @@ precision highp float;
 precision mediump float;
 #endif
 varying vec2 uv; uniform sampler2D matte; uniform float t;
-float depth, n, crest; vec2 d;
+float depth, n, crest, wave; vec2 d;
 float hash(vec2 p) { vec3 q = fract(vec3(p.xyx) * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
 float noise(vec2 p) {
   vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
@@ -36,8 +36,14 @@ void ripple() {
   float b = noise(q * vec2(1.9, 2.4) + vec2(5.2 - t * .16, 1.3 - t * .7));
   float v = a * .62 + b * .38;
   n = v * 2. - 1.;
-  crest = smoothstep(.66, .92, v);                                   // the high points of the wavelets: where light glints
-  d = vec2(n * .25, n) * mix(.0005, .0017, depth);                   // a gentle, mostly vertical shimmer of the reflections
+  // Gentle waves rolling in toward the near bank: crests travel down the water, bend with a slow sideways sway, and a
+  // second noise breaks each crest into short pieces, so the water visibly moves without ever forming stripes.
+  float sway = (noise(vec2(uv.x * mix(14., 5., depth), t * .07)) - .5) * 7.;
+  float roll = uv.y * 941. / mix(5., 26., depth) - t * 1.5 + sway;
+  float piece = smoothstep(.42, .78, noise(vec2(uv.x * 1672. / mix(26., 90., depth), uv.y * 941. / mix(7., 30., depth) - t * .25)));
+  wave = pow(.5 + .5 * sin(roll), 5.) * piece * smoothstep(.0, .25, depth + .12);
+  crest = max(smoothstep(.66, .92, v), wave);                        // where light glints: wavelet tops and the rolling crests
+  d = vec2(n * .25, n + wave * 1.6) * mix(.0005, .0017, depth);      // a gentle, mostly vertical shimmer of the reflections
 }
 `;
 /** The water, with the page's route drawn into it: refracted by the same swells, its glow broken into reflections by
@@ -50,10 +56,11 @@ void main() {
   vec2 w = uv + d;
   vec3 base = texture2D(plate, w).rgb;
   float lum = dot(base, vec3(.3, .59, .11));
-  vec3 water = base * (1. + n * mix(.025, .045, depth)) + crest * smoothstep(.22, .6, lum) * vec3(1., .86, .7) * .14;
+  // crests catch the light already on the water (bright where the sun's path lies, faint in the dark), troughs dim a little
+  vec3 water = base * (1. + n * mix(.025, .045, depth) + .16 * wave) + crest * (.04 + smoothstep(.12, .55, lum)) * vec3(1., .88, .74) * .32;
   vec3 light = vec3(0.); float cover = 0.;
   if (route > .5) {
-    vec2 r = uv + d * m * .45;                                       // the route bends with the swells it lies on
+    vec2 r = uv + d * m * .9;                                        // the route bends with the water it lies in
     vec4 k = texture2D(core, r), g = texture2D(glow, r);
     float since = rt - k.g;
     float shown = clamp(since * 90., 0., 1.);                        // arrival time per pixel, a soft head a few ms wide
@@ -69,15 +76,20 @@ void main() {
     float comet = (pow(f, 4.) * 1.1 + smoothstep(.95, .995, f) * 2.6) * smoothstep(1., .985, f) * amp * settled;
     float gp = g.g * 7. - T, gf = fract(gp);
     float gcomet = pow(gf, 3.) * smoothstep(1., .96, gf) * step(.28, fract(sin(floor(gp) * 78.233) * 43758.5)) * clamp((rt - g.g - .03) * 5., 0., 1.);
-    float line = k.a * shown * level * (mix(1. + head, .38, settled) + 4.2 * comet) * (1. + .25 * n * m);
-    float halo = g.a * clamp((rt - g.g) * 40., 0., 1.) * mix(1., .65 + .6 * n + .7 * crest, m) * (mix(1.5, .75, settled) + 4.5 * gcomet); // reflections break on the swells
-    water += vec3(1., .9, .76) * g.a * gcomet * (.35 + 2.2 * crest) * m * .7; // a passing comet lights the ripples under it
+    // The route is light in the water, not a stroke on it: a fine core plus a wide glow that only shows where the water's
+    // own wavelets and crests catch it, screened into the water so the water's texture stays visible through it.
+    float catchLight = mix(1., .6 + 1.2 * crest + .4 * max(n, 0.), m);
+    float line = k.a * shown * level * (mix(1. + head, .62, settled) + 3.4 * comet) * mix(1., .75 + .8 * crest + .25 * n, m * settled);
+    float halo = g.a * clamp((rt - g.g) * 40., 0., 1.) * catchLight * (mix(1.5, 1.25, settled) + 4. * gcomet);
     vec3 ink = mix(mix(vec3(.98, .97, .94), vec3(1., .93, .8), clamp(comet, 0., 1.)), vec3(.95, .7, .42), k.r); // comet heads burn a little warmer
-    vec3 haze = mix(vec3(.84, .95, .94), vec3(.95, .7, .42), g.r);
-    vec3 tint = mix(vec3(1.), min(base / max(lum, .04), 1.8), .3 * m * (1. - max(k.r, g.r))); // the light takes on the colour of the water under it (the amber origin keeps its own)
-    float far = mix(.7, 1., depth);                                  // and fades a little with distance
-    light = (ink * line + haze * halo * .7) * tint * far;
-    cover = clamp(line + halo * .55, 0., 1.);
+    vec3 haze = mix(vec3(.8, .93, .94), vec3(.95, .7, .42), g.r);
+    vec3 tint = mix(vec3(1.), min(base / max(lum, .04), 1.8), .35 * m * (1. - max(k.r, g.r))); // the light takes on the colour of the water under it (the amber origin keeps its own)
+    float far = mix(.72, 1., depth);                                 // and fades a little with distance
+    vec3 L = clamp((ink * line * 1.1 + haze * halo * .95) * tint * far, 0., 1.);
+    light = L;
+    cover = clamp(line + halo * .5, 0., 1.);
+    water = 1. - (1. - water) * (1. - L * m);                        // screened into the water: lit, not painted over
+    light *= 1. - m;                                                 // only off the water does the light stand on its own
   }
   gl_FragColor = vec4(min(water * m + light, 1.), max(m, cover));
 }`;

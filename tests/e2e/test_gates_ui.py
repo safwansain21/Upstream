@@ -122,6 +122,30 @@ def test_hero_branch_ends_name_where_water_joins():
         browser.close(); pw.stop()
 
 
+def test_case_summary_cites_its_records_and_says_where_it_came_from():  # PRD 9.2, Track 3 explainable AI
+    """With or without a provider: every sentence links to a listed source, and the panel names AI or the template."""
+    import re
+    from tests.api.test_analysis import case_id
+    from tests.api.test_http import ORG
+    from tests.e2e.test_report_flow import sign_in
+    pw, browser, p = browser_page()
+    try:
+        p.goto(BASE + '/sign-in'); sign_in(p, 'coordinator@example.test')
+        expect(p).to_have_url(re.compile('/investigations'), timeout=20000)
+        p.goto(f"{BASE}/app/{ORG}/investigations/{case_id('Mill Brook')}")
+        p.get_by_role('button', name='Write a summary').click()
+        sources = p.get_by_role('list', name='Sources')
+        expect(sources).to_be_visible(timeout=30000)
+        listed = {t.strip() for t in sources.locator('li > .summary-ref').all_inner_texts()}
+        cited = {a.inner_text().strip() for a in p.locator('.summary-text a.summary-ref').all()}
+        assert cited and cited <= listed, (cited, listed)
+        expect(p.locator('.summary-provenance')).to_have_text(re.compile('Written by AI|fixed template'))
+        p.locator('.summary-text a.summary-ref').first.focus()
+        expect(p.locator('.summary-sources li.is-focus')).to_have_count(1)
+    finally:
+        browser.close(); pw.stop()
+
+
 def test_example_cards_are_distinct_places_that_settle_in():
     """Each example card is its own photograph with no network drawn on it; it settles in fully once on screen."""
     pw, browser, p = browser_page()

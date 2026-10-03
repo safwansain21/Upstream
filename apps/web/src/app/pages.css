@@ -47,9 +47,9 @@ html[data-motion="full"] .reveal:not(.is-visible) .story-marker { transform: sca
 .story-layers { display: flex; flex-wrap: wrap; gap: 10px 28px; margin: 6px 0 0; padding: 0; list-style: none; color: var(--mist); }
 .story-layers li { display: inline-flex; align-items: center; gap: 12px; }
 .layer-line { display: inline-block; width: 30px; height: 2px; border-radius: 1px; }
-.layer-line.people { background: var(--amber); }
+.layer-line.people { height: 3px; background: radial-gradient(circle, rgb(226 206 170 / 90%) 0 1.2px, transparent 1.6px) 0 50% / 7.6px 3px repeat-x; } /* the figure's dotted bank trail */
 .layer-line.animals { background: repeating-linear-gradient(90deg, var(--caution) 0 7px, transparent 7px 11px); }
-.layer-line.habitat { background: var(--verified); }
+.layer-line.habitat { height: 3px; background: radial-gradient(circle, var(--verified) 0 1.4px, transparent 1.8px) 0 50% / 6px 3px repeat-x; }
 .story-formats { display: flex; flex-wrap: wrap; gap: 8px; }
 .story-formats span { padding: 4px 12px; border: 1px solid var(--line-soft); border-radius: 999px; font-family: var(--mono); font-size: .78rem; color: var(--quiet); }
 .story-step, .story-close { grid-column: 1; }
@@ -74,7 +74,8 @@ html[data-motion="full"] .story-visual:not(.is-drawn) .story-network path { opac
 .sv-report circle { fill: var(--amber); filter: drop-shadow(0 0 6px var(--amber)); }
 .sv-report .sv-report-ring { fill: none; stroke: rgb(238 175 99 / 55%); stroke-width: 1; filter: none; }
 .sv-context { opacity: 0; transition: opacity 700ms var(--ease-settle); }
-.sv-people { fill: none; stroke: var(--amber); stroke-width: 2.4; }
+.sv-people { fill: none; stroke: rgb(226 206 170 / 80%); stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: .1 5.5; } /* a dotted trail on the bank: not a stream, not a ruled-out dash */
+.sv-people-spot { fill: var(--night); stroke: rgb(226 206 170 / 90%); stroke-width: 1.4; }
 .sv-animals { fill: none; stroke: var(--caution); stroke-width: 1.6; stroke-dasharray: 4 3; }
 .sv-habitat { fill: none; stroke: var(--verified); stroke-width: 3; stroke-dasharray: 1 5; }
 .story-network > g { transition: opacity 700ms var(--ease-settle); }
@@ -1179,3 +1180,14 @@ a.help-card:hover { transform: translateX(3px); }
 .landing-story:has(.landing-close) + .site-footer { border-top: 0; }
 /* how it works: the stage line runs low across the water, so the grade stays light there and darkens only behind the copy */
 .screen-short .dusk-screen .scene-grade { background: radial-gradient(ellipse 60% 55% at 22% 26%, rgb(4 14 15 / 72%), transparent 75%), linear-gradient(90deg, rgb(4 14 15 / 55%) 0%, rgb(5 16 17 / 22%) 40%, transparent 70%), linear-gradient(0deg, var(--night) 0%, rgb(7 17 19 / 30%) 9%, transparent 26%, transparent 80%, rgb(3 13 15 / 35%)); }
+
+/* case summary (components/case-summary.tsx): citations as small tags, sources listed beneath */
+.case-summary .summary-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.summary-text { margin: 0; line-height: 1.6; color: var(--mist); }
+.summary-ref { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 20px; padding: 0 5px; margin-left: 2px; border: 1px solid var(--line-strong); border-radius: 5px;
+  font-family: var(--mono); font-size: .72rem; color: var(--quiet); text-decoration: none; vertical-align: 1px; transition: border-color var(--t-hover), color var(--t-hover); }
+a.summary-ref:hover, a.summary-ref:focus-visible, .summary-ref.is-focus { border-color: var(--amber); color: var(--amber); }
+.summary-sources { display: grid; gap: 6px; margin: 12px 0 0; padding: 12px 0 0; list-style: none; border-top: 1px solid var(--line-soft); font-size: var(--size-small); color: var(--quiet); }
+.summary-sources li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: baseline; border-radius: 6px; transition: color var(--t-hover); }
+.summary-sources li.is-focus { color: var(--mist); }
+.summary-provenance { margin: 10px 0 0; font-size: .82rem; color: var(--subtle); font-style: italic; font-family: var(--display); }

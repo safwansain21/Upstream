@@ -42,7 +42,7 @@ export function BranchMarks({ marks, box = PLATE_BOX }: { marks: Mark[]; box?: [
         return place ? { x, y, place } : null;
       }));
     };
-    // The marks only appear once the route has drawn (about 3 s), so nothing here runs while the page is loading: the
+    // The marks only appear once the route has drawn (about 2 s), so nothing here runs while the page is loading: the
     // first measurement waits until the hero's text, buttons and scene have settled, then follows resizes.
     const observer = new ResizeObserver(measure);
     let frame = 0;
@@ -50,7 +50,7 @@ export function BranchMarks({ marks, box = PLATE_BOX }: { marks: Mark[]; box?: [
       const art = document.querySelector(".dusk-hero .scene-art");
       if (art) { observer.observe(document.documentElement); observer.observe(layer); observer.observe(art); measure(); } else frame = requestAnimationFrame(watchArt);
     };
-    const start = window.setTimeout(watchArt, 1800);
+    const start = window.setTimeout(watchArt, 1200);
     return () => { observer.disconnect(); cancelAnimationFrame(frame); clearTimeout(start); };
   }, [marks, box]);
   return <div ref={ref} className="branch-marks">

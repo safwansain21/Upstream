@@ -1535,6 +1535,42 @@ def ai_review(org: UUID, run: UUID, body: SuggestionReview, request: Request, us
     return envelope(row, request)
 
 
+from services.api import ai_summary  # noqa: E402
+
+
+@app.post('/api/v1/orgs/{org}/cases/{case}/ai/summary')
+def ai_case_summary(org: UUID, case: UUID, request: Request, user: Identity = Depends(identity)):
+    """A short summary of the case with every sentence citing its records (PRD 9.2). Records are read as the caller (RLS),
+    so a summary never contains what the caller could not open. Writes nothing to the case; logs the run."""
+    one(user, 'select id from cases where org_id=%s and id=%s', (org, case))
+    reports = rows(user, 'select r.id,r.categories,r.observed_at from case_reports cr join reports r on r.id=cr.report_id where cr.org_id=%s and cr.case_id=%s', (org, case))
+    readings = rows(user, '''select r.id,r.value,r.unit,r.measured_at,s.code station_code,q.disposition quality from reading_versions r
+        join stations s on s.id=r.station_id left join lateral (select disposition from quality_decisions d where d.reading_id=r.id order by created_at desc limit 1) q on true
+        where r.org_id=%s and r.case_id=%s order by r.measured_at''', (org, case))
+    found = rows(user, 'select id,revision,retained_length_m,result from assessments where org_id=%s and case_id=%s order by revision desc limit 1', (org, case))
+    assessment = next_visit = None
+    if found:
+        a = found[0]
+        assessment = {'id': a['id'], 'revision': a['revision'], 'retained_length_m': a['retained_length_m'], 'eligible': a['result']['eligible'],
+                      'classes': [{'length_m': c['length_m'], 'status': c['status']} for c in a['result']['classes']]}
+        recs = rows(user, "select id,action->>'id' action_id,score_bound_m from recommendations where assessment_id=%s order by (constraints->>'rank')::int limit 1", (a['id'],))
+        next_visit = recs[0] if recs and a['result']['eligible'] else None
+    records = ai_summary.records(reports, readings, assessment, next_visit)
+    with transaction(worker=True) as db:
+        if db.execute("select count(*) n from ai_runs where owner_id=%s and purpose='summary' and created_at>now()-interval '1 hour'", (user.user_id,)).fetchone()['n'] >= 20:
+            raise DomainError('RATE_LIMITED', 'Summaries are limited to 20 per hour.', 429)
+    sentences, source, model = ai_summary.summarise(records)
+    cfg = settings()
+    provider = ('gemini-generate-content' if cfg.ai_provider == 'gemini' else 'openai-responses') if source == 'ai' else 'template'
+    with transaction(worker=True) as db:
+        db.execute('''insert into ai_runs(org_id,owner_id,purpose,consent,provider,model,schema_version,input_refs,output,disposition)
+            values(%s,%s,'summary',false,%s,%s,%s,%s,%s,'shown')''', (org, user.user_id, provider, model, ai_summary.SCHEMA_VERSION,
+            json.dumps({'case_id': str(case), 'records': [r['tag'] + ':' + r['id'] for r in records]}), json.dumps(sentences)))
+    return envelope({'source': source, 'model': model, 'sentences': sentences, 'records': records,
+                     'note': None if source == 'ai' else ('AI assistance is unavailable; this summary uses a fixed template.' if not ai_adapter.configured()
+                                                         else 'The AI answer did not pass the checks, so this summary uses a fixed template.')}, request)
+
+
 # ---- public case snapshot (G04) and analysis cancellation (J02) ----
 
 @app.get('/api/v1/public/cases/{case}')

@@ -5,7 +5,7 @@ import type { P } from "./route-geometry";
 
 /**
  * The landing's illustrative journey (reference 07-visible-current), in plate coordinates inside the scene art box.
- * Not hydrology and never a case map. The amber origin (on open water, never in the reeds) wakes at 550 ms, the main line draws to the junction by 1.8 s,
+ * Not hydrology and never a case map. The amber origin (on open water, never in the reeds) appears at once, the main line draws to the junction by 1 s,
  * the three branches grow out of that one point along its tangent, and each end dot arrives when its branch completes.
  */
 const ORIGIN: P = [776, 602], J: P = [1113, 507];
@@ -22,18 +22,18 @@ export const BRANCH_MARKS: Mark[] = [
   { at: C[C.length - 1], term: "Pipe outfall", line: "A discharge point. A reading that changes across it keeps this branch worth checking.", sides: ["below", "left", "above"] },
 ];
 const LINES: Line[] = [
-  { pts: MAIN, kind: "main", start: .65, dur: 1, ease: "in" },
-  { pts: [[880, 584], [940, 563], [985, 545], [1040, 524], J, [1190, 500]], kind: "strand", start: 1.05, dur: .9 },
-  { pts: [[900, 591], [960, 567], [1010, 541], [1060, 525], [1120, 514], [1230, 498]], kind: "strand", start: 1.15, dur: .85 },
-  { pts: A, lead: LEAD, start: 1.8, dur: .8, ease: "out" },
-  { pts: B, lead: LEAD, start: 1.86, dur: .72, ease: "out" },
-  { pts: C, lead: LEAD, start: 1.92, dur: .78, ease: "out" },
+  { pts: MAIN, kind: "main", start: .08, dur: .9, ease: "in" },
+  { pts: [[880, 584], [940, 563], [985, 545], [1040, 524], J, [1190, 500]], kind: "strand", start: .4, dur: .8 },
+  { pts: [[900, 591], [960, 567], [1010, 541], [1060, 525], [1120, 514], [1230, 498]], kind: "strand", start: .5, dur: .75 },
+  { pts: A, lead: LEAD, start: 1, dur: .75, ease: "out" },
+  { pts: B, lead: LEAD, start: 1.05, dur: .68, ease: "out" },
+  { pts: C, lead: LEAD, start: 1.1, dur: .72, ease: "out" },
 ];
 
 export function HeroRoute({ note }: { note: string }) {
   return <>
     <LightRoute publish className="hero-route" lines={LINES} sparkles={1.2} ink={{ id: "hero-route-ink", from: ORIGIN, to: J }}
-      dots={[{ at: ORIGIN, tone: "origin", time: .5 }, { at: A[A.length - 1], tone: "end", time: 2.6 }, { at: B[B.length - 1], tone: "end", time: 2.58 }, { at: C[C.length - 1], tone: "end", time: 2.7 }]}/>
+      dots={[{ at: ORIGIN, tone: "origin", time: 0 }, { at: A[A.length - 1], tone: "end", time: 1.76 }, { at: B[B.length - 1], tone: "end", time: 1.74 }, { at: C[C.length - 1], tone: "end", time: 1.83 }]}/>
     <OriginNote note={note} left={`${ORIGIN[0] / 16.72}%`} top={`${ORIGIN[1] / 9.41}%`}/>
   </>;
 }
