@@ -236,7 +236,10 @@ function AiAssist({ draft, onAccept }: { draft: Draft; onAccept: (patch: Partial
   }
   function accept(c: AiSuggestion["observation_candidates"][number]) {
     const category = AI_CATEGORY[c.code];
-    onAccept({ description: (draft.description ? draft.description + " " : "") + c.description,
+    // a suggestion the description already says (often the model's echo of the text) is not added twice
+    const said = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const already = said(draft.description).includes(said(c.description));
+    onAccept({ description: already ? draft.description : (draft.description ? draft.description + " " : "") + c.description,
       categories: category && !draft.categories.includes(category) ? [...draft.categories, category] : draft.categories });
     const next = [...accepted, c.code]; setAccepted(next);
     api(`/orgs/${draft.org}/ai/runs/${result!.run_id}/review`, { method: "POST", json: { accepted_codes: next, edited: true } }).catch(() => undefined);

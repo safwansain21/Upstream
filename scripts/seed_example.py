@@ -166,8 +166,8 @@ def seed_evidence(db, org, case, monitor, expert, branch=None):
                   'episode': r.episode, 'epoch': r.epoch, 'comparable': r.comparable}
         mid = (float(r.enclosure.lower) + float(r.enclosure.upper)) / 2
         db.execute('''insert into reading_versions(id,org_id,case_id,entity_id,version,visit_id,station_id,instrument_id,mode,value,unit,
-            bounds,measured_at,received_at,quality,submitted_task_version,operator_id,data_origin,content_hash)
-            values(%s,%s,%s,%s,1,%s,%s,%s,'true_sc25_enclosure',%s,'uS/cm',%s,%s,%s,'accepted',1,%s,'synthetic',%s)''',
+            bounds,measured_at,received_at,quality,eligible,submitted_task_version,operator_id,data_origin,content_hash)
+            values(%s,%s,%s,%s,1,%s,%s,%s,'true_sc25_enclosure',%s,'uS/cm',%s,%s,%s,'accepted',true,1,%s,'synthetic',%s)''',  # fixture readings meet every eligibility rule
                    (rid, org, case, sid(f'{case}:reading-entity:{r.id}'), visit, stations[r.station_id], meter, mid, json.dumps(bounds),
                     r.measured_at, r.received_at, monitor, sid(f'{case}:reading-hash:{r.id}')))
         db.execute('''insert into quality_decisions(org_id,reading_id,disposition,reason,reviewer_id)

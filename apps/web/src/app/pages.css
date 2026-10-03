@@ -1227,7 +1227,7 @@ a.summary-ref:hover, a.summary-ref:focus-visible, .summary-ref.is-focus { border
 /* step 1: the description box takes the room left beside the taller photo panel (no empty band under it) */
 .notice-panel { display: flex; flex-direction: column; }
 .notice-panel .description-field { flex: 1; display: flex; flex-direction: column; }
-.notice-panel .description-field textarea { flex: 1; min-height: 120px; }
+.notice-panel .description-field textarea { flex: 1; min-height: 120px; max-height: 300px; }
 /* step 2: the map takes the panel's full height beside the longer form (no empty band under it) */
 .map-surface { display: flex; flex-direction: column; }
 .map-surface .atlas-map-frame { flex: 1; display: flex; flex-direction: column; gap: 10px; }
