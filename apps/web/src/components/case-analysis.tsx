@@ -60,13 +60,15 @@ export function CaseAnalysis({ org, caseId, canAnalyse, canReview, dataOrigin = 
     if (a) previous.current = a;
   }, [assessment.data]);
 
+  // a finished analysis changes everything that reads assessments: the result, the case, its history and the glance
+  const refreshResults = () => { for (const key of ["assessment", "assessments", "case", "readiness"]) client.invalidateQueries({ queryKey: [key, org, caseId] }); };
   useEffect(() => { // polling fallback for job status; the displayed result changes only when the complete server result exists
     if (!job || job.state === "done" || job.state === "failed" || job.state === "cancelled") return;
     const timer = setTimeout(async () => {
       try {
         const next = await api<Job>(`/orgs/${org}/analyses/${job.id}`);
         setJob(prev => prev?.id === next.id && RANK[prev.state] > RANK[next.state] ? prev : next); // H11: a late or repeated poll never moves a job backwards
-        if (next.state === "done") { client.invalidateQueries({ queryKey: ["assessment", org, caseId] }); client.invalidateQueries({ queryKey: ["case", org, caseId] }); }
+        if (next.state === "done") refreshResults();
       } catch (e) { setError((e as Error).message); }
     }, 1500);
     return () => clearTimeout(timer);
@@ -78,7 +80,7 @@ export function CaseAnalysis({ org, caseId, canAnalyse, canReview, dataOrigin = 
       const started = await api<Job>(`/orgs/${org}/cases/${caseId}/analyses`, { method: "POST" });
       setJob(started);
       // unchanged evidence returns an already finished job: nothing will poll, so refresh the result now
-      if (started.state === "done") { client.invalidateQueries({ queryKey: ["assessment", org, caseId] }); client.invalidateQueries({ queryKey: ["case", org, caseId] }); }
+      if (started.state === "done") refreshResults();
     }
     catch (e) { setError((e as Error).message); }
   }

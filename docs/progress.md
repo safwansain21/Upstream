@@ -995,3 +995,12 @@ after the suite has run against the database. Seeds and test data are unchanged.
   and worker to one Render free web service (`render.yaml`, `deploy/render/`). The API image ran at Render's limits locally
   (512 MB, 0.1 CPU): status and examples answered, 58 MB in use. The keep-awake ping now runs every 10 minutes because
   Render sleeps after 15 idle minutes. The full suite still has to run before these commits are pushed.
+
+### 2026-10-04, reading decisions and the glance after recompute
+
+- An expert's Accept, Suspect or Exclude on a reading now asks for its reason in a form on the task page ("Reason for this
+  decision", 10+ characters, "Record decision" or "Cancel") instead of a browser prompt. The reason is kept with the reading.
+- "Investigation at a glance" kept the old retained length after "Recompute with current evidence". A finished analysis now
+  refreshes the assessment, assessment history, case and readiness queries.
+- Changed test: tests/e2e/test_task_flow.py::test_task_proposal_assignment_capture_and_review fills "Reason for this decision" and
+  clicks "Record decision" instead of answering a dialog (intentional interface change).
