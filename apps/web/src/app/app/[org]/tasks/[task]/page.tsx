@@ -157,16 +157,28 @@ function CaptureForm({ org, task, onDone }: { org: string; task: Detail; onDone:
 
 function Readings({ org, readings, canReview, onDone }: { org: string; readings: Reading[]; canReview: boolean; onDone: () => void }) {
   const [error, setError] = useState("");
-  async function decide(id: string, disposition: string) {
-    const reason = prompt(`Rationale for marking this reading ${disposition} (10+ characters)`) || "";
-    setError("");
-    try { await api(`/orgs/${org}/readings/${id}/quality`, { method: "POST", json: { disposition, reason, comparable: disposition === "accepted" ? true : null } }); onDone(); }
-    catch (e) { setError((e as Error).message); }
+  // a quality decision is evidence: its reason is written on the page, next to the reading it concerns
+  const [pending, setPending] = useState<{ id: string; disposition: string } | null>(null); const [reason, setReason] = useState(""); const [busy, setBusy] = useState(false);
+  async function record() {
+    if (!pending) return;
+    setError(""); setBusy(true);
+    try {
+      await api(`/orgs/${org}/readings/${pending.id}/quality`, { method: "POST", json: { disposition: pending.disposition, reason, comparable: pending.disposition === "accepted" ? true : null } });
+      setPending(null); setReason(""); onDone();
+    } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
+  const chosen = pending ? readings.find(r => r.id === pending.id) : undefined;
   if (!readings.length) return null;
   return <section className="surface stack" aria-labelledby="readings-heading"><h2 id="readings-heading">Submitted readings</h2>{error ? <InlineError>{error}</InlineError> : null}
     <div className="table-scroll" role="region" aria-label="Readings" tabIndex={0}><table className="data-table"><thead><tr><th scope="col">Measured</th><th scope="col">Value</th><th scope="col">Temperature</th><th scope="col">Eligibility</th><th scope="col">Quality</th>{canReview ? <th scope="col">Review</th> : null}</tr></thead>
       <tbody>{readings.map(r => <tr key={r.id}><td>{new Date(r.measured_at).toLocaleString()}</td><td className="numeric">{r.value} {r.unit} <span className="muted">({r.mode === "raw" ? "raw" : "meter SC25"})</span></td><td className="numeric">{r.temperature ?? "missing"}</td>
         <td>{r.eligible ? "Eligible after review" : `History only: ${r.ineligibility_reasons.join("; ")}`}</td><td>{r.quality ?? "Pending review"}</td>
-        {canReview ? <td><div className="button-row"><button className="button button-quiet" onClick={() => decide(r.id, "accepted")}>Accept</button><button className="button button-quiet" onClick={() => decide(r.id, "suspect")}>Suspect</button><button className="button button-quiet" onClick={() => decide(r.id, "excluded")}>Exclude</button></div></td> : null}</tr>)}</tbody></table></div></section>;
+        {canReview ? <td><div className="button-row">{(["accepted", "suspect", "excluded"] as const).map(d =>
+          <button key={d} className="button button-quiet" aria-pressed={pending?.id === r.id && pending.disposition === d} onClick={() => { setPending({ id: r.id, disposition: d }); setError(""); }}>{{ accepted: "Accept", suspect: "Suspect", excluded: "Exclude" }[d]}</button>)}</div></td> : null}</tr>)}</tbody></table></div>
+    {pending && chosen ? <div className="quality-decision stack" role="group" aria-labelledby="decision-heading">
+      <p id="decision-heading"><strong>Mark the {chosen.value} {chosen.unit} reading {pending.disposition === "accepted" ? "accepted" : pending.disposition}</strong></p>
+      <div className="form-field"><label htmlFor="decision-reason">Reason for this decision <span className="subtle">(10+ characters; kept with the reading)</span></label>
+        <textarea id="decision-reason" rows={2} value={reason} onChange={e => setReason(e.target.value)}/></div>
+      <div className="button-row"><button className="button button-primary" disabled={busy || reason.trim().length < 10} onClick={record}>{busy ? "Recording…" : "Record decision"}</button>
+        <button className="button button-quiet" onClick={() => { setPending(null); setReason(""); }}>Cancel</button></div></div> : null}</section>;
 }

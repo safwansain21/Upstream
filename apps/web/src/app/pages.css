@@ -1233,3 +1233,5 @@ a.summary-ref:hover, a.summary-ref:focus-visible, .summary-ref.is-focus { border
 /* the sent-link notice: message, link, then its two actions on their own row */
 .notice.send-result { display: grid; gap: 10px; }
 .notice.send-result .button-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.quality-decision { gap: var(--s3); max-width: 640px; padding-top: var(--s4); border-top: 1px solid var(--line-soft); }
+.quality-decision p { margin: 0; }

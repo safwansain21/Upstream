@@ -57,6 +57,7 @@ def test_task_proposal_assignment_capture_and_review(page):  # D01 D08 D14 (brow
     expert = page.context.browser.new_context().new_page()
     open_as(expert, 'expert@example.test')
     expert.goto(task_url)
-    expert.on('dialog', lambda d: d.accept('Replicates reviewed against the example protocol'))
     expert.get_by_role('button', name='Accept').first.click()
+    expert.get_by_label('Reason for this decision').fill('Replicates reviewed against the example protocol')
+    expert.get_by_role('button', name='Record decision').click()
     expect(expert.get_by_role('cell', name='accepted')).to_have_count(1)
