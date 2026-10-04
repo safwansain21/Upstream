@@ -10,8 +10,6 @@ import { prompt, type AiCheck } from "../lib/ai-checks";
 import { claim, sendDraft, uploadPhoto } from "../lib/submit";
 import { Arrow } from "./brand";
 import { AlertIcon, CalendarIcon, DocIcon, LockIcon, PhotoIcon, PinIcon, ShieldIcon } from "./icons";
-import { InkNote } from "./ink-note";
-import { NOTEBOOK, ScenePicture } from "./scene/scene-picture";
 import { InlineError, LoadingState } from "./ui";
 import { REPORT_CATEGORIES } from "../lib/labels";
 
@@ -116,7 +114,7 @@ export function ReportForm({ draftId, intro }: { draftId: string; intro: (step: 
     <p className="autosave" role="status"><span className="autosave-dot" aria-hidden="true"/>{draft.status === "submitting" ? draft.error || "Sending to Upstream…" : draft.error || "Saved on this device. Not submitted yet."}</p>
     {notice ? <p className="notice" role="status">{notice}</p> : null}
     {Object.keys(errors).length ? <div className="inline-error" role="alert" tabIndex={-1} ref={summary}><strong>Please fix:</strong><ul>{Object.entries(errors).map(([k, v]) => <li key={k}><a href={`#${k}`}>{v}</a></li>)}</ul></div> : null}
-    <FieldNote step={draft.step}/>
+    
 
     {draft.step === 1 ? <section key="s1" className="report-step" aria-labelledby="step-heading"><div className="report-grid">
       <div className="surface stack notice-panel">
@@ -184,11 +182,6 @@ const STEP_NAMES = ["What happened", "Where it was", "Review"];
 function ReportSteps({ step }: { step: number }) {
   return <ol className="report-steps" aria-label="Report steps" style={{ ["--step" as string]: step }}>{STEP_NAMES.map((label, i) =>
     <li key={label} aria-current={step === i + 1 ? "step" : undefined} className={step > i + 1 ? "done" : step === i + 1 ? "active" : undefined}><span className="step-dot" aria-hidden="true">{i + 1}</span><span>{label}</span></li>)}</ol>;
-}
-const NOTES: Record<number, string[]> = { 1: ["What did you see?", "When was it?"], 2: ["Where was it?", "A landmark is enough."], 3: ["Read it over.", "Then send it on."] };
-/** The field notebook beside the form: step guidance in ink (never a copy of what the person typed). */
-function FieldNote({ step }: { step: number }) {
-  return <figure className="field-notebook" aria-hidden="true"><ScenePicture asset={NOTEBOOK} sizes="300px"/><InkNote key={step} lines={NOTES[step] ?? NOTES[1]}/></figure>;
 }
 function CategoryGlyph({ code }: { code: string }) {
   const d: Record<string, string> = { unusual_foam: "M7 15a3 3 0 1 0 0-.1M14 9a4 4 0 1 0 0-.1M16.5 17a2 2 0 1 0 0-.1", colour_change: "M12 3.5s-6 6.6-6 10.5a6 6 0 0 0 12 0c0-3.9-6-10.5-6-10.5Z",

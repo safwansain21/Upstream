@@ -946,3 +946,11 @@ after the suite has run against the database. Seeds and test data are unchanged.
 - Decision: attention names layer kinds once (sources are listed above).
 - Tests: 70 passed across gates_ui, visual_gates, responsive_a11y, routes, review_flow, report_flow, content_audit,
   performance and api/test_http. J01 mobile LCP 2292 ms, desktop 160 ms, CLS 0.001.
+
+### 2026-10-03, report page without the notebook
+
+- The report page drops the field notebook, its handwritten step notes and the margin line, and uses the same centred page
+  column as every other page. The Caveat handwriting font is no longer imported (49 KB less on report routes; the package
+  entry stays in package.json until the lockfile is next regenerated). ink-note.tsx and the NOTEBOOK asset entry removed.
+- Tests: report_flow, offline, visual_gates, content_audit, responsive_a11y: 40 passed (one report_flow test re-run on a
+  fresh seed after a demo recording had changed Mill Brook's state).

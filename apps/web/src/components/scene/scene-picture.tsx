@@ -10,7 +10,6 @@ export const PLATE_HQ: SceneAsset = { name: "plate-hq", width: 1672, height: 941
 // Foliage crops, in plate pixels: branches (0,0)-(640,300); reeds (0,230)-(1220,941).
 export const BRANCHES: SceneAsset = { name: "branches", width: 640, height: 300, widths: [320, 480, 640] };
 export const REEDS: SceneAsset = { name: "reeds", width: 1220, height: 711, widths: [610, 915, 1220] };
-export const NOTEBOOK: SceneAsset = { name: "notebook", width: 1536, height: 1024, widths: [384, 576, 768] };
 export const REVISED_BROOK: SceneAsset = { name: "revised-brook", width: 1672, height: 941, widths: [320, 640, 960] };
 export const ALLOTMENT_DITCH: SceneAsset = { name: "allotment-ditch", width: 1672, height: 941, widths: [320, 640, 960] };
 /** The sky around the plate's sun with the sun painted out, plate pixels (1200,110)-(1430,270): the hero's sunrise. */

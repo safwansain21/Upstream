@@ -9,7 +9,6 @@ import { MarginLine, PageIntro } from "../../../../components/ui";
 export default function EditReport() {
   const { draft } = useParams<{ draft: string }>();
   return <><OfflineStatus/><AppHeader/><main id="main-content" className="report-page">
-    <p className="report-margin" aria-hidden="true">People see it first.<br/>That’s where it starts.</p>
     <div className="report-column">
       <nav className="breadcrumbs" aria-label="Breadcrumb"><Link className="back" href="/">Report an observation</Link></nav>
       <ReportForm draftId={draft} intro={step => step === 3
