@@ -1,0 +1,31 @@
+# Render Blueprint for the free hosted demo (docs/hosting.md). Values marked sync: false are asked for when the Blueprint is created.
+services:
+  - type: web
+    name: upstream-api
+    runtime: docker
+    plan: free
+    region: virginia
+    dockerfilePath: ./deploy/render/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/status
+    autoDeploy: true
+    envVars:
+      - {key: ENVIRONMENT, value: demo}
+      - {key: EXAMPLE_MODE, value: 'true'}
+      - {key: STORAGE_BUCKET, value: evidence-private}
+      - {key: INTAKE_ORG_ID, value: 01995d20-0000-7000-8000-000000000001}
+      - {key: EXPORT_SIGNING_KEY_ID, value: upstream-demo-2026-10}
+      - {key: LOG_LEVEL, value: INFO}
+      - {key: APP_URL, sync: false}
+      - {key: FHIR_CANONICAL_BASE, sync: false}
+      - {key: SUPABASE_URL, sync: false}
+      - {key: SUPABASE_ANON_KEY, sync: false}
+      - {key: AUTH_JWKS_URL, sync: false}
+      - {key: AUTH_ISSUER, sync: false}
+      - {key: DATABASE_URL, sync: false}
+      - {key: SUPABASE_SERVICE_ROLE_KEY, sync: false}
+      - {key: EXPORT_SIGNING_PRIVATE_KEY, sync: false}
+      - {key: AI_PROVIDER, sync: false}
+      - {key: AI_BASE_URL, sync: false}
+      - {key: AI_MODEL, sync: false}
+      - {key: AI_API_KEY, sync: false}

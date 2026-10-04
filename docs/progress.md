@@ -991,3 +991,7 @@ after the suite has run against the database. Seeds and test data are unchanged.
   tests/api/test_membership.py (23 passed). The full suite on a reset database has not been rerun for this change, because
   another session was editing the task page at the time; it must run before this is pushed.
 - Not yet done: the accounts, the hosted project and the Space, which need the owner (docs/hosting.md, Setup).
+- Change of host, same day: Hugging Face Docker Spaces turned out to be paid, so the web app moves to Vercel Hobby and the API
+  and worker to one Render free web service (`render.yaml`, `deploy/render/`). The API image ran at Render's limits locally
+  (512 MB, 0.1 CPU): status and examples answered, 58 MB in use. The keep-awake ping now runs every 10 minutes because
+  Render sleeps after 15 idle minutes. The full suite still has to run before these commits are pushed.

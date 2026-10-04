@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+.venv
+.next
+**/.next
+.env
+.env.*
+test-results
+output
+demo
+exports
+docs

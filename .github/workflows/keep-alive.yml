@@ -1,9 +1,9 @@
-# Free tiers sleep when idle (Hugging Face Space after 48 h, Supabase project after 7 days). The status check touches the
-# database, so one request keeps both awake. Set the repository variable UPSTREAM_URL (docs/hosting.md).
+# Free tiers sleep when idle (Render web service after 15 minutes, Supabase project after 7 days). The status check goes
+# through Vercel to the API and touches the database, so one request keeps all three awake. Set the repository variable UPSTREAM_URL (docs/hosting.md).
 name: keep hosted demo awake
 on:
   schedule:
-    - cron: '17 */12 * * *'
+    - cron: '*/10 * * * *'
   workflow_dispatch:
 jobs:
   ping:
