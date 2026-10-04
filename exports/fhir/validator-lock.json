@@ -3,5 +3,11 @@
   "url": "https://github.com/hapifhir/org.hl7.fhir.core/releases/download/6.10.4/validator_cli.jar",
   "sha256": "1106b9d58f9e363e47bea7c4fc065841e5fc91fe9d062775c3bfdd212bd653cc",
   "fhirVersion": "4.0.1",
-  "corePackage": "hl7.fhir.r4.core#4.0.1"
+  "corePackage": "hl7.fhir.r4.core#4.0.1",
+  "oahIg": {
+    "repo": "https://github.com/hl7-eu/oah",
+    "commit": "b907cf0869b59d82d9138b3d147fca66f333d911",
+    "sushi": "3.20.1",
+    "canonical": "http://hl7.eu/fhir/ig/oah"
+  }
 }

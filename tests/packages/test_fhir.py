@@ -54,7 +54,26 @@ def test_exact_decimal_version_attribution_and_custom_canonical_survive(payload)
     bundle = json.loads(build_package(payload, include_fhir=True, fhir_base="https://example.org/environment").artifacts["bundle.fhir.json"], parse_float=Decimal)
     observation = next(e["resource"] for e in bundle["entry"] if e["resource"]["resourceType"] == "Observation")
     assert observation["valueQuantity"]["value"] == Decimal("123456789.123456789123456789")
-    assert observation["meta"]["profile"] == ["https://example.org/environment/StructureDefinition/environmental-observation"]
+    assert observation["meta"]["profile"][0] == "https://example.org/environment/StructureDefinition/environmental-observation"
     assert {x["url"]: x.get("valueString") for x in observation["extension"]}["https://example.org/environment/StructureDefinition/source-version"] == "v:2_test"
     provenance = next(e["resource"] for e in bundle["entry"] if e["resource"]["resourceType"] == "Provenance")
     assert provenance["target"][0]["reference"].endswith("/_history/" + observation["meta"]["versionId"])
+
+
+def test_oneaquahealth_profiles_claimed_only_where_they_hold(payload):
+    """Stations are LocationOah; only quality-reviewed (final) readings claim ObservationIndicatorsOah, and every reading
+    carries the IG's electrical-conductivity concept beside Upstream's exact mode code."""
+    from services.packages import build_package
+    from services.packages.fhir import OAH_INDICATORS, OAH_LOCATION
+    payload["observations"].append(dict(payload["observations"][0], id="obs-unreviewed", quality="unreviewed", inclusion="history_only"))
+    bundle = json.loads(build_package(payload, include_fhir=True).artifacts["bundle.fhir.json"], parse_float=Decimal)
+    resources = [e["resource"] for e in bundle["entry"]]
+    locations = [r for r in resources if r["resourceType"] == "Location"]
+    assert locations and all(r["meta"]["profile"] == [OAH_LOCATION] and r["mode"] == "instance" for r in locations)
+    observations = [r for r in resources if r["resourceType"] == "Observation"]
+    for r in observations:
+        assert (OAH_INDICATORS in r["meta"]["profile"]) == (r["status"] == "final")
+        assert {"system": "http://hl7.eu/fhir/ig/oah/CodeSystem/temporarySystem-oah-eu", "code": "electrical-conductivity",
+                "display": "Electrical conductivity"} in r["code"]["coding"]
+        assert r["performer"]
+    assert {r["status"] for r in observations} == {"final", "preliminary"}

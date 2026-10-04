@@ -954,3 +954,16 @@ after the suite has run against the database. Seeds and test data are unchanged.
   entry stays in package.json until the lockfile is next regenerated). ink-note.tsx and the NOTEBOOK asset entry removed.
 - Tests: report_flow, offline, visual_gates, content_audit, responsive_a11y: 40 passed (one report_flow test re-run on a
   fresh seed after a demo recording had changed Mill Brook's state).
+
+### 2026-10-04, evidence packages on the OneAquaHealth FHIR IG
+
+- The FHIR bundle now uses the OneAquaHealth IG profiles (HL7 Europe, github.com/hl7-eu/oah): stations are LocationOah
+  (`mode` instance), quality-reviewed conductivity readings are ObservationIndicatorsOah and carry the IG's
+  `electrical-conductivity` concept beside Upstream's exact mode code; the responsible organization is the performer.
+  Unreviewed (preliminary, history-only) readings do not claim the IG profile, whose status is fixed to final.
+- Validation: `exports/fhir/oah_ig.py` compiles the IG at a pinned commit with pinned SUSHI 3.20.1 into the validator cache
+  (not vendored: no explicit licence); `validate.py` loads it. Seeded Mill Brook package: 0 errors, 8 LocationOah and 3
+  ObservationIndicatorsOah resources checked. This is profile conformance, not an integration with the OneAquaHealth app or API.
+- Tests: tests/packages/test_fhir.py::test_oneaquahealth_profiles_claimed_only_where_they_hold added;
+  test_exact_decimal_version_attribution_and_custom_canonical_survive now asserts Upstream's profile comes first (the list
+  gained the IG profile, an intentional interface change); tests/packages/test_fhir_official.py passes with the IG loaded.

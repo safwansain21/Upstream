@@ -7,12 +7,29 @@ server). Command: `cd exports/fhir && python validate.py <bundle.json> [--downlo
 
 Result on 2026-09-22: 0 errors, 8 warnings, 1 information message.
 
+## OneAquaHealth IG profiles
+
+Stations are exported as **LocationOah** and quality-reviewed conductivity readings as **ObservationIndicatorsOah**, from
+the OneAquaHealth FHIR Implementation Guide by HL7 Europe ([hl7-eu/oah](https://github.com/hl7-eu/oah)). Each reading keeps
+Upstream's exact mode code (raw, meter SC25, true SC25) and also carries the IG's own concept
+`temporarySystem-oah-eu#electrical-conductivity` in µS/cm, the same encoding the IG's examples use. The IG profile fixes
+`status` to `final`, so unreviewed readings (exported as `preliminary`, history only) do not claim it. The IG requires a
+performer: it is the organization responsible for the case; individual people stay pseudonymous extensions.
+
+The IG has no published package, so `exports/fhir/oah_ig.py` fetches it at a pinned commit and compiles it with a pinned
+SUSHI (both in `validator-lock.json`) into `exports/fhir/.cache/oah`; `validate.py --download` runs it, and `validate.py`
+loads it whenever present. The IG source is not vendored because it carries no explicit licence.
+
+Result on 2026-10-04 for the seeded approved Mill Brook package: 0 errors; 8 LocationOah stations and 3
+ObservationIndicatorsOah readings checked against the IG; 3 warnings (the `uS/cm` terminology note below); information
+messages that Upstream's own `source-version` extension is not one of the profile's named extension slices, which is
+allowed. Conformance to the IG's profiles is not an integration with the OneAquaHealth Citizen Science App or its API.
+
 ## Warnings, each reviewed
 
-- **"Best Practice Recommendation: In general, all observations should have a performer"** (one per Observation).
-  Deliberate: Upstream does not put individual people into FHIR as Practitioner/Patient resources. Attribution is kept as a
-  pseudonymous contributor extension and in the package's observations.json; the instrument is referenced as a Device.
-  Adding an Organization performer is possible once a recipient agreement says which organization should appear.
+- **"Best Practice Recommendation: In general, all observations should have a performer"** (one per Observation, before
+  2026-10-04). Resolved: the responsible organization is now the performer, as the OneAquaHealth profile requires. Upstream
+  still does not put individual people into FHIR as Practitioner/Patient resources; contributors stay pseudonymous extensions.
 - **"Unable to validate code 'uS/cm' in system 'http://unitsofmeasure.org' because the validator is running without
   terminology services"**. Expected with `-tx n/a` (offline, no external calls). `uS/cm` is valid UCUM syntax; run with a
   terminology server to confirm in a connected environment.

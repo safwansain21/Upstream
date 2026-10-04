@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 260 passed, 2 skipped (destructive), 3 failed then passed on rerun (two timing-sensitive browser tests; the release report itself, regenerated here), 2026-10-03, fresh `supabase db reset` + seed_example + seed_load')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 264 passed, 2 skipped (destructive), 2026-10-04, fresh `supabase db reset` + seed_example + seed_load')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
@@ -35,7 +35,7 @@ PASSES = {
     'C11': [E + 'test_unknown_connectivity_and_open_boundary_are_explicit', M + 'test_publication_requires_verifier_evidence_and_freezes_version', 'tests/packages/test_packages.py::test_html_escapes_untrusted_prose_and_includes_review_and_limits'],
     'E20': ['tests/engine/test_topology_and_limits.py::test_unresolved_results_are_never_dropped_to_match_a_prediction', P + 'test_planner_oracle_and_resource_limits'],
     'E26': ['tests/engine/test_topology_and_limits.py::test_multi_source_case_states_limits_without_detection_claims'],
-    'F13': ['tests/packages/test_fhir_official.py::test_official_validator_zero_errors_on_real_export', 'tests/packages/test_fhir.py::test_environmental_bundle_preserves_semantics_and_uses_correct_document_context'],
+    'F13': ['tests/packages/test_fhir_official.py::test_official_validator_zero_errors_on_real_export', 'tests/packages/test_fhir.py::test_environmental_bundle_preserves_semantics_and_uses_correct_document_context', 'tests/packages/test_fhir.py::test_oneaquahealth_profiles_claimed_only_where_they_hold'],
     'F14': ['tests/packages/test_fhir.py::test_raw_and_compensated_readings_are_distinct_and_linked', 'tests/packages/test_fhir.py::test_fhir_reference_validation_rejects_broken_link', 'tests/packages/test_fhir.py::test_exact_decimal_version_attribution_and_custom_canonical_survive'],
     'H01': ['tests/e2e/test_offline.py::test_draft_survives_closing_the_tab'],
     'H02': ['tests/e2e/test_offline.py::test_offline_submission_is_queued_then_sent_once_with_photo', 'tests/e2e/test_offline.py::test_send_interrupted_by_closing_the_tab_is_retried'],

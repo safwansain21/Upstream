@@ -9,6 +9,13 @@ from urllib.parse import urlsplit
 
 from .contracts import PackagePayload
 
+# OneAquaHealth FHIR IG (HL7 Europe, github.com/hl7-eu/oah): stations are LocationOah; reviewed conductivity readings are
+# ObservationIndicatorsOah, coded with the IG's own electrical-conductivity concept beside Upstream's exact mode code.
+OAH = "http://hl7.eu/fhir/ig/oah"
+OAH_LOCATION = OAH + "/StructureDefinition/location-oah"
+OAH_INDICATORS = OAH + "/StructureDefinition/observation-indicators-oah"
+OAH_CONDUCTIVITY = {"system": OAH + "/CodeSystem/temporarySystem-oah-eu", "code": "electrical-conductivity", "display": "Electrical conductivity"}
+
 
 def fhir_json(value) -> bytes:
     """Serialize finite Decimal directly as JSON numbers without float rounding."""
@@ -74,9 +81,10 @@ def fhir_bundle(p: PackagePayload, base: str, assessment: bytes) -> dict:
         resource("Device", "instrument-" + instrument, "1", "Environmental meter " + instrument,
                  identifier=[{"system": base + "/identifier/instrument", "value": instrument}])
     for station in p.stations:
-        location = resource("Location", station.id, station.version, station.name, name=station.name,
+        location = resource("Location", station.id, station.version, station.name, name=station.name, mode="instance",
                             identifier=[{"system": base + "/identifier/station", "value": station.id}],
                             extension=[ext("source-version", station.version)])
+        location["meta"]["profile"] = [OAH_LOCATION]
         if station.longitude is not None:
             location["position"] = {"longitude": Decimal(station.longitude), "latitude": Decimal(station.latitude)}
     names = {"raw": "Raw electrical conductivity", "meter_sc25": "Meter compensated specific conductance at 25 Cel", "true_sc25": "Specific conductance at 25 Cel"}
@@ -87,14 +95,19 @@ def fhir_bundle(p: PackagePayload, base: str, assessment: bytes) -> dict:
                       ext("source-version", o.version), ext("visit-id", o.visit_id), ext("source", o.source)]
         if o.compensation_description:
             extensions.append(ext("compensation", o.compensation_description))
+        code = concept(o.mode, names[o.mode])
+        code["coding"].append(dict(OAH_CONDUCTIVITY))
         r = resource("Observation", o.id, o.version, names[o.mode] + ": " + o.value + " uS/cm; " + o.origin + "; quality " + o.quality,
-                     status="final" if o.quality == "reviewed" else "preliminary", code=concept(o.mode, names[o.mode]),
+                     status="final" if o.quality == "reviewed" else "preliminary", code=code,
+                     performer=[ref("Organization", p.organization_id)],
                      identifier=[{"system": base + "/identifier/observation", "value": o.id}],
                      subject=ref("Location", o.station_id), device=ref("Device", "instrument-" + o.instrument_id),
                      effectiveDateTime=o.measured_at, issued=o.received_at,
                      valueQuantity={"value": Decimal(o.value), "unit": "µS/cm", "system": "http://unitsofmeasure.org", "code": "uS/cm"},
                      extension=extensions)
         r["meta"]["profile"] = [base + "/StructureDefinition/environmental-observation"]
+        if r["status"] == "final":   # the OAH profile fixes status to final: only quality-reviewed readings claim it
+            r["meta"]["profile"].append(OAH_INDICATORS)
         if o.temperature_c is not None:
             r["component"] = [{"code": concept("temperature", "Water temperature"), "valueQuantity": {"value": Decimal(o.temperature_c), "unit": "°C", "system": "http://unitsofmeasure.org", "code": "Cel"}}]
         if o.background_description:

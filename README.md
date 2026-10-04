@@ -74,7 +74,8 @@ Upstream keeps three things separate on every decision:
 
 ## Interoperability and reliability
 
-- **HL7 FHIR R4:** evidence packages include a FHIR bundle (Observation, Device, Location, DocumentReference, Provenance, Organization) that passes
+- **HL7 FHIR R4:** evidence packages include a FHIR bundle (Observation, Device, Location, DocumentReference, Provenance, Organization) built on
+  the OneAquaHealth FHIR IG profiles (LocationOah stations, ObservationIndicatorsOah conductivity readings) that passes
   the official HL7 validator with 0 errors ([docs/fhir-validation.md](docs/fhir-validation.md)). People are kept
   pseudonymous: no Patient or Practitioner resources.
 - **Signed, traceable packages:** Ed25519 signatures, a hashed manifest, and revision notices that recipients acknowledge.
@@ -184,8 +185,10 @@ On Windows, `powershell -ExecutionPolicy Bypass -File scripts/restart-local.ps1`
 - The case summary is reading help, not a finding: its checks catch invented records, numbers and forbidden claims, not every awkward phrasing.
 - The AI describes only what is visible or written. Its cross-check is a prompt for a person, and a model can miss or
   misread what a photo shows; that is why it never blocks, changes or scores a report.
-- There is no data integration with the OneAquaHealth Citizen Science App yet. Readings export as CSV and packages as
-  JSON, GeoJSON and FHIR, which is where such a mapping would attach.
+- There is no data integration with the OneAquaHealth Citizen Science App or its API yet. Its field protocol records water
+  conductivity in µS/cm (`WCON_US`), the reading Upstream's engine uses, but those submissions require authorized access
+  (checked 2026-10-04); the public endpoints carry sites, ecological status, health-risk scores and weather. Packages
+  conform to the OneAquaHealth FHIR IG's location and indicator profiles, which is where such a mapping would attach.
 
 ## Operations and license
 

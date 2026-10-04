@@ -34,6 +34,12 @@ def main():
     write_definitions(profiles, args.base)
     command = ["java", "-Xmx2g", "-jar", str(args.jar), *map(str, args.bundles), "-version", lock["fhirVersion"],
                "-ig", lock["corePackage"], "-ig", str(profiles), "-tx", "n/a", "-output", str(args.output)]
+    oah = root / ".cache" / "oah"
+    if not oah.exists() and args.download:
+        from oah_ig import build
+        build()
+    if oah.exists():   # OneAquaHealth IG profiles (LocationOah, ObservationIndicatorsOah)
+        command[command.index("-tx"):command.index("-tx")] = ["-ig", str(oah)]
     if args.offline:
         command.append("-no-http-access")
     completed = subprocess.run(command, check=False)
