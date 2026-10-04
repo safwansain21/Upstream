@@ -979,3 +979,15 @@ after the suite has run against the database. Seeds and test data are unchanged.
   the page redeems it. The examples page links to it. Outside example mode both endpoints are closed.
 - Tests: tests/api/test_ai_quota.py (2), tests/api/test_example_sign_in.py (2). Existing AI tests unchanged and passing.
 - Before the hosted link is shared: reset the example database (test runs leave synthetic test cases in the list).
+
+### 2026-10-04, free hosted demo
+
+- Plan (docs/hosting.md): Supabase Free for Postgres, auth and storage; one Hugging Face Docker Space (free CPU basic) runs
+  the web app, API and worker (`deploy/huggingface/`, `deploy/start.sh`); `.github/workflows/keep-alive.yml` pings the status
+  endpoint every 12 hours so neither free tier sleeps. `scripts/deploy_supabase.py` migrates and seeds the hosted database from
+  the gitignored `.env.hosted`; the seed refuses a remote database unless that script sets `UPSTREAM_SEED_HOSTED_DEMO=1`.
+- Service-key headers now come from `service_headers()`, so the new `sb_secret_` keys work as well as legacy JWT keys.
+- Tests run: tests/api/test_example_sign_in.py, tests/test_docs.py, tests/security/test_secrets.py, tests/api/test_http.py,
+  tests/api/test_membership.py (23 passed). The full suite on a reset database has not been rerun for this change, because
+  another session was editing the task page at the time; it must run before this is pushed.
+- Not yet done: the accounts, the hosted project and the Space, which need the owner (docs/hosting.md, Setup).
