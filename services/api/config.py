@@ -39,3 +39,10 @@ class Settings(BaseSettings):
 @lru_cache
 def settings():
     return Settings()
+
+
+def service_headers() -> dict:
+    """Server-side Supabase key headers. Legacy service_role keys are JWTs and also go in Authorization; new sb_secret_ keys
+    are not JWTs, so they go in apikey only and the gateway authorizes them."""
+    key = settings().supabase_service_role_key
+    return {'apikey': key} | ({'Authorization': f'Bearer {key}'} if key.startswith('eyJ') else {})

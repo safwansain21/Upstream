@@ -1,13 +1,13 @@
 """Private object storage through the server-side service key; never exposed to browsers."""
 import httpx
 
-from .config import settings
+from .config import service_headers, settings
 from .security import DomainError
 
 
 def storage(method: str, key: str, content: bytes | None = None, mime: str = ''):
     cfg = settings()  # service key stays server-side; objects are only reachable through authorized endpoints
-    headers = {'apikey': cfg.supabase_service_role_key, 'Authorization': f'Bearer {cfg.supabase_service_role_key}'}
+    headers = service_headers()
     if mime:
         headers['Content-Type'] = mime
     try:

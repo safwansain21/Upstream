@@ -5,6 +5,7 @@ network values come from fixtures/ (SCIENTIFIC-ENGINE.md canonical fixtures), ne
 """
 import json
 import math
+import os
 import sys
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -18,7 +19,7 @@ sys.path[:0] = [str(ROOT), str(ROOT / 'packages/engine')]
 from datetime import timedelta  # noqa: E402
 
 from fixtures.networks import DISCHARGES, direct_reading, network1, network1_snapshot, unsupported_networks  # noqa: E402
-from services.api.config import settings  # noqa: E402
+from services.api.config import service_headers, settings  # noqa: E402
 from services.api.db import transaction  # noqa: E402
 
 PASSWORD = 'upstream-example-only'  # ponytail: local example credentials; production refuses EXAMPLE_MODE
@@ -45,7 +46,8 @@ def sid(name: str) -> str:
 def guard():
     cfg = settings()
     host = urlsplit(cfg.database_url).hostname
-    if cfg.environment == 'production' or not cfg.example_mode or host not in {'127.0.0.1', 'localhost', 'db'}:
+    hosted_demo = os.environ.get('UPSTREAM_SEED_HOSTED_DEMO') == '1'  # explicit opt-in for the hosted synthetic demo (docs/hosting.md)
+    if cfg.environment == 'production' or not cfg.example_mode or (host not in {'127.0.0.1', 'localhost', 'db'} and not hosted_demo):
         raise SystemExit('Refusing to seed: requires EXAMPLE_MODE=true, non-production and a local database.')
     if not cfg.supabase_service_role_key:
         raise SystemExit('Set SUPABASE_SERVICE_ROLE_KEY in .env (see `pnpm exec supabase status`).')
@@ -56,9 +58,7 @@ def ensure_user(db, cfg, email: str) -> str:
     row = db.execute('select id from auth.users where email=%s', (email,)).fetchone()
     if row:
         return str(row['id'])
-    key = cfg.supabase_service_role_key
-    response = httpx.post(cfg.supabase_url + '/auth/v1/admin/users', timeout=15,
-                          headers={'apikey': key, 'Authorization': f'Bearer {key}'},
+    response = httpx.post(cfg.supabase_url + '/auth/v1/admin/users', timeout=15, headers=service_headers(),
                           json={'email': email, 'password': PASSWORD, 'email_confirm': True})
     response.raise_for_status()
     return response.json()['id']

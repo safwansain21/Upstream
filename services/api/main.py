@@ -25,7 +25,7 @@ from upstream_engine.readiness import readiness_reasons  # noqa: E402
 from services.worker.snapshot import NotReady, build as build_snapshot  # noqa: E402
 
 from .auth import Identity, identity
-from .config import settings
+from .config import service_headers, settings
 from .contracts import Assignment, CaseDecision, ProfilePatch, ReportCreate, StrictModel, TaskCreate, TaskTransition
 from .db import transaction
 from .security import DomainError, validate_webhook_url, verify_origin
@@ -1424,7 +1424,7 @@ def example_sign_in(body: ExampleSignIn, request: Request):
     email = EXAMPLE_ROLES[body.role][0]
     try:
         r = httpx.post(cfg.supabase_url.rstrip('/') + '/auth/v1/admin/generate_link', timeout=15, json={'type': 'magiclink', 'email': email},
-                       headers={'apikey': cfg.supabase_service_role_key, 'Authorization': 'Bearer ' + cfg.supabase_service_role_key})
+                       headers=service_headers())
         r.raise_for_status()
         data = r.json()
         token_hash = data.get('hashed_token') or (data.get('properties') or {}).get('hashed_token')
@@ -1513,7 +1513,7 @@ def request_deletion(body: DeletionRequest, request: Request, user: Identity = D
                        (org['org_id'], user.user_id, user.user_id))
     try:  # block new sessions; existing tokens are refused because membership is revoked
         httpx.put(f'{cfg.supabase_url}/auth/v1/admin/users/{user.user_id}', json={'ban_duration': '876000h'}, timeout=15,
-                  headers={'apikey': cfg.supabase_service_role_key, 'Authorization': f'Bearer {cfg.supabase_service_role_key}'}).raise_for_status()
+                  headers=service_headers()).raise_for_status()
     except httpx.HTTPError:
         raise DomainError('PROVIDER_UNAVAILABLE', 'Your request was recorded, but sign-in could not be disabled yet. An administrator will complete it.', 503, True)
     return envelope({'requested': True, 'note': 'Your account is disabled and your public identity removed. Evidence you contributed stays, without your name.'}, request)
