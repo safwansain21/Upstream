@@ -1394,6 +1394,47 @@ def example_case(db, slug):
         where o.example and c.title=%s and c.merged_into is null order by c.created_at limit 1''', (EXAMPLES[slug][0],)).fetchone()
 
 
+EXAMPLE_ROLES = {'coordinator': ('coordinator@example.test', 'Coordinator'), 'expert': ('expert@example.test', 'Expert reviewer'),
+                 'contributor': ('contributor@example.test', 'Contributor')}
+
+
+def example_sign_in_enabled() -> bool:
+    cfg = settings()
+    return bool(cfg.example_mode and cfg.supabase_service_role_key)
+
+
+@app.get('/api/v1/example/roles')
+def example_roles(request: Request):
+    """The synthetic people a visitor may sign in as, only while the example workspace runs (never in production)."""
+    roles = [{'role': k, 'label': v[1]} for k, v in EXAMPLE_ROLES.items()] if example_sign_in_enabled() else []
+    return envelope(roles, request)
+
+
+class ExampleSignIn(StrictModel):
+    role: Literal['coordinator', 'expert', 'contributor']
+
+
+@app.post('/api/v1/example/sign-in')
+def example_sign_in(body: ExampleSignIn, request: Request):
+    """One-click entry to the synthetic example workspace: a one-time sign-in token for a seeded example account. No
+    password is shipped to the browser; only the fixed example.test accounts qualify, and only in example mode."""
+    if not example_sign_in_enabled():
+        raise DomainError('NOT_FOUND', 'Record not found.', 404)
+    cfg = settings()
+    email = EXAMPLE_ROLES[body.role][0]
+    try:
+        r = httpx.post(cfg.supabase_url.rstrip('/') + '/auth/v1/admin/generate_link', timeout=15, json={'type': 'magiclink', 'email': email},
+                       headers={'apikey': cfg.supabase_service_role_key, 'Authorization': 'Bearer ' + cfg.supabase_service_role_key})
+        r.raise_for_status()
+        data = r.json()
+        token_hash = data.get('hashed_token') or (data.get('properties') or {}).get('hashed_token')
+    except (httpx.HTTPError, ValueError):
+        token_hash = None
+    if not token_hash:
+        raise DomainError('PROVIDER_UNAVAILABLE', 'The example sign-in is unavailable right now. Explore the read-only example instead.', 503, True)
+    return envelope({'token_hash': token_hash, 'email': email}, request)
+
+
 @app.get('/api/v1/examples')
 def examples(request: Request):
     with transaction(worker=True) as db:
@@ -1514,8 +1555,9 @@ def ai_describe(org: UUID, body: DescribeRequest, request: Request, user: Identi
         suggestion = ai_adapter.describe(body.text, [(str(m['id']), storage('GET', m['derivative_key'])) for m in media])
         output, disposition = suggestion.model_dump_json(), 'pending_review'
         checks = ai_adapter.consistency(suggestion, [str(m) for m in body.media_ids])  # in the order the person attached them
-    except ai_adapter.ProviderUnavailable:
+    except ai_adapter.ProviderUnavailable as e:
         suggestion, output, disposition, checks = None, None, 'unavailable', []
+        reason = str(e) or ai_adapter.UNAVAILABLE
     cfg = settings()
     provider = ('gemini-generate-content' if cfg.ai_provider == 'gemini' else 'openai-responses') if ai_adapter.configured() else 'disabled'
     with transaction(worker=True) as db:
@@ -1524,7 +1566,7 @@ def ai_describe(org: UUID, body: DescribeRequest, request: Request, user: Identi
             provider, (suggestion.model_id if suggestion else cfg.ai_model) or None, ai_adapter.SCHEMA_VERSION,
             run['input_refs'], output, disposition, json.dumps(checks))).fetchone()['id']
     if suggestion is None:
-        raise DomainError('PROVIDER_UNAVAILABLE', ai_adapter.UNAVAILABLE, 503, True)
+        raise DomainError('PROVIDER_UNAVAILABLE', reason, 503, True)
     return envelope({'run_id': rid, 'suggestion': suggestion.model_dump(), 'checks': checks}, request)
 
 
@@ -1572,7 +1614,14 @@ def ai_case_summary(org: UUID, case: UUID, request: Request, user: Identity = De
             json.dumps({'case_id': str(case), 'records': [r['tag'] + ':' + r['id'] for r in records]}), json.dumps(sentences)))
     return envelope({'source': source, 'model': model, 'sentences': sentences, 'records': records,
                      'note': None if source == 'ai' else ('AI assistance is unavailable; this summary uses a fixed template.' if not ai_adapter.configured()
+                                                         else 'AI summaries are paused for now: the AI service has reached its usage limit. This summary uses the fixed template, with the same sources.' if ai_adapter.paused()
                                                          else 'The AI answer did not pass the checks, so this summary uses a fixed template.')}, request)
+
+
+@app.get('/api/v1/ai/status')
+def ai_status(request: Request):
+    """Whether AI help is available right now; pages use it to show a paused state in their AI panels."""
+    return envelope({'configured': ai_adapter.configured(), 'paused': ai_adapter.paused()}, request)
 
 
 # ---- public case snapshot (G04) and analysis cancellation (J02) ----

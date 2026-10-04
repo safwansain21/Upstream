@@ -212,6 +212,10 @@ const AI_CATEGORY: Record<string, string> = { foam_visible: "unusual_foam", colo
 function AiAssist({ draft, onAccept }: { draft: Draft; onAccept: (patch: Partial<Draft>) => void }) {
   const [consent, setConsent] = useState(false); const [busy, setBusy] = useState(false); const [note, setNote] = useState("");
   const [result, setResult] = useState<{ run_id: string; suggestion: AiSuggestion; checks: AiCheck[] } | null>(null); const [accepted, setAccepted] = useState<string[]>([]);
+  const [paused, setPaused] = useState(false);   // the AI service's usage limit is in effect: the panel says so instead of offering a button
+  async function checkStatus() {
+    try { setPaused((await api<{ configured: boolean; paused: boolean }>("/ai/status")).paused); } catch { /* status is a courtesy; the button still works */ }
+  }
   async function ask() {
     setBusy(true); setNote(""); setResult(null);
     try {
@@ -224,7 +228,7 @@ function AiAssist({ draft, onAccept }: { draft: Draft; onAccept: (patch: Partial
       const media = photos.map(p => p.mediaId).filter(Boolean) as string[];
       const r = await api<{ run_id: string; suggestion: AiSuggestion; checks: AiCheck[] }>(`/orgs/${draft.org}/ai/describe`, { method: "POST", json: { text: draft.description, media_ids: consent ? media : [], consent_photos: consent && media.length > 0 } });
       setResult(r); setAccepted([]); onAccept({ aiRunId: r.run_id });
-    } catch (e) { setNote((e as Error).message || "AI assistance is unavailable; you can continue manually."); }
+    } catch (e) { setNote((e as Error).message || "AI assistance is unavailable; you can continue manually."); checkStatus(); }
     finally { setBusy(false); }
   }
   function accept(c: AiSuggestion["observation_candidates"][number]) {
@@ -239,11 +243,13 @@ function AiAssist({ draft, onAccept }: { draft: Draft; onAccept: (patch: Partial
   }
   const hasPhotos = (draft.photos ?? []).length > 0;
   const wording = result ? result.suggestion.observation_candidates.filter(c => c.code !== "image_quality_issue") : []; // photo quality is a check, not wording
-  return <details className="ai-assist"><summary>Optional: suggest wording{hasPhotos ? " and check your photos" : " from your text"}</summary>
+  return <details className="ai-assist" onToggle={e => { if ((e.currentTarget as HTMLDetailsElement).open) checkStatus(); }}>
+    <summary>Optional: suggest wording{hasPhotos ? " and check your photos" : " from your text"}{paused ? <span className="muted"> (paused for now)</span> : null}</summary>
     <p className="field-help">Suggestions describe only what is visible or written. They never identify a pollutant, a cause or a safety risk, and nothing is added unless you accept it.{hasPhotos ? " With your photos, it also points out where your words and photos differ, so you can check before sending." : ""}</p>
     {hasPhotos ? <label className="checkbox-field"><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}/><span>Send my photos (location data removed) to the AI provider for this suggestion</span></label> : null}
-    <button type="button" className="button button-outline" disabled={busy || (!draft.description.trim() && !consent)} onClick={ask}>{busy ? "Asking…" : "Suggest wording"}</button>
-    {note ? <p role="status" className="notice">{note}</p> : null}
+    {paused ? <p role="status" className="field-help ai-paused">AI suggestions are paused for now: the AI service has reached its usage limit. Your report works fully without them, and nothing about it changes.</p>
+      : <button type="button" className="button button-outline" disabled={busy || (!draft.description.trim() && !consent)} onClick={ask}>{busy ? "Asking…" : "Suggest wording"}</button>}
+    {note && !paused ? <p role="status" className="notice">{note}</p> : null}
     {result ? <div role="status">{result.suggestion.abstained || !wording.length ? <p>No wording to suggest. You can continue manually.</p> :
       <ul>{wording.map((c, i) => <li key={i}>{c.description} <span className="muted">(from {c.input_reference === "text" ? "your text" : "a photo"})</span>{" "}
         {c.code === "location_detail_needed" ? null : accepted.includes(c.code) ? <strong>Added</strong> : <button type="button" className="button button-quiet" onClick={() => accept(c)}>Add to my report</button>}</li>)}</ul>}
