@@ -84,7 +84,8 @@ function EvidenceTimeline({ org, caseId, events, history, onHighlight }: { org: 
   const lastAssessment = [...items].reverse().find(e => e.event_type.startsWith("assessment"));
   useEffect(() => { // a revision the viewer has not seen: point at what it changed, once
     if (seen === null || !lastAssessment || lastAssessment.sequence <= seen || !changed?.size) return;
-    onHighlight(changed); const t = setTimeout(() => onHighlight(undefined), 2600); return () => clearTimeout(t);
+    // the cleanup also clears: marking the revision seen re-runs this effect, which must not strand the highlight on the map
+    onHighlight(changed); const t = setTimeout(() => onHighlight(undefined), 2600); return () => { clearTimeout(t); onHighlight(undefined); };
   }, [seen, changed]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!items.length) return null;
   return <section className="evidence-timeline surface" aria-labelledby="activity-heading">

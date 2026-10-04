@@ -345,6 +345,8 @@ def test_map_waits_for_the_result_and_announces_changes_alike():  # I12 (and I07
         p.route(re.compile(rf'.*/api/v1/orgs/[^/]+/cases/{case}/assessment$'), lambda route: route.fulfill(status=200, content_type='application/json', body=json.dumps(reduced)))
         p.get_by_role('button', name=re.compile('Recompute with current evidence|Run analysis')).click()
         expect(p.locator('[aria-live=polite]').filter(has_text=re.compile(r'retained length 5\.30 km → 2\.30 km'))).to_have_count(1, timeout=30000)
+        # the refreshed history makes the timeline point at the newest real revision's changes for 2.6 s; compare once it fades
+        expect(p.locator('.network-diagram .reach.is-highlighted')).to_have_count(0, timeout=5000)
         assert p.locator('.network-diagram .reach').evaluate_all('rs => rs.map(r => r.getAttribute("class"))') == before
 
 

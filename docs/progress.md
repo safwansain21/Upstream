@@ -1004,3 +1004,8 @@ after the suite has run against the database. Seeds and test data are unchanged.
   refreshes the assessment, assessment history, case and readiness queries.
 - Changed test: tests/e2e/test_task_flow.py::test_task_proposal_assignment_capture_and_review fills "Reason for this decision" and
   clicks "Record decision" instead of answering a dialog (intentional interface change).
+- Found by the full run after the glance fix: the timeline's "point at what changed" highlight could stay on the map for good.
+  Marking the revision seen re-ran the effect, whose cleanup cancelled the 2.6 s clear and then returned early. The cleanup now
+  clears the highlight too. Changed test: tests/e2e/test_visual_gates.py::test_map_waits_for_the_result_and_announces_changes_alike
+  waits for that 2.6 s highlight to fade before comparing the reduced overlay with the original (the history now refreshes live,
+  so the highlight appears during the test; the comparison itself is unchanged).
