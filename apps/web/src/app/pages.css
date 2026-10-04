@@ -1226,3 +1226,7 @@ a.summary-ref:hover, a.summary-ref:focus-visible, .summary-ref.is-focus { border
 .map-surface { display: flex; flex-direction: column; }
 .map-surface .atlas-map-frame { flex: 1; display: flex; flex-direction: column; gap: 10px; }
 .map-surface .atlas-map-frame > div[role="application"] { flex: 1; height: auto !important; min-height: 340px; border-radius: var(--radius); }
+
+/* the sent-link notice: message, link, then its two actions on their own row */
+.notice.send-result { display: grid; gap: 10px; }
+.notice.send-result .button-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }

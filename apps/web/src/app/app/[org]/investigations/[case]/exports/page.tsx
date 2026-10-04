@@ -36,7 +36,9 @@ function SendPanel({ org, pkg, recipients, onSent }: { org: string; pkg: Package
     <div className="form-field"><label htmlFor={`r-${pkg.id}`}>Recipient</label><select id={`r-${pkg.id}`} value={rid} onChange={e => setRid(e.target.value)}><option value="">Select a recipient…</option>{recipients.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
     <label className="checkbox-field"><input type="checkbox" checked={confirm} onChange={e => setConfirm(e.target.checked)} disabled={!rid}/><span>I am explicitly sending this package{name ? ` to ${name}` : ""}.</span></label>
     <button className="button button-primary send-button" disabled={!rid || !confirm} onClick={send}>Send package</button>
-    {link ? <div className="notice" role="status"><p>Sent. Share this scoped link with the recipient now; it is shown only once and expires in 30 days.</p><p className="mono" style={{ overflowWrap: "anywhere" }}>{link}</p></div> : null}</div>;
+    {link ? <div className="notice send-result" role="status"><p>Sent. Share this scoped link with the recipient now; it is shown only once and expires in 30 days.</p><p className="mono" style={{ overflowWrap: "anywhere" }}>{link}</p>
+      <div className="button-row"><button type="button" className="button button-outline button-small" onClick={() => navigator.clipboard?.writeText(link)}>Copy link</button>
+        <a className="text-link" href={link} target="_blank" rel="noopener">Preview what the recipient sees</a></div></div> : null}</div>;
 }
 
 /** Created → delivered → acknowledged, lit only by the recorded state (delivery and a person's acknowledgment are distinct). */
