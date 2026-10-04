@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 264 passed, 2 skipped (destructive), 2026-10-04, fresh `supabase db reset` + seed_example + seed_load')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 268 passed, 2 skipped (destructive): 265 in the full run, 3 failed then passed on rerun (two timing-sensitive browser tests, 3 of 3 alone; the handoff test after listing the two new test files), 2026-10-04, fresh `supabase db reset` + seed_example + seed_load')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
@@ -44,7 +44,7 @@ PASSES = {
     'H09': ['tests/e2e/test_offline.py::test_expired_session_keeps_the_form_and_resumes_after_sign_in'],
     'H12': ['tests/e2e/test_offline.py::test_offline_submission_is_queued_then_sent_once_with_photo', W + 'test_signed_in_photo_report_uploads_then_submits'],
     'B10': ['tests/api/test_ai.py::test_unavailable_ai_is_labelled_and_never_blocks_the_report', 'tests/api/test_ai.py::test_valid_suggestion_requires_review_and_photos_need_consent', GU + 'test_ai_unavailable_is_labelled_and_manual_reporting_continues'],
-    'H08': ['tests/api/test_ai.py::test_unavailable_ai_is_labelled_and_never_blocks_the_report', 'tests/api/test_ai.py::test_provider_timeout_falls_back_quickly', GU + 'test_ai_unavailable_is_labelled_and_manual_reporting_continues', 'tests/api/test_ai_summary.py::test_without_a_provider_the_template_is_labelled'],
+    'H08': ['tests/api/test_ai.py::test_unavailable_ai_is_labelled_and_never_blocks_the_report', 'tests/api/test_ai.py::test_provider_timeout_falls_back_quickly', GU + 'test_ai_unavailable_is_labelled_and_manual_reporting_continues', 'tests/api/test_ai_summary.py::test_without_a_provider_the_template_is_labelled', 'tests/api/test_ai_quota.py::test_usage_limit_pauses_ai_help_openly_and_stops_calling', 'tests/api/test_ai_quota.py::test_the_first_success_clears_the_pause'],
     'G07': [H + 'test_foreign_origin_rejected', 'tests/api/test_contracts.py::test_origin_mismatch_rejected', GU + 'test_report_html_is_rendered_as_text_not_executed', 'tests/api/test_ai.py::test_prompt_injection_in_report_text_cannot_act', 'tests/api/test_ai.py::test_invalid_or_overreaching_output_is_rejected_whole[extra_key]', 'tests/api/test_ai_summary.py::test_an_unsupported_answer_falls_back_to_the_template_whole[invented]'],
     'A02': [GM + 'test_core_workflow_runs_without_paid_providers', W + 'test_guest_landmark_report_survives_sign_in_and_opens_one_case', 'tests/e2e/test_export_flow.py::test_package_send_and_recipient_acknowledgment'],
     'B05': [GU + 'test_geolocation_denied_still_allows_landmark_report_without_land_assertion'],

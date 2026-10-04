@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { AppHeader } from "../../components/app-header";
 import { Arrow } from "../../components/brand";
 import { DocumentTitle } from "../../components/document-title";
@@ -9,7 +10,7 @@ import { EyeIcon, LockIcon } from "../../components/icons";
 import { DuskScene } from "../../components/scene/dusk-scene";
 import { SceneRoute, type Stop } from "../../components/scene/scene-route";
 import { InlineError } from "../../components/ui";
-import { safeNext, supabase } from "../../lib/api";
+import { api, safeNext, supabase } from "../../lib/api";
 
 function SignIn() {
   const params = useSearchParams(); const router = useRouter();
@@ -21,6 +22,17 @@ function SignIn() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
     if (error) setError(error.message); else router.replace(next);
+  }
+  // the synthetic example workspace (example mode only): sign in as one of its people with one click, no password shown
+  const roles = useQuery({ queryKey: ["example-roles"], queryFn: () => api<{ role: string; label: string }[]>("/example/roles"), retry: false });
+  async function asExample(role: string) {
+    setBusy(true); setError("");
+    try {
+      const { token_hash } = await api<{ token_hash: string; email: string }>("/example/sign-in", { method: "POST", json: { role } });
+      const { error } = await supabase.auth.verifyOtp({ token_hash, type: "magiclink" });
+      if (error) throw error;
+      router.replace(next);
+    } catch (e) { setError((e as Error).message || "The example sign-in is unavailable right now."); setBusy(false); }
   }
   async function withLink() {
     if (!email) { setError("Enter your email address first."); return; }
@@ -43,6 +55,9 @@ function SignIn() {
       <button className="button button-primary button-block" disabled={busy || !password}>{busy ? "Signing in…" : "Sign in"}</button>
       <p className="access-alt">Prefer not to use a password? <button type="button" className="text-link" disabled={busy} onClick={withLink}>Email me a sign-in link</button></p>
       <hr/>
+      {roles.data?.length ? <div className="access-example"><p>Exploring the example? Sign in as one of its synthetic people:</p>
+        <div className="button-row">{roles.data.map(r => <button key={r.role} type="button" className="button button-outline button-small" disabled={busy} onClick={() => asExample(r.role)}>{r.label}</button>)}</div>
+        <p className="subtle">Every record in the example workspace is invented, and other visitors see the changes you make there.</p><hr/></div> : null}
       <p className="access-new">New here? <Link className="text-link" href="/report/new">Report an observation <Arrow/></Link><br/><span className="subtle">The email link creates your account once you verify your address.</span></p>
     </form>
     <p className="access-privacy"><LockIcon size={18}/> Your information stays private and is used only to support your investigations on Upstream.</p>

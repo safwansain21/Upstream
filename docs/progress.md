@@ -967,3 +967,15 @@ after the suite has run against the database. Seeds and test data are unchanged.
 - Tests: tests/packages/test_fhir.py::test_oneaquahealth_profiles_claimed_only_where_they_hold added;
   test_exact_decimal_version_attribution_and_custom_canonical_survive now asserts Upstream's profile comes first (the list
   gained the IG profile, an intentional interface change); tests/packages/test_fhir_official.py passes with the IG loaded.
+
+### 2026-10-04, AI usage-limit state and one-click example entry
+
+- AI usage limit: a provider 429 (Gemini RESOURCE_EXHAUSTED, OpenAI rate limit) pauses AI help for the delay the provider
+  asks (1 to 60 minutes; cleared by the next success). While paused no calls go out; the report form's assistant shows
+  "(paused for now)" in its own summary line and one plain sentence instead of the button (no banner strip, per the design
+  rules); case summaries use the fixed template and the provenance line says why. `GET /api/v1/ai/status` reports it.
+- Example entry: in example mode only, the sign-in page offers the example's coordinator, expert reviewer and contributor;
+  the server returns a one-time Supabase sign-in token for the fixed example.test account (no password in the browser) and
+  the page redeems it. The examples page links to it. Outside example mode both endpoints are closed.
+- Tests: tests/api/test_ai_quota.py (2), tests/api/test_example_sign_in.py (2). Existing AI tests unchanged and passing.
+- Before the hosted link is shared: reset the example database (test runs leave synthetic test cases in the list).

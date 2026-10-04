@@ -59,7 +59,9 @@ Guardrails, each covered by automated tests (`tests/api/test_ai.py`): the provid
 schema; report text is passed as quoted data, so instructions hidden in a report cannot act; an answer that cites an input
 it was not given, adds a field, or names a diagnosis is rejected whole; photos are sent only with explicit consent and with
 location data removed; each run records the provider, the model version the provider reports, the inputs' hashes and what
-the person accepted. If the provider is unavailable, the form says so and reporting continues by hand.
+the person accepted. If the provider is unavailable, the form says so and reporting continues by hand. When the provider's
+usage limit is reached (HTTP 429), AI help pauses openly: the assistant panel says it is paused, case summaries use the fixed
+template with a note saying why, and no further calls go out until the limit lifts (`tests/api/test_ai_quota.py`).
 
 ## One Health: shown, not claimed
 
@@ -145,6 +147,9 @@ Open http://127.0.0.1:3000. Example accounts (local example workspace only, synt
 `coordinator@example.test`, `expert@example.test`, `monitor@example.test`, `contributor@example.test`,
 `admin@example.test`, password `upstream-example-only`. Production refuses `EXAMPLE_MODE=true`.
 Evidence packages are unsigned unless `EXPORT_SIGNING_KEY_ID` and `EXPORT_SIGNING_PRIVATE_KEY` are set (see `docs/runbook.md`).
+
+In example mode the sign-in page also offers one-click entry as the example's coordinator, expert reviewer or contributor
+(a one-time sign-in token from the server; no password reaches the browser; `tests/api/test_example_sign_in.py`).
 
 A good path through the example: sign in as `contributor@example.test` and report an observation with a photo, using
 "Optional: suggest wording and check your photos"; then sign in as `coordinator@example.test` and open **Mill Brook**:

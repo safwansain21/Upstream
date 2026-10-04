@@ -231,6 +231,9 @@ html[data-motion="reduced"] .spine-stop::before, html[data-motion="reduced"] .sp
 .password-field input { padding-right: 52px !important; }
 .password-field .icon-button { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); color: var(--quiet); }
 .access-alt, .access-new { text-align: center; color: var(--quiet); }
+.access-example { text-align: center; color: var(--quiet); }
+.access-example .button-row { justify-content: center; margin: 12px 0 10px; }
+.access-example .subtle { font-size: var(--size-small); margin: 0 0 4px; }
 .access-alt .text-link { display: inline; text-decoration: underline; }
 .access-panel hr { margin: 2px 0; }
 .access-privacy { display: flex; align-items: center; gap: 12px; color: var(--quiet); font-size: var(--size-small); max-width: 44ch; text-align: left; }

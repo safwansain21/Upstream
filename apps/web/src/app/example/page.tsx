@@ -34,10 +34,12 @@ function useLive() {
 
 export default function ExamplesPage() {
   const q = useQuery({ queryKey: ["examples"], queryFn: () => api<Example[]>("/examples") });
+  const roles = useQuery({ queryKey: ["example-roles"], queryFn: () => api<{ role: string; label: string }[]>("/example/roles"), retry: false });
   const list = useLive();
   return <><AppHeader/><main id="main-content" className="page-shell examples-page">
     <PageIntro title="Follow the evidence." aside={<MarginLine>Different observations. A broader view.</MarginLine>}><p>Walk through synthetic investigations computed by the real engine. Start with Mill Brook.</p></PageIntro>
-    <div className="examples-head"><div><h2>Synthetic examples</h2><p className="muted">Places and measurements here are invented for demonstration. Read-only: nothing here changes real records.</p></div></div>
+    <div className="examples-head"><div><h2>Synthetic examples</h2><p className="muted">Places and measurements here are invented for demonstration. Read-only: nothing here changes real records.</p>
+      {roles.data?.length ? <p className="muted">To try the workflow itself, <Link className="text-link" href="/sign-in">sign in as one of the example’s people <Arrow/></Link></p> : null}</div></div>
     {q.error ? <InlineError>{q.error.message} <button className="button button-quiet" onClick={() => q.refetch()}>Retry</button></InlineError> : !q.data ? <LoadingState label="Loading examples…"/>
       : !q.data.length ? <EmptyState title="No example workspace is installed" steps={["An administrator can load the synthetic example workspace with the documented seed command (pnpm seed:example).", "You can still report a real observation at any time."]}
           action={<Link className="button button-outline" href="/report/new">Report an observation</Link>}/>
