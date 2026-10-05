@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 CMD = ('`.venv/Scripts/python.exe -m pytest tests -q -p no:cacheprovider -rA` '
-       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 268 passed, 2 skipped (destructive): 265 in the full run, 3 failed then passed on rerun (two timing-sensitive browser tests, 3 of 3 alone; the handoff test after listing the two new test files), 2026-10-04, fresh `supabase db reset` + seed_example + seed_load')
+       '(local Supabase + `pnpm seed:example`; API :8000, worker, `next start` :3000) - 268 passed, 2 skipped (destructive): 267 in the full run, 1 failed then passed on rerun (test_visual_gates.py::test_contrast_zoom_reflow_and_no_colour_only_status, an axe contrast reading of an /onboarding button mid-transition; passed alone), 2026-10-04, fresh `supabase db reset` + seed_example + seed_load')
 E, P, B = 'tests/engine/test_science.py::', 'tests/engine/test_properties.py::', 'tests/engine/test_background.py::'
 H, AN, F = 'tests/api/test_http.py::', 'tests/api/test_analysis.py::', 'tests/api/test_field_work.py::'
 W = 'tests/e2e/test_report_flow.py::'
